@@ -1,5 +1,4 @@
 ---
-import 'locomotive-scroll/dist/locomotive-scroll.css';
 import type { Project } from '../data/projects';
 
 interface Props {
@@ -18,14 +17,13 @@ const cases = projects.filter((project) => project.gallery?.length);
 				<span></span><span></span>
 			</button>
 			<div class="case-modal__viewport" data-case-viewport tabindex="0">
-				<div class="case-modal__content" data-case-content data-scroll-container>
+				<div class="case-modal__content" data-case-content>
 					{project.gallery?.map((image, index) => (
 						<img
 							src={image}
 							alt={`${project.title} — изображение ${index + 1}`}
-							loading={index < 2 ? 'eager' : 'lazy'}
+							loading="eager"
 							decoding="async"
-							data-scroll
 						/>
 					))}
 				</div>
@@ -35,36 +33,36 @@ const cases = projects.filter((project) => project.gallery?.length);
 </div>
 
 <script>
-	import LocomotiveScroll from 'locomotive-scroll';
+	import Lenis from 'lenis';
 
 	const layer = document.querySelector<HTMLElement>('[data-case-layer]');
 	if (layer) {
 		const modals = [...layer.querySelectorAll<HTMLElement>('[data-case-modal]')];
-		let locomotive: {
-			destroy: () => void;
-			update: () => void;
-			instance?: { limit?: { y?: number } };
-		} | null = null;
+		let lenis: Lenis | null = null;
+		let scrollFrame = 0;
 		let activeModal: HTMLElement | null = null;
-		let openingId = 0;
+
+		const destroyScroll = () => {
+			cancelAnimationFrame(scrollFrame);
+			scrollFrame = 0;
+			lenis?.destroy();
+			lenis = null;
+		};
 
 		const closeCase = () => {
 			if (!activeModal) return;
-			openingId += 1;
 			layer.classList.remove('is-open');
 			layer.setAttribute('aria-hidden', 'true');
 			document.documentElement.classList.remove('case-is-open');
-			locomotive?.destroy();
-			locomotive = null;
+			destroyScroll();
 			activeModal.classList.remove('is-active');
 			activeModal = null;
 		};
 
-		const openCase = async (slug: string) => {
+		const openCase = (slug: string) => {
 			const modal = modals.find((item) => item.dataset.caseModal === slug);
 			if (!modal) return;
-			const currentOpeningId = ++openingId;
-			locomotive?.destroy();
+			destroyScroll();
 			activeModal?.classList.remove('is-active');
 			activeModal = modal;
 			modal.classList.add('is-active');
@@ -76,35 +74,24 @@ const cases = projects.filter((project) => project.gallery?.length);
 			const content = modal.querySelector<HTMLElement>('[data-case-content]');
 			if (!viewport || !content) return;
 			viewport.scrollTop = 0;
+			requestAnimationFrame(() => {
+				if (activeModal !== modal) return;
+				lenis = new Lenis({
+					wrapper: viewport,
+					content,
+					wheelEventsTarget: viewport,
+					smoothWheel: true,
+					syncTouch: true,
+					lerp: 0.085,
+					autoResize: true,
+				});
 
-			const images = [...content.querySelectorAll<HTMLImageElement>('img')];
-			await Promise.all(images.map(async (image) => {
-				image.loading = 'eager';
-				if (!image.complete) {
-					await new Promise<void>((resolve) => {
-						image.addEventListener('load', () => resolve(), { once: true });
-						image.addEventListener('error', () => resolve(), { once: true });
-					});
-				}
-				await image.decode().catch(() => undefined);
-			}));
-
-			if (currentOpeningId !== openingId || activeModal !== modal) return;
-			await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-			locomotive = new LocomotiveScroll({
-				el: content,
-				smooth: true,
-				lerp: 0.085,
-				scrollFromAnywhere: false,
-				scrollbarContainer: modal,
-				tablet: { smooth: true },
-				smartphone: { smooth: true },
+				const renderScroll = (time: number) => {
+					lenis?.raf(time);
+					scrollFrame = requestAnimationFrame(renderScroll);
+				};
+				scrollFrame = requestAnimationFrame(renderScroll);
 			});
-			locomotive.update();
-			const viewportDifference = Math.max(0, window.innerHeight - viewport.clientHeight);
-			if (typeof locomotive.instance?.limit?.y === 'number') {
-				locomotive.instance.limit.y += viewportDifference;
-			}
 		};
 
 		document.addEventListener('click', (event) => {
@@ -155,7 +142,7 @@ const cases = projects.filter((project) => project.gallery?.length);
 		display: none;
 		width: min(1600px, calc(100vw - 80px));
 		height: 100dvh;
-		overflow: hidden;
+		overflow: auto;
 		background: #000;
 		border-radius: 3px;
 		box-shadow: 0 30px 90px rgb(0 0 0 / 28%);
