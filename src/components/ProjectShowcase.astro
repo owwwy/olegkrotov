@@ -333,7 +333,7 @@ const firstProject = projects[0];
 				const progress = index / 12;
 				const tilt = direction >= 0 ? progress : 1 - progress;
 				const arc = Math.sin(progress * Math.PI);
-				const inset = strength * (2 + tilt * 12 + arc * 18);
+				const inset = strength * (2 + tilt * 12 + arc * 40);
 				return `${inset.toFixed(2)}px ${(progress * 100).toFixed(2)}%`;
 			}).reverse();
 			media.style.setProperty(
