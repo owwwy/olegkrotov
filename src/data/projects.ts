@@ -18,4 +18,16 @@ export const projects: Project[] = [
 		image: '/projects/jetsite.webp',
 		imageAlt: 'Проект JETSITE',
 	},
+	{
+		title: 's-industrial',
+		category: 'индустрия спорта',
+		image: '/projects/s-industrial.webp',
+		imageAlt: 'Проект s-industrial',
+	},
+	{
+		title: 'podryado',
+		category: 'Подрядчик',
+		image: '/projects/podryado.webp',
+		imageAlt: 'Проект podryado',
+	},
 ];
