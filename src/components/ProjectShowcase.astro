@@ -347,23 +347,34 @@ const firstProject = projects[0];
 		};
 
 		const selectProject = (nextIndex: number) => {
-			if (isTransitioning || nextIndex === activeIndex || nextIndex < 0 || nextIndex >= panels.length) {
+			const wrappedIndex = ((nextIndex % panels.length) + panels.length) % panels.length;
+			if (isTransitioning || wrappedIndex === activeIndex) {
 				releaseResistance();
 				return;
 			}
 
 			isTransitioning = true;
 			const previousIndex = activeIndex;
+			const direction = Math.sign(nextIndex - activeIndex) || 1;
 			const previousTitle = panels[activeIndex].dataset.title ?? '';
-			const nextTitle = panels[nextIndex].dataset.title ?? '';
+			const nextTitle = panels[wrappedIndex].dataset.title ?? '';
 			const previousCategory = panels[activeIndex].dataset.category ?? '';
-			const nextCategory = panels[nextIndex].dataset.category ?? '';
-			activeIndex = nextIndex;
-			const direction = Math.sign(activeIndex - previousIndex);
+			const nextCategory = panels[wrappedIndex].dataset.category ?? '';
+			activeIndex = wrappedIndex;
 			lens?.setPair(previousIndex, activeIndex);
 
 			panels.forEach((panel, index) => {
-				panel.style.transform = `translate3d(0, ${(index - activeIndex) * 100}%, 0)`;
+				panel.style.transition = 'none';
+				panel.style.transform = index === previousIndex
+					? 'translate3d(0, 0%, 0)'
+					: `translate3d(0, ${direction * 100}%, 0)`;
+			});
+			void media.offsetHeight;
+			panels.forEach((panel, index) => {
+				panel.style.removeProperty('transition');
+				panel.style.transform = index === activeIndex
+					? 'translate3d(0, 0%, 0)'
+					: `translate3d(0, ${direction * -100}%, 0)`;
 				panel.setAttribute('aria-hidden', index === activeIndex ? 'false' : 'true');
 			});
 
