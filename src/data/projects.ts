@@ -25,6 +25,7 @@ export const projects: Project[] = [
 		category: 'e-commerce',
 		image: '/projects/addinol.webp',
 		imageAlt: 'Проект ADDINOL',
+		gallery: numberedGallery('addinol', 17, {}, 1),
 	},
 	{
 		slug: 'jetsite',
