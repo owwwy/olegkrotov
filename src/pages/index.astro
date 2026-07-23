@@ -1,6 +1,6 @@
 ---
 import '@fontsource-variable/onest';
-import ProjectHero from '../components/ProjectHero.astro';
+import ProjectShowcase from '../components/ProjectShowcase.astro';
 import ScrambleLink from '../components/ScrambleLink.astro';
 import { projects } from '../data/projects';
 
@@ -45,7 +45,7 @@ const navigation = [
 			</aside>
 
 			<main id="works">
-				{projects.map((project) => <ProjectHero {...project} />)}
+				<ProjectShowcase projects={projects} />
 			</main>
 		</div>
 	</body>
@@ -72,6 +72,7 @@ const navigation = [
 		min-width: 1140px;
 		background: var(--color-background);
 		scroll-behavior: smooth;
+		scroll-snap-type: y mandatory;
 	}
 
 	body {

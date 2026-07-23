@@ -1,0 +1,219 @@
+---
+import type { Project } from '../data/projects';
+
+interface Props {
+	projects: Project[];
+}
+
+const { projects } = Astro.props;
+const firstProject = projects[0];
+---
+
+<section class="showcase" data-project-showcase style={`--project-count: ${projects.length}`}>
+	<div class="showcase__stage">
+		<div class="showcase__media" data-project-media>
+			{projects.map((project, index) => (
+				<div
+					class="showcase__panel"
+					data-project-panel
+					data-title={project.title}
+					data-category={project.category}
+					style={`transform: translate3d(0, ${index * 100}%, 0)`}
+				>
+					<img src={project.image} alt={project.imageAlt} loading={index === 0 ? 'eager' : 'lazy'} />
+				</div>
+			))}
+		</div>
+
+		<header class="showcase__heading">
+			<h2 aria-live="polite" data-project-title aria-label={firstProject.title}>
+				{[...firstProject.title].map((character) => <span>{character}</span>)}
+			</h2>
+			<p data-project-category>{firstProject.category}</p>
+		</header>
+	</div>
+
+	<div class="showcase__steps" aria-hidden="true">
+		{projects.map(() => <div class="showcase__step"></div>)}
+	</div>
+</section>
+
+<script>
+	const SCRAMBLE_DURATION = 320;
+	const SCRAMBLE_TICK = 42;
+	const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+	const randomCharacter = (pool: string[]) => pool[Math.floor(Math.random() * pool.length)] ?? '';
+
+	const setTitle = (element: HTMLElement, value: string) => {
+		element.replaceChildren(
+			...[...value].map((character) => {
+				const span = document.createElement('span');
+				span.textContent = character;
+				return span;
+			}),
+		);
+		element.setAttribute('aria-label', value);
+	};
+
+	const scrambleTitle = (element: HTMLElement, from: string, to: string) => {
+		if (reducedMotion.matches) {
+			setTitle(element, to);
+			return;
+		}
+
+		const target = [...to];
+		const pool = [...new Set([...from, ...to].filter((character) => character !== ' '))];
+		const length = Math.max([...from].length, target.length);
+		const startedAt = performance.now();
+		let lastTick = 0;
+
+		const frame = (now: number) => {
+			const elapsed = now - startedAt;
+			const progress = Math.min(1, elapsed / SCRAMBLE_DURATION);
+
+			if (now - lastTick >= SCRAMBLE_TICK || progress === 1) {
+				lastTick = now;
+				const lockedCount = Math.floor(progress * length);
+				const next = Array.from({ length }, (_, index) =>
+					index < lockedCount ? (target[index] ?? '') : randomCharacter(pool),
+				).join('');
+				setTitle(element, progress === 1 ? to : next);
+			}
+
+			if (progress < 1) requestAnimationFrame(frame);
+		};
+
+		requestAnimationFrame(frame);
+	};
+
+	document.querySelectorAll<HTMLElement>('[data-project-showcase]').forEach((showcase) => {
+		const panels = [...showcase.querySelectorAll<HTMLElement>('[data-project-panel]')];
+		const title = showcase.querySelector<HTMLElement>('[data-project-title]');
+		const category = showcase.querySelector<HTMLElement>('[data-project-category]');
+		if (!title || !category || panels.length === 0) return;
+
+		let activeIndex = 0;
+		let ticking = false;
+
+		const update = () => {
+			const scrollRange = Math.max(1, showcase.offsetHeight - window.innerHeight);
+			const progress = Math.min(1, Math.max(0, -showcase.getBoundingClientRect().top / scrollRange));
+			const panelProgress = progress * (panels.length - 1);
+
+			panels.forEach((panel, index) => {
+				panel.style.transform = `translate3d(0, ${(index - panelProgress) * 100}%, 0)`;
+			});
+
+			const nextIndex = Math.min(panels.length - 1, Math.round(panelProgress));
+			if (nextIndex !== activeIndex) {
+				const previousTitle = panels[activeIndex].dataset.title ?? '';
+				const nextTitle = panels[nextIndex].dataset.title ?? '';
+				activeIndex = nextIndex;
+				scrambleTitle(title, previousTitle, nextTitle);
+				category.textContent = panels[nextIndex].dataset.category ?? '';
+			}
+
+			ticking = false;
+		};
+
+		const requestUpdate = () => {
+			if (ticking) return;
+			ticking = true;
+			requestAnimationFrame(update);
+		};
+
+		window.addEventListener('scroll', requestUpdate, { passive: true });
+		window.addEventListener('resize', requestUpdate);
+		update();
+	});
+</script>
+
+<style>
+	.showcase {
+		position: relative;
+		height: calc(var(--project-count) * 100svh);
+	}
+
+	.showcase__stage {
+		position: sticky;
+		top: 0;
+		display: grid;
+		grid-template-columns: repeat(9, minmax(0, 1fr));
+		column-gap: var(--grid-gap);
+		align-items: center;
+		height: 100svh;
+		padding-block: var(--page-padding);
+	}
+
+	.showcase__media {
+		position: relative;
+		grid-column: 3 / span 7;
+		grid-row: 1;
+		align-self: stretch;
+		overflow: hidden;
+		background: var(--color-project);
+	}
+
+	.showcase__panel {
+		position: absolute;
+		inset: 0;
+		will-change: transform;
+	}
+
+	.showcase__panel img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.showcase__heading {
+		position: relative;
+		z-index: 1;
+		grid-column: 1 / span 5;
+		grid-row: 1;
+	}
+
+	h2,
+	p {
+		margin: 0;
+	}
+
+	h2 {
+		font-size: 120px;
+		font-weight: 700;
+		line-height: 120px;
+		white-space: nowrap;
+	}
+
+	h2 span {
+		display: inline-block;
+	}
+
+	p {
+		color: var(--color-muted);
+		font-size: 20px;
+		font-weight: 500;
+		line-height: 24px;
+	}
+
+	.showcase__steps {
+		position: relative;
+		z-index: -1;
+		margin-top: -100svh;
+		pointer-events: none;
+	}
+
+	.showcase__step {
+		height: 100svh;
+		scroll-snap-align: start;
+		scroll-snap-stop: always;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.showcase__panel {
+			will-change: auto;
+		}
+	}
+</style>
