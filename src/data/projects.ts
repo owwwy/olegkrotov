@@ -30,18 +30,18 @@ export const projects: Project[] = [
 	},
 	{
 		slug: 's-industrial',
-		title: 'ИНДУСТРИЯ СПОРТА',
+		title: 'S-INDUSTRIAL',
 		category: 'web-site',
 		image: '/projects/s-industrial.webp',
-		imageAlt: 'Проект «Индустрия спорта»',
+		imageAlt: 'Проект S-INDUSTRIAL',
 		gallery: numberedGallery('s-industrial-case', 19, { 9: 'png', 10: 'png', 12: 'png' }),
 	},
 	{
 		slug: 'podryado',
-		title: 'ПОДРЯДЧИК',
+		title: 'PODRYADO',
 		category: 'web-site',
 		image: '/projects/podryado.webp',
-		imageAlt: 'Проект «Подрядчик»',
+		imageAlt: 'Проект PODRYADO',
 		gallery: numberedGallery('podryado', 32, { 2: 'png', 15: 'png', 28: 'png' }),
 	},
 ];
