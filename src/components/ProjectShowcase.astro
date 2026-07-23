@@ -344,10 +344,7 @@ const firstProject = projects[0];
 			const rightPoints = profile.map(({ progress }) => {
 				const distanceFromCenter = Math.abs(progress - 0.5) * 2;
 				const cornerCurve = Math.pow(distanceFromCenter, 3);
-				const directionWeight = direction >= 0
-					? 0.72 + (1 - progress) * 0.28
-					: 0.72 + progress * 0.28;
-				const inset = strength * 1.2 * cornerCurve * directionWeight;
+				const inset = strength * 3.2 * cornerCurve;
 				return `calc(100% - ${inset.toFixed(3)}vw) ${(progress * 100).toFixed(2)}%`;
 			});
 			media.style.setProperty(
