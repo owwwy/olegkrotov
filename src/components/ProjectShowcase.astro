@@ -252,7 +252,7 @@ const firstProject = projects[0];
 		);
 	};
 
-	const scrambleText = (element: HTMLElement, from: string, to: string) => {
+	const scrambleText = (element: HTMLElement, from: string, to: string, uppercase = true) => {
 		element.setAttribute('aria-label', to);
 
 		if (reducedMotion.matches) {
@@ -261,8 +261,9 @@ const firstProject = projects[0];
 		}
 
 		const target = [...to];
+		const normalize = (value: string) => uppercase ? value.toUpperCase() : value.toLowerCase();
 		const pool = [...new Set(
-			[...from.toUpperCase(), ...to.toUpperCase()].filter((character) => character !== ' '),
+			[...normalize(from), ...normalize(to)].filter((character) => character !== ' '),
 		)];
 		const length = Math.max([...from].length, target.length);
 		const lockOrder = shuffle(Array.from({ length }, (_, index) => index));
@@ -277,7 +278,7 @@ const firstProject = projects[0];
 				const lockedCount = Math.floor(progress * length);
 				const lockedIndexes = new Set(lockOrder.slice(0, lockedCount));
 				const next = Array.from({ length }, (_, index) =>
-					lockedIndexes.has(index) ? (target[index] ?? '').toUpperCase() : randomCharacter(pool),
+					lockedIndexes.has(index) ? normalize(target[index] ?? '') : randomCharacter(pool),
 				).join('');
 				renderTitle(element, progress === 1 ? to : next);
 			}
@@ -418,7 +419,7 @@ const firstProject = projects[0];
 			});
 
 			scrambleText(title, previousTitle, nextTitle);
-			scrambleText(category, previousCategory, nextCategory);
+			scrambleText(category, previousCategory, nextCategory, false);
 			wheelAmount = 0;
 			wheelDirection = 0;
 
