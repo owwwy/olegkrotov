@@ -84,6 +84,7 @@ const cases = projects.filter((project) => project.gallery?.length);
 					syncTouch: true,
 					lerp: 0.085,
 					autoResize: true,
+					overscroll: false,
 				});
 
 				const renderScroll = (time: number) => {
@@ -142,7 +143,7 @@ const cases = projects.filter((project) => project.gallery?.length);
 		display: none;
 		width: min(1600px, calc(100vw - 80px));
 		height: 100dvh;
-		overflow: auto;
+		overflow: hidden;
 		background: #000;
 		border-radius: 3px;
 		box-shadow: 0 30px 90px rgb(0 0 0 / 28%);
@@ -158,8 +159,9 @@ const cases = projects.filter((project) => project.gallery?.length);
 	.case-modal__viewport {
 		width: 100%;
 		height: 100%;
-		overflow: hidden;
+		overflow: auto;
 		overscroll-behavior: contain;
+		overflow-anchor: none;
 		background: #000;
 		outline: none;
 	}
@@ -181,6 +183,7 @@ const cases = projects.filter((project) => project.gallery?.length);
 	.case-modal__content {
 		min-height: 100%;
 		background: #000;
+		overflow-anchor: none;
 	}
 
 	.case-modal__close {
