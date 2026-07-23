@@ -104,11 +104,11 @@ const firstProject = projects[0];
 			vec4 readScene(vec2 uv) {
 				float flow = uv.y + uTransition * uDirection;
 				if (uDirection >= 0.0) {
-					return flow <= 1.0
+					return flow < 1.0
 						? readTexture(uCurrent, vec2(uv.x, flow), uCurrentSize)
 						: readTexture(uNext, vec2(uv.x, flow - 1.0), uNextSize);
 				}
-				return flow >= 0.0
+				return flow > 0.0
 					? readTexture(uCurrent, vec2(uv.x, flow), uCurrentSize)
 					: readTexture(uNext, vec2(uv.x, flow + 1.0), uNextSize);
 			}
@@ -446,8 +446,7 @@ const firstProject = projects[0];
 					return;
 				}
 				lens?.setPair(activeIndex, activeIndex);
-				lens?.render(0, direction, 0);
-				setResistance(0, 0);
+				setWindowShape(0, 0);
 				finishPanelTransition();
 				isTransitioning = false;
 			};
