@@ -1,0 +1,211 @@
+---
+import 'locomotive-scroll/locomotive-scroll.css';
+import type { Project } from '../data/projects';
+
+interface Props {
+	projects: Project[];
+}
+
+const { projects } = Astro.props;
+const cases = projects.filter((project) => project.gallery?.length);
+---
+
+<div class="case-layer" data-case-layer aria-hidden="true">
+	<div class="case-layer__backdrop" data-case-close></div>
+	{cases.map((project) => (
+		<section class="case-modal" data-case-modal={project.slug} aria-label={`Проект ${project.title}`}>
+			<button class="case-modal__close" type="button" data-case-close aria-label="Закрыть проект">
+				<span></span><span></span>
+			</button>
+			<div class="case-modal__viewport" data-case-viewport>
+				<div class="case-modal__content" data-case-content>
+					{project.gallery?.map((image, index) => (
+						<img
+							src={image}
+							alt={`${project.title} — изображение ${index + 1}`}
+							loading={index < 2 ? 'eager' : 'lazy'}
+							decoding="async"
+							data-scroll
+						/>
+					))}
+				</div>
+			</div>
+		</section>
+	))}
+</div>
+
+<script>
+	import LocomotiveScroll from 'locomotive-scroll';
+
+	const layer = document.querySelector<HTMLElement>('[data-case-layer]');
+	if (layer) {
+		const modals = [...layer.querySelectorAll<HTMLElement>('[data-case-modal]')];
+		let locomotive: LocomotiveScroll | null = null;
+		let activeModal: HTMLElement | null = null;
+
+		const closeCase = () => {
+			if (!activeModal) return;
+			layer.classList.remove('is-open');
+			layer.setAttribute('aria-hidden', 'true');
+			document.documentElement.classList.remove('case-is-open');
+			locomotive?.destroy();
+			locomotive = null;
+			activeModal.classList.remove('is-active');
+			activeModal = null;
+		};
+
+		const openCase = (slug: string) => {
+			const modal = modals.find((item) => item.dataset.caseModal === slug);
+			if (!modal) return;
+			locomotive?.destroy();
+			activeModal?.classList.remove('is-active');
+			activeModal = modal;
+			modal.classList.add('is-active');
+			layer.classList.add('is-open');
+			layer.setAttribute('aria-hidden', 'false');
+			document.documentElement.classList.add('case-is-open');
+
+			const viewport = modal.querySelector<HTMLElement>('[data-case-viewport]');
+			const content = modal.querySelector<HTMLElement>('[data-case-content]');
+			if (!viewport || !content) return;
+			viewport.scrollTop = 0;
+			requestAnimationFrame(() => {
+				locomotive = new LocomotiveScroll({
+					lenisOptions: {
+						wrapper: viewport,
+						content,
+						wheelEventsTarget: viewport,
+						smoothWheel: true,
+						syncTouch: true,
+						lerp: 0.085,
+					},
+				});
+			});
+		};
+
+		document.addEventListener('click', (event) => {
+			const target = event.target as Element;
+			const opener = target.closest<HTMLElement>('[data-open-case]');
+			if (opener?.dataset.openCase) openCase(opener.dataset.openCase);
+			if (target.closest('[data-case-close]')) closeCase();
+		});
+
+		document.addEventListener('keydown', (event) => {
+			if (event.key === 'Escape') closeCase();
+			const opener = (event.target as Element).closest<HTMLElement>('[data-open-case]');
+			if (opener && (event.key === 'Enter' || event.key === ' ')) {
+				event.preventDefault();
+				if (opener.dataset.openCase) openCase(opener.dataset.openCase);
+			}
+		});
+	}
+</script>
+
+<style>
+	.case-layer {
+		position: fixed;
+		z-index: 100;
+		inset: 0;
+		display: grid;
+		place-items: center;
+		padding-inline: 40px;
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 280ms ease;
+	}
+
+	.case-layer.is-open {
+		opacity: 1;
+		pointer-events: auto;
+	}
+
+	.case-layer__backdrop {
+		position: absolute;
+		inset: 0;
+		background: rgb(25 25 28 / 72%);
+		backdrop-filter: blur(10px);
+	}
+
+	.case-modal {
+		position: relative;
+		display: none;
+		width: min(1600px, calc(100vw - 80px));
+		height: 100dvh;
+		overflow: hidden;
+		background: #fff;
+		border-radius: 3px;
+		box-shadow: 0 30px 90px rgb(0 0 0 / 28%);
+		transform: translateY(24px) scale(0.985);
+		transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.case-layer.is-open .case-modal.is-active {
+		display: block;
+		transform: translateY(0) scale(1);
+	}
+
+	.case-modal__viewport {
+		width: 100%;
+		height: 100%;
+		overflow: auto;
+		overscroll-behavior: contain;
+		outline: none;
+	}
+
+	.case-modal__content,
+	.case-modal__content img {
+		display: block;
+		width: 100%;
+	}
+
+	.case-modal__content img {
+		height: auto;
+	}
+
+	.case-modal__close {
+		position: absolute;
+		z-index: 4;
+		top: 20px;
+		right: 20px;
+		width: 48px;
+		height: 48px;
+		padding: 0;
+		border: 0;
+		border-radius: 50%;
+		background: rgb(255 255 255 / 88%);
+		box-shadow: 0 4px 24px rgb(0 0 0 / 12%);
+		cursor: pointer;
+		backdrop-filter: blur(8px);
+	}
+
+	.case-modal__close span {
+		position: absolute;
+		top: 23px;
+		left: 14px;
+		width: 20px;
+		height: 1px;
+		background: #19191c;
+		transform: rotate(45deg);
+	}
+
+	.case-modal__close span:last-child {
+		transform: rotate(-45deg);
+	}
+
+	@media (min-width: 1200px) {
+		.case-layer {
+			padding-block: 40px;
+		}
+
+		.case-modal {
+			height: calc(100dvh - 80px);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.case-layer,
+		.case-modal {
+			transition-duration: 0.01ms;
+		}
+	}
+</style>
