@@ -1,5 +1,5 @@
 ---
-import 'locomotive-scroll/locomotive-scroll.css';
+import 'locomotive-scroll/dist/locomotive-scroll.css';
 import type { Project } from '../data/projects';
 
 interface Props {
@@ -17,8 +17,8 @@ const cases = projects.filter((project) => project.gallery?.length);
 			<button class="case-modal__close" type="button" data-case-close aria-label="Закрыть проект">
 				<span></span><span></span>
 			</button>
-			<div class="case-modal__viewport" data-case-viewport>
-				<div class="case-modal__content" data-case-content>
+			<div class="case-modal__viewport" data-case-viewport tabindex="0">
+				<div class="case-modal__content" data-case-content data-scroll-container>
 					{project.gallery?.map((image, index) => (
 						<img
 							src={image}
@@ -40,7 +40,7 @@ const cases = projects.filter((project) => project.gallery?.length);
 	const layer = document.querySelector<HTMLElement>('[data-case-layer]');
 	if (layer) {
 		const modals = [...layer.querySelectorAll<HTMLElement>('[data-case-modal]')];
-		let locomotive: LocomotiveScroll | null = null;
+		let locomotive: { destroy: () => void; update: () => void } | null = null;
 		let activeModal: HTMLElement | null = null;
 
 		const closeCase = () => {
@@ -71,15 +71,15 @@ const cases = projects.filter((project) => project.gallery?.length);
 			viewport.scrollTop = 0;
 			requestAnimationFrame(() => {
 				locomotive = new LocomotiveScroll({
-					lenisOptions: {
-						wrapper: viewport,
-						content,
-						wheelEventsTarget: viewport,
-						smoothWheel: true,
-						syncTouch: true,
-						lerp: 0.085,
-					},
+					el: content,
+					smooth: true,
+					lerp: 0.085,
+					scrollFromAnywhere: false,
+					scrollbarContainer: modal,
+					tablet: { smooth: true },
+					smartphone: { smooth: true },
 				});
+				locomotive.update();
 			});
 		};
 
@@ -150,6 +150,11 @@ const cases = projects.filter((project) => project.gallery?.length);
 		overflow: auto;
 		overscroll-behavior: contain;
 		outline: none;
+	}
+
+	.case-modal :global(.c-scrollbar) {
+		opacity: 0;
+		pointer-events: none;
 	}
 
 	.case-modal__content,
