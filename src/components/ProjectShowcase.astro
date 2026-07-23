@@ -301,10 +301,6 @@ const firstProject = projects[0];
 		let touchCurrentY = 0;
 		let resistanceFrame = 0;
 		let releaseTimer = 0;
-		let queuedWheelAmount = 0;
-		let queuedMoves = 0;
-		let queuedDirection = 0;
-		let consumeQueuedMove = () => {};
 		let lens: LensRenderer | null = null;
 		panels.forEach((panel, index) => {
 			panel.style.visibility = index === activeIndex ? 'visible' : 'hidden';
@@ -358,15 +354,6 @@ const firstProject = projects[0];
 			resistanceFrame = requestAnimationFrame(decay);
 		};
 
-		const queueMove = (direction: number, count = 1) => {
-			if (direction !== queuedDirection) {
-				queuedMoves = 0;
-				queuedWheelAmount = 0;
-				queuedDirection = direction;
-			}
-			queuedMoves = Math.min(8, queuedMoves + count);
-		};
-
 		const selectProject = (nextIndex: number) => {
 			const wrappedIndex = ((nextIndex % panels.length) + panels.length) % panels.length;
 			if (isTransitioning || wrappedIndex === activeIndex) {
@@ -414,7 +401,6 @@ const firstProject = projects[0];
 				window.setTimeout(() => {
 					finishPanelTransition();
 					isTransitioning = false;
-					consumeQueuedMove();
 				}, reducedMotion.matches ? 0 : TRANSITION_DURATION);
 				return;
 			}
@@ -437,51 +423,19 @@ const firstProject = projects[0];
 				setResistance(0, 0);
 				finishPanelTransition();
 				isTransitioning = false;
-				consumeQueuedMove();
 			};
 			requestAnimationFrame(animateTransition);
 		};
 
-		consumeQueuedMove = () => {
-			if (queuedMoves <= 0) return;
-			const direction = queuedDirection;
-			queuedMoves -= 1;
-			if (queuedMoves === 0) {
-				queuedDirection = 0;
-				queuedWheelAmount = 0;
-			}
-			requestAnimationFrame(() => selectProject(activeIndex + direction));
-		};
-
-		const move = (direction: number) => {
-			if (isTransitioning) {
-				queueMove(direction);
-				return;
-			}
-			selectProject(activeIndex + direction);
-		};
+		const move = (direction: number) => selectProject(activeIndex + direction);
 
 		const onWheel = (event: WheelEvent) => {
 			event.preventDefault();
-			if (Math.abs(event.deltaY) < Math.abs(event.deltaX)) return;
+			if (isTransitioning || Math.abs(event.deltaY) < Math.abs(event.deltaX)) return;
 
 			const normalizedDelta = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY;
 			const direction = Math.sign(normalizedDelta);
 			if (direction === 0) return;
-
-			if (isTransitioning) {
-				if (direction !== queuedDirection && queuedDirection !== 0) {
-					queuedMoves = 0;
-					queuedWheelAmount = 0;
-				}
-				queuedDirection = direction;
-				queuedWheelAmount += Math.min(34, Math.abs(normalizedDelta));
-				while (queuedWheelAmount >= WHEEL_THRESHOLD && queuedMoves < 8) {
-					queuedWheelAmount -= WHEEL_THRESHOLD;
-					queuedMoves += 1;
-				}
-				return;
-			}
 
 			if (direction !== wheelDirection || performance.now() - lastWheelAt > 180) wheelAmount = 0;
 			wheelDirection = direction;
