@@ -338,7 +338,7 @@ const firstProject = projects[0];
 			});
 			const maximumDepth = Math.max(...profile.map(({ depth }) => depth));
 			const points = profile.map(({ progress, depth }) => {
-				const inset = strength * 6 * (depth / maximumDepth);
+				const inset = strength * 3.2 * (depth / maximumDepth);
 				return `${inset.toFixed(3)}vw ${(progress * 100).toFixed(2)}%`;
 			}).reverse();
 			media.style.setProperty(
