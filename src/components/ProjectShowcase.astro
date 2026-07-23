@@ -341,15 +341,9 @@ const firstProject = projects[0];
 				const inset = strength * 3.2 * (depth / maximumDepth);
 				return `${inset.toFixed(3)}vw ${(progress * 100).toFixed(2)}%`;
 			}).reverse();
-			const rightPoints = profile.map(({ progress }) => {
-				const distanceFromCenter = Math.abs(progress - 0.5) * 2;
-				const cornerCurve = Math.pow(distanceFromCenter, 3);
-				const inset = strength * 3.2 * cornerCurve;
-				return `calc(100% - ${inset.toFixed(3)}vw) ${(progress * 100).toFixed(2)}%`;
-			});
 			media.style.setProperty(
 				'--lens-clip',
-				`polygon(${rightPoints.join(', ')}, ${points.join(', ')})`,
+				`polygon(100% 0, 100% 100%, ${points.join(', ')})`,
 			);
 			media.style.setProperty('--lens-light', `${strength * 0.26}`);
 		};
