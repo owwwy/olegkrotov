@@ -22,7 +22,7 @@ export const projects: Project[] = [
 	{
 		slug: 'addinol',
 		title: 'ADDINOL',
-		category: 'e-commerce',
+		category: 'редизайн сайта дистрибьютора смазочных материалов',
 		image: '/projects/addinol.webp',
 		imageAlt: 'Проект ADDINOL',
 		gallery: numberedGallery('addinol', 17, {}, 1),
@@ -30,7 +30,7 @@ export const projects: Project[] = [
 	{
 		slug: 'jetsite',
 		title: 'JETSITE',
-		category: 'web design',
+		category: 'редизайн сайта студии реактивной разработки',
 		image: '/projects/jetsite.webp',
 		imageAlt: 'Проект JETSITE',
 		gallery: numberedGallery('jetsite', 25, {
@@ -48,7 +48,7 @@ export const projects: Project[] = [
 	{
 		slug: 's-industrial',
 		title: 'S-INDUSTRIAL',
-		category: 'web-site',
+		category: 'дизайн интернет-магазина спорт оборудования',
 		image: '/projects/s-industrial.webp',
 		imageAlt: 'Проект S-INDUSTRIAL',
 		gallery: numberedGallery('s-industrial-case', 19, { 9: 'png', 10: 'png', 12: 'png' }),
@@ -56,7 +56,7 @@ export const projects: Project[] = [
 	{
 		slug: 'podryado',
 		title: 'PODRYADO',
-		category: 'web-site',
+		category: 'дизайн бизнес-портала для строителей и клиентов',
 		image: '/projects/podryado.webp',
 		imageAlt: 'Проект PODRYADO',
 		gallery: numberedGallery('podryado', 32, { 2: 'png', 15: 'png', 28: 'png' }),
