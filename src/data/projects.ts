@@ -7,10 +7,15 @@ export interface Project {
 	gallery?: string[];
 }
 
-const numberedGallery = (directory: string, count: number, extensions: Record<number, string> = {}) =>
+const numberedGallery = (
+	directory: string,
+	count: number,
+	extensions: Record<number, string> = {},
+	padding = 2,
+) =>
 	Array.from({ length: count }, (_, index) => {
 		const number = index + 1;
-		return `/projects/${directory}/${String(number).padStart(2, '0')}.${extensions[number] ?? 'jpg'}`;
+		return `/projects/${directory}/${String(number).padStart(padding, '0')}.${extensions[number] ?? 'jpg'}`;
 	});
 
 export const projects: Project[] = [
@@ -27,6 +32,17 @@ export const projects: Project[] = [
 		category: 'web design',
 		image: '/projects/jetsite.webp',
 		imageAlt: 'Проект JETSITE',
+		gallery: numberedGallery('jetsite', 25, {
+			2: 'png',
+			4: 'png',
+			7: 'png',
+			10: 'png',
+			12: 'png',
+			15: 'png',
+			17: 'png',
+			19: 'png',
+			24: 'png',
+		}, 1),
 	},
 	{
 		slug: 's-industrial',
