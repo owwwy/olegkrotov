@@ -23,6 +23,7 @@ const firstProject = projects[0];
 				<img src={project.image} alt={project.imageAlt} loading={index === 0 ? 'eager' : 'lazy'} />
 			</div>
 		))}
+		<canvas class="showcase__lens" data-project-lens aria-hidden="true"></canvas>
 	</div>
 
 	<header class="showcase__heading">
@@ -40,6 +41,193 @@ const firstProject = projects[0];
 	const WHEEL_THRESHOLD = 110;
 	const TOUCH_THRESHOLD = 54;
 	const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+	type LensRenderer = {
+		setPair: (current: number, next: number) => void;
+		render: (strength: number, direction: number, transition?: number) => void;
+	};
+
+	const createLensRenderer = async (canvas: HTMLCanvasElement, images: HTMLImageElement[]): Promise<LensRenderer | null> => {
+		const gl = canvas.getContext('webgl', {
+			alpha: true,
+			antialias: false,
+			premultipliedAlpha: false,
+			powerPreference: 'high-performance',
+		});
+		if (!gl) return null;
+
+		await Promise.all(images.map((image) => image.complete && image.naturalWidth
+			? Promise.resolve()
+			: new Promise<void>((resolve, reject) => {
+				image.addEventListener('load', () => resolve(), { once: true });
+				image.addEventListener('error', () => reject(), { once: true });
+			}),
+		));
+
+		const vertexSource = `
+			attribute vec2 aPosition;
+			attribute vec2 aUv;
+			varying vec2 vUv;
+			void main() {
+				vUv = aUv;
+				gl_Position = vec4(aPosition, 0.0, 1.0);
+			}
+		`;
+
+		const fragmentSource = `
+			precision highp float;
+			varying vec2 vUv;
+			uniform sampler2D uCurrent;
+			uniform sampler2D uNext;
+			uniform vec2 uCurrentSize;
+			uniform vec2 uNextSize;
+			uniform vec2 uCanvasSize;
+			uniform float uStrength;
+			uniform float uDirection;
+			uniform float uTransition;
+			uniform float uTime;
+
+			vec2 coverUv(vec2 uv, vec2 imageSize) {
+				float scale = max(uCanvasSize.x / imageSize.x, uCanvasSize.y / imageSize.y);
+				vec2 visible = uCanvasSize / (imageSize * scale);
+				return uv * visible + (1.0 - visible) * 0.5;
+			}
+
+			vec4 readTexture(sampler2D textureSource, vec2 uv, vec2 imageSize) {
+				vec2 mapped = coverUv(clamp(uv, 0.0, 1.0), imageSize);
+				return texture2D(textureSource, vec2(mapped.x, 1.0 - mapped.y));
+			}
+
+			vec4 readScene(vec2 uv) {
+				float flow = uv.y + uTransition * uDirection;
+				if (uDirection >= 0.0) {
+					return flow <= 1.0
+						? readTexture(uCurrent, vec2(uv.x, flow), uCurrentSize)
+						: readTexture(uNext, vec2(uv.x, flow - 1.0), uNextSize);
+				}
+				return flow >= 0.0
+					? readTexture(uCurrent, vec2(uv.x, flow), uCurrentSize)
+					: readTexture(uNext, vec2(uv.x, flow + 1.0), uNextSize);
+			}
+
+			float noise(vec2 point) {
+				return fract(sin(dot(point, vec2(12.9898, 78.233))) * 43758.5453);
+			}
+
+			void main() {
+				vec2 uv = vec2(vUv.x, 1.0 - vUv.y);
+				vec2 centered = uv - 0.5;
+				float radius = length(centered);
+				float lens = smoothstep(0.82, 0.04, radius) * uStrength;
+
+				vec2 warped = 0.5 + centered * (1.0 - lens * 0.52);
+				warped.y += sin(warped.x * 3.14159265) * uDirection * lens * 0.09;
+				warped.x += sin((warped.y + uTime * 0.00018) * 10.0) * lens * 0.018;
+
+				vec2 chroma = normalize(centered + vec2(0.0001)) * lens * 0.018;
+				vec4 base = readScene(warped);
+				vec4 red = readScene(warped + chroma);
+				vec4 blue = readScene(warped - chroma);
+				vec3 color = vec3(red.r, base.g, blue.b);
+				float vignette = 1.0 - smoothstep(0.34, 0.78, radius) * lens * 0.42;
+				float grain = (noise(gl_FragCoord.xy + uTime) - 0.5) * (0.014 + lens * 0.032);
+				gl_FragColor = vec4(color * vignette + grain, 1.0);
+			}
+		`;
+
+		const compile = (type: number, source: string) => {
+			const shader = gl.createShader(type);
+			if (!shader) throw new Error('Unable to create lens shader');
+			gl.shaderSource(shader, source);
+			gl.compileShader(shader);
+			if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader) ?? 'Lens shader error');
+			return shader;
+		};
+
+		const program = gl.createProgram();
+		if (!program) return null;
+		gl.attachShader(program, compile(gl.VERTEX_SHADER, vertexSource));
+		gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fragmentSource));
+		gl.linkProgram(program);
+		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program) ?? 'Lens program error');
+		gl.useProgram(program);
+
+		const geometry = new Float32Array([
+			-1, -1, 0, 0, 1, -1, 1, 0, -1, 1, 0, 1,
+			-1, 1, 0, 1, 1, -1, 1, 0, 1, 1, 1, 1,
+		]);
+		const buffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+		gl.bufferData(gl.ARRAY_BUFFER, geometry, gl.STATIC_DRAW);
+
+		const position = gl.getAttribLocation(program, 'aPosition');
+		const uv = gl.getAttribLocation(program, 'aUv');
+		gl.enableVertexAttribArray(position);
+		gl.enableVertexAttribArray(uv);
+		gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 16, 0);
+		gl.vertexAttribPointer(uv, 2, gl.FLOAT, false, 16, 8);
+
+		const textures = images.map((image) => {
+			const texture = gl.createTexture();
+			gl.bindTexture(gl.TEXTURE_2D, texture);
+			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+			return texture;
+		});
+
+		const location = (name: string) => gl.getUniformLocation(program, name);
+		const uniforms = {
+			current: location('uCurrent'), next: location('uNext'), currentSize: location('uCurrentSize'),
+			nextSize: location('uNextSize'), canvasSize: location('uCanvasSize'), strength: location('uStrength'),
+			direction: location('uDirection'), transition: location('uTransition'), time: location('uTime'),
+		};
+
+		let currentIndex = 0;
+		let nextIndex = Math.min(1, images.length - 1);
+
+		const resize = () => {
+			const rect = canvas.getBoundingClientRect();
+			const density = Math.min(2, window.devicePixelRatio || 1);
+			const width = Math.max(1, Math.round(rect.width * density));
+			const height = Math.max(1, Math.round(rect.height * density));
+			if (canvas.width !== width || canvas.height !== height) {
+				canvas.width = width;
+				canvas.height = height;
+				gl.viewport(0, 0, width, height);
+			}
+			gl.uniform2f(uniforms.canvasSize, rect.width, rect.height);
+		};
+
+		const setPair = (current: number, next: number) => {
+			currentIndex = current;
+			nextIndex = next;
+			gl.activeTexture(gl.TEXTURE0);
+			gl.bindTexture(gl.TEXTURE_2D, textures[currentIndex]);
+			gl.uniform1i(uniforms.current, 0);
+			gl.activeTexture(gl.TEXTURE1);
+			gl.bindTexture(gl.TEXTURE_2D, textures[nextIndex]);
+			gl.uniform1i(uniforms.next, 1);
+			gl.uniform2f(uniforms.currentSize, images[currentIndex].naturalWidth, images[currentIndex].naturalHeight);
+			gl.uniform2f(uniforms.nextSize, images[nextIndex].naturalWidth, images[nextIndex].naturalHeight);
+		};
+
+		const render = (strength: number, direction: number, transition = 0) => {
+			resize();
+			gl.uniform1f(uniforms.strength, strength);
+			gl.uniform1f(uniforms.direction, direction || 1);
+			gl.uniform1f(uniforms.transition, transition);
+			gl.uniform1f(uniforms.time, performance.now());
+			gl.drawArrays(gl.TRIANGLES, 0, 6);
+		};
+
+		setPair(currentIndex, nextIndex);
+		window.addEventListener('resize', () => render(0, 1, 0));
+		return { setPair, render };
+	};
 
 	const randomCharacter = (pool: string[]) => pool[Math.floor(Math.random() * pool.length)] ?? '';
 
@@ -87,7 +275,9 @@ const firstProject = projects[0];
 
 	document.querySelectorAll<HTMLElement>('[data-project-showcase]').forEach((showcase) => {
 		const media = showcase.querySelector<HTMLElement>('[data-project-media]');
+		const canvas = showcase.querySelector<HTMLCanvasElement>('[data-project-lens]');
 		const panels = [...showcase.querySelectorAll<HTMLElement>('[data-project-panel]')];
+		const images = [...showcase.querySelectorAll<HTMLImageElement>('[data-project-panel] img')];
 		const title = showcase.querySelector<HTMLElement>('[data-project-title]');
 		const category = showcase.querySelector<HTMLElement>('[data-project-category]');
 		if (!media || !title || !category || panels.length === 0) return;
@@ -101,6 +291,18 @@ const firstProject = projects[0];
 		let touchCurrentY = 0;
 		let resistanceFrame = 0;
 		let releaseTimer = 0;
+		let lens: LensRenderer | null = null;
+
+		if (canvas && !reducedMotion.matches) {
+			createLensRenderer(canvas, images).then((renderer) => {
+				if (!renderer) return;
+				lens = renderer;
+				media.classList.add('is-webgl');
+				lens.render(0, 1, 0);
+			}).catch(() => {
+				canvas.remove();
+			});
+		}
 
 		const setResistance = (amount: number, direction: number) => {
 			const strength = Math.min(1, Math.max(0, amount));
@@ -109,6 +311,7 @@ const firstProject = projects[0];
 			media.style.setProperty('--lens-shift-y', `${direction * strength * -7}px`);
 			media.style.setProperty('--lens-radius', `${strength * 26}px`);
 			media.style.setProperty('--lens-light', `${strength * 0.34}`);
+			lens?.render(strength * 1.15, direction, 0);
 		};
 
 		const releaseResistance = () => {
@@ -135,9 +338,12 @@ const firstProject = projects[0];
 			}
 
 			isTransitioning = true;
+			const previousIndex = activeIndex;
 			const previousTitle = panels[activeIndex].dataset.title ?? '';
 			const nextTitle = panels[nextIndex].dataset.title ?? '';
 			activeIndex = nextIndex;
+			const direction = Math.sign(activeIndex - previousIndex);
+			lens?.setPair(previousIndex, activeIndex);
 
 			panels.forEach((panel, index) => {
 				panel.style.transform = `translate3d(0, ${(index - activeIndex) * 100}%, 0)`;
@@ -147,11 +353,29 @@ const firstProject = projects[0];
 			scrambleTitle(title, previousTitle, nextTitle);
 			category.textContent = panels[activeIndex].dataset.category ?? '';
 			wheelAmount = 0;
-			setResistance(0, 0);
 
-			window.setTimeout(() => {
+			if (!lens || reducedMotion.matches) {
+				setResistance(0, 0);
+				window.setTimeout(() => { isTransitioning = false; }, reducedMotion.matches ? 0 : TRANSITION_DURATION);
+				return;
+			}
+
+			const startedAt = performance.now();
+			const animateTransition = (now: number) => {
+				const progress = Math.min(1, (now - startedAt) / TRANSITION_DURATION);
+				const eased = 1 - Math.pow(1 - progress, 4);
+				const impulse = Math.sin(progress * Math.PI);
+				lens?.render(0.42 + impulse * 1.15, direction, eased);
+				if (progress < 1) {
+					requestAnimationFrame(animateTransition);
+					return;
+				}
+				lens?.setPair(activeIndex, activeIndex);
+				lens?.render(0, direction, 0);
+				setResistance(0, 0);
 				isTransitioning = false;
-			}, reducedMotion.matches ? 0 : TRANSITION_DURATION);
+			};
+			requestAnimationFrame(animateTransition);
 		};
 
 		const move = (direction: number) => selectProject(activeIndex + direction);
@@ -260,6 +484,26 @@ const firstProject = projects[0];
 		transition: opacity 140ms ease-out;
 	}
 
+	.showcase__lens {
+		position: absolute;
+		z-index: 1;
+		inset: 0;
+		display: block;
+		width: 100%;
+		height: 100%;
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 180ms ease;
+	}
+
+	.showcase__media.is-webgl .showcase__lens {
+		opacity: 1;
+	}
+
+	.showcase__media.is-webgl .showcase__panel {
+		opacity: 0;
+	}
+
 	.showcase__panel {
 		position: absolute;
 		inset: 0;
@@ -289,7 +533,7 @@ const firstProject = projects[0];
 
 	h2 {
 		font-size: 120px;
-		font-weight: 700;
+		font-weight: 600;
 		line-height: 120px;
 		white-space: nowrap;
 	}
@@ -301,7 +545,7 @@ const firstProject = projects[0];
 	p {
 		color: var(--color-muted);
 		font-size: 20px;
-		font-weight: 500;
+		font-weight: 400;
 		line-height: 24px;
 	}
 
