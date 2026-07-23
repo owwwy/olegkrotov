@@ -30,7 +30,7 @@ const firstProject = projects[0];
 		<h2 aria-live="polite" data-project-title aria-label={firstProject.title}>
 			{[...firstProject.title].map((character) => <span>{character}</span>)}
 		</h2>
-		<p data-project-category>{firstProject.category}</p>
+		<p aria-live="polite" data-project-category>{firstProject.category}</p>
 	</header>
 </section>
 
@@ -249,7 +249,7 @@ const firstProject = projects[0];
 		);
 	};
 
-	const scrambleTitle = (element: HTMLElement, from: string, to: string) => {
+	const scrambleText = (element: HTMLElement, from: string, to: string) => {
 		element.setAttribute('aria-label', to);
 
 		if (reducedMotion.matches) {
@@ -258,7 +258,7 @@ const firstProject = projects[0];
 		}
 
 		const target = [...to];
-		const pool = [...new Set([...from, ...to, ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].filter((character) => character !== ' '))];
+		const pool = [...new Set([...from, ...to, ...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'].filter((character) => character !== ' '))];
 		const length = Math.max([...from].length, target.length);
 		const lockOrder = shuffle(Array.from({ length }, (_, index) => index));
 		const startedAt = performance.now();
@@ -356,6 +356,8 @@ const firstProject = projects[0];
 			const previousIndex = activeIndex;
 			const previousTitle = panels[activeIndex].dataset.title ?? '';
 			const nextTitle = panels[nextIndex].dataset.title ?? '';
+			const previousCategory = panels[activeIndex].dataset.category ?? '';
+			const nextCategory = panels[nextIndex].dataset.category ?? '';
 			activeIndex = nextIndex;
 			const direction = Math.sign(activeIndex - previousIndex);
 			lens?.setPair(previousIndex, activeIndex);
@@ -365,8 +367,8 @@ const firstProject = projects[0];
 				panel.setAttribute('aria-hidden', index === activeIndex ? 'false' : 'true');
 			});
 
-			scrambleTitle(title, previousTitle, nextTitle);
-			category.textContent = panels[activeIndex].dataset.category ?? '';
+			scrambleText(title, previousTitle, nextTitle);
+			scrambleText(category, previousCategory, nextCategory);
 			wheelAmount = 0;
 
 			if (!lens || reducedMotion.matches) {
@@ -480,6 +482,7 @@ const firstProject = projects[0];
 		align-self: stretch;
 		overflow: hidden;
 		background: var(--color-project);
+		border-radius: 3px;
 		isolation: isolate;
 		transform: perspective(1400px) translate3d(0, var(--lens-shift-y), 0) rotateX(var(--lens-tilt)) scaleX(var(--lens-scale-x)) scaleY(var(--lens-scale-y));
 		transform-origin: center;
