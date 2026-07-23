@@ -23,6 +23,7 @@ const navigation = [
 		<script is:inline>
 			(() => {
 				const interpolate = (from, to, progress) => from + (to - from) * progress;
+				const roundToEven = (value) => Math.round(value / 2) * 2;
 				const scale = (width, compact, desktop, wide) => {
 					if (width <= 1200) return compact;
 					if (width < 1780) return interpolate(compact, desktop, (width - 1200) / 580);
@@ -37,10 +38,10 @@ const navigation = [
 					const title = Math.round(scale(width, 80, 120, 160));
 					const root = document.documentElement;
 					root.style.setProperty('--ui-font-size', `${ui}px`);
-					root.style.setProperty('--ui-line-height', `${Math.round(ui * 1.2)}px`);
+					root.style.setProperty('--ui-line-height', `${roundToEven(ui * 1.2)}px`);
 					root.style.setProperty('--role-font-size', `${Math.round(ui * 0.8)}px`);
 					root.style.setProperty('--project-title-size', `${title}px`);
-					root.style.setProperty('--project-title-line-height', `${title}px`);
+					root.style.setProperty('--project-title-line-height', `${roundToEven(title)}px`);
 				};
 
 				updateTypeScale();
