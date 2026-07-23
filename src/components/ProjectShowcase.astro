@@ -23,7 +23,7 @@ const firstProject = projects[0];
 				aria-hidden={index === 0 ? 'false' : 'true'}
 				style={`transform: translate3d(0, ${index * 100}%, 0)`}
 			>
-				<img src={project.image} alt={project.imageAlt} loading={index === 0 ? 'eager' : 'lazy'} />
+				<img src={project.image} alt={project.imageAlt} loading="eager" decoding="async" />
 			</div>
 		))}
 		<canvas class="showcase__lens" data-project-lens aria-hidden="true"></canvas>
@@ -331,7 +331,7 @@ const firstProject = projects[0];
 				const progress = index / 12;
 				const tilt = direction >= 0 ? progress : 1 - progress;
 				const arc = Math.sin(progress * Math.PI);
-				const inset = strength * (2 + tilt * 14 + arc * 8);
+				const inset = strength * (2 + tilt * 12 + arc * 18);
 				return `${inset.toFixed(2)}px ${(progress * 100).toFixed(2)}%`;
 			}).reverse();
 			media.style.setProperty(
@@ -416,12 +416,12 @@ const firstProject = projects[0];
 			wheelAmount = 0;
 			wheelDirection = 0;
 
-			if (!lens || reducedMotion.matches) {
+			if (reducedMotion.matches) {
 				setResistance(0, 0);
 				window.setTimeout(() => {
 					finishPanelTransition();
 					isTransitioning = false;
-				}, reducedMotion.matches ? 0 : TRANSITION_DURATION);
+				}, 0);
 				return;
 			}
 
