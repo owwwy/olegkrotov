@@ -20,6 +20,33 @@ const navigation = [
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
+		<script is:inline>
+			(() => {
+				const interpolate = (from, to, progress) => from + (to - from) * progress;
+				const scale = (width, compact, desktop, wide) => {
+					if (width <= 1200) return compact;
+					if (width < 1780) return interpolate(compact, desktop, (width - 1200) / 580);
+					if (width <= 1920) return desktop;
+					if (width < 2048) return interpolate(desktop, wide, (width - 1920) / 128);
+					return wide;
+				};
+
+				const updateTypeScale = () => {
+					const width = window.innerWidth;
+					const ui = Math.round(scale(width, 16, 20, 24));
+					const title = Math.round(scale(width, 80, 120, 160));
+					const root = document.documentElement;
+					root.style.setProperty('--ui-font-size', `${ui}px`);
+					root.style.setProperty('--ui-line-height', `${Math.round(ui * 1.2)}px`);
+					root.style.setProperty('--role-font-size', `${Math.round(ui * 0.8)}px`);
+					root.style.setProperty('--project-title-size', `${title}px`);
+					root.style.setProperty('--project-title-line-height', `${title}px`);
+				};
+
+				updateTypeScale();
+				window.addEventListener('resize', updateTypeScale, { passive: true });
+			})();
+		</script>
 		<meta
 			name="description"
 			content="Портфолио Олега Кротова — digital designer."
@@ -61,6 +88,11 @@ const navigation = [
 		--color-muted: rgb(25 25 28 / 60%);
 		--color-background: #fff;
 		--color-project: #d6e0e5;
+		--ui-font-size: 20px;
+		--ui-line-height: 24px;
+		--role-font-size: 16px;
+		--project-title-size: 120px;
+		--project-title-line-height: 120px;
 	}
 
 	*,
@@ -127,24 +159,24 @@ const navigation = [
 	}
 
 	.identity strong {
-		font-size: 20px;
+		font-size: var(--ui-font-size);
 		font-weight: 400;
-		line-height: 24px;
+		line-height: var(--ui-line-height);
 	}
 
 	.identity span {
 		color: var(--color-muted);
-		font-size: 16px;
+		font-size: var(--role-font-size);
 		font-weight: 300;
-		line-height: 24px;
+		line-height: var(--ui-line-height);
 	}
 
 	nav {
 		display: flex;
 		align-items: center;
-		font-size: 20px;
+		font-size: var(--ui-font-size);
 		font-weight: 400;
-		line-height: 24px;
+		line-height: var(--ui-line-height);
 		white-space: nowrap;
 	}
 
