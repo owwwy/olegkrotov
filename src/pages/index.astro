@@ -57,9 +57,17 @@ const navigation = [
 	<body>
 		<div class="page-grid">
 			<aside class="sidebar">
-				<a class="identity" href="/" aria-label="Олег Кротов — на главную">
-					<strong>Олег Кротов</strong>
-					<span>Digital Designer</span>
+				<a class="identity" href="/" aria-label="Олег Кротов — на главную" data-scramble-link>
+					<strong data-scramble-text data-original="Олег Кротов">
+						{[...'Олег Кротов'].map((character) => (
+							<span class="scramble-link__char">{character === ' ' ? '\u00a0' : character}</span>
+						))}
+					</strong>
+					<span data-scramble-text data-original="Digital Designer">
+						{[...'Digital Designer'].map((character) => (
+							<span class="scramble-link__char">{character === ' ' ? '\u00a0' : character}</span>
+						))}
+					</span>
 				</a>
 
 				<nav aria-label="Основная навигация">
@@ -165,11 +173,16 @@ const navigation = [
 		line-height: var(--ui-line-height);
 	}
 
-	.identity span {
+	.identity > span {
 		color: var(--color-muted);
 		font-size: var(--role-font-size);
 		font-weight: 300;
 		line-height: var(--ui-line-height);
+	}
+
+	.identity [data-scramble-text],
+	.identity .scramble-link__char {
+		display: inline-block;
 	}
 
 	nav {
