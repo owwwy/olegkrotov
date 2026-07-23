@@ -2,6 +2,7 @@
 import '@fontsource-variable/onest';
 import ProjectHero from '../components/ProjectHero.astro';
 import ScrambleLink from '../components/ScrambleLink.astro';
+import { projects } from '../data/projects';
 
 const navigation = [
 	{ label: 'Работы', href: '#works' },
@@ -9,13 +10,6 @@ const navigation = [
 	{ label: 'Контакты', href: '#contacts' },
 ];
 
-const projects = [
-	{
-		title: 'ADDINOL',
-		category: 'e-commerce',
-		imageAlt: 'Проект ADDINOL',
-	},
-];
 ---
 
 <!doctype html>

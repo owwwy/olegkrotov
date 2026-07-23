@@ -1,10 +1,7 @@
 ---
-interface Props {
-	title: string;
-	category: string;
-	image?: string;
-	imageAlt?: string;
-}
+import type { Project } from '../data/projects';
+
+type Props = Project;
 
 const { title, category, image, imageAlt = '' } = Astro.props;
 ---
@@ -65,7 +62,6 @@ const { title, category, image, imageAlt = '' } = Astro.props;
 		color: rgb(25 25 28 / 8%);
 		font-size: 28vw;
 		font-weight: 700;
-		letter-spacing: -0.1em;
 		line-height: 1;
 		transform: translateX(-0.04em);
 	}
@@ -85,7 +81,6 @@ const { title, category, image, imageAlt = '' } = Astro.props;
 	h2 {
 		font-size: 120px;
 		font-weight: 700;
-		letter-spacing: -0.06em;
 		line-height: 120px;
 	}
 
