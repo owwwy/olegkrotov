@@ -306,9 +306,14 @@ const firstProject = projects[0];
 		if (canvas && !reducedMotion.matches) {
 			createLensRenderer(canvas, images).then((renderer) => {
 				if (!renderer) return;
-				lens = renderer;
-				media.classList.add('is-webgl');
-				lens.render(0, 1, 0);
+				const activateLens = () => {
+					lens = renderer;
+					lens.setPair(activeIndex, activeIndex);
+					lens.render(0, 1, 0);
+					media.classList.add('is-webgl');
+				};
+				if (isTransitioning) window.setTimeout(activateLens, TRANSITION_DURATION);
+				else activateLens();
 			}).catch(() => {
 				canvas.remove();
 			});
