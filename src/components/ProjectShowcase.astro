@@ -341,6 +341,11 @@ const firstProject = projects[0];
 			window.clearTimeout(releaseTimer);
 			cancelAnimationFrame(resistanceFrame);
 			const decay = () => {
+				if (isTransitioning) {
+					wheelAmount = 0;
+					wheelDirection = 0;
+					return;
+				}
 				wheelAmount *= 0.78;
 				setResistance(Math.abs(wheelAmount) / WHEEL_THRESHOLD, wheelDirection);
 				if (Math.abs(wheelAmount) > 0.5) {
@@ -362,6 +367,10 @@ const firstProject = projects[0];
 			}
 
 			isTransitioning = true;
+			window.clearTimeout(releaseTimer);
+			cancelAnimationFrame(resistanceFrame);
+			releaseTimer = 0;
+			resistanceFrame = 0;
 			const previousIndex = activeIndex;
 			const direction = Math.sign(nextIndex - activeIndex) || 1;
 			const previousTitle = panels[activeIndex].dataset.title ?? '';
@@ -395,6 +404,7 @@ const firstProject = projects[0];
 			scrambleText(title, previousTitle, nextTitle);
 			scrambleText(category, previousCategory, nextCategory);
 			wheelAmount = 0;
+			wheelDirection = 0;
 
 			if (!lens || reducedMotion.matches) {
 				setResistance(0, 0);
@@ -444,6 +454,8 @@ const firstProject = projects[0];
 			setResistance(wheelAmount / WHEEL_THRESHOLD, direction);
 
 			if (wheelAmount >= WHEEL_THRESHOLD) {
+				window.clearTimeout(releaseTimer);
+				releaseTimer = 0;
 				move(direction);
 				return;
 			}
