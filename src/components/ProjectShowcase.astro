@@ -261,7 +261,9 @@ const firstProject = projects[0];
 		}
 
 		const target = [...to];
-		const pool = [...new Set([...from, ...to, ...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'].filter((character) => character !== ' '))];
+		const pool = [...new Set(
+			[...from.toUpperCase(), ...to.toUpperCase()].filter((character) => character !== ' '),
+		)];
 		const length = Math.max([...from].length, target.length);
 		const lockOrder = shuffle(Array.from({ length }, (_, index) => index));
 		const startedAt = performance.now();
@@ -275,7 +277,7 @@ const firstProject = projects[0];
 				const lockedCount = Math.floor(progress * length);
 				const lockedIndexes = new Set(lockOrder.slice(0, lockedCount));
 				const next = Array.from({ length }, (_, index) =>
-					lockedIndexes.has(index) ? (target[index] ?? '') : randomCharacter(pool),
+					lockedIndexes.has(index) ? (target[index] ?? '').toUpperCase() : randomCharacter(pool),
 				).join('');
 				renderTitle(element, progress === 1 ? to : next);
 			}
