@@ -329,12 +329,16 @@ const firstProject = projects[0];
 
 		const setWindowShape = (amount: number, direction: number) => {
 			const strength = Math.min(1, Math.max(0, amount));
-			const points = Array.from({ length: 13 }, (_, index) => {
+			const profile = Array.from({ length: 13 }, (_, index) => {
 				const progress = index / 12;
 				const tilt = direction >= 0 ? progress : 1 - progress;
 				const arc = Math.sin(progress * Math.PI);
-				const inset = strength * (2 + tilt * 12 + arc * 40);
-				return `${inset.toFixed(2)}px ${(progress * 100).toFixed(2)}%`;
+				return { progress, depth: 2 + tilt * 12 + arc * 40 };
+			});
+			const maximumDepth = Math.max(...profile.map(({ depth }) => depth));
+			const points = profile.map(({ progress, depth }) => {
+				const inset = strength * 6 * (depth / maximumDepth);
+				return `${inset.toFixed(3)}vw ${(progress * 100).toFixed(2)}%`;
 			}).reverse();
 			media.style.setProperty(
 				'--lens-clip',
