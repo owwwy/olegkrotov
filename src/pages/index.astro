@@ -74,7 +74,7 @@ const navigation = [
 					{navigation.map((item, index) => (
 						<>
 							<ScrambleLink href={item.href} label={item.label} />
-							{index < navigation.length - 1 && <span class="nav-separator" aria-hidden="true">,</span>}
+							{index < navigation.length - 1 && <span class="nav-separator" aria-hidden="true"></span>}
 						</>
 					))}
 				</nav>
@@ -195,8 +195,12 @@ const navigation = [
 	}
 
 	.nav-separator {
-		padding-block: 12px;
-		padding-right: 6px;
+		width: 0.2em;
+		height: 0.2em;
+		margin-inline: 0.4em;
+		flex: none;
+		border-radius: 50%;
+		background: currentColor;
 	}
 
 	main {
