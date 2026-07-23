@@ -302,6 +302,9 @@ const firstProject = projects[0];
 		let resistanceFrame = 0;
 		let releaseTimer = 0;
 		let lens: LensRenderer | null = null;
+		panels.forEach((panel, index) => {
+			panel.style.visibility = index === activeIndex ? 'visible' : 'hidden';
+		});
 
 		if (canvas && !reducedMotion.matches) {
 			createLensRenderer(canvas, images).then((renderer) => {
@@ -367,8 +370,14 @@ const firstProject = projects[0];
 			const nextCategory = panels[wrappedIndex].dataset.category ?? '';
 			activeIndex = wrappedIndex;
 			lens?.setPair(previousIndex, activeIndex);
+			const finishPanelTransition = () => {
+				panels.forEach((panel, index) => {
+					panel.style.visibility = index === activeIndex ? 'visible' : 'hidden';
+				});
+			};
 
 			panels.forEach((panel, index) => {
+				panel.style.visibility = index === previousIndex || index === activeIndex ? 'visible' : 'hidden';
 				panel.style.transition = 'none';
 				panel.style.transform = index === previousIndex
 					? 'translate3d(0, 0%, 0)'
@@ -389,7 +398,10 @@ const firstProject = projects[0];
 
 			if (!lens || reducedMotion.matches) {
 				setResistance(0, 0);
-				window.setTimeout(() => { isTransitioning = false; }, reducedMotion.matches ? 0 : TRANSITION_DURATION);
+				window.setTimeout(() => {
+					finishPanelTransition();
+					isTransitioning = false;
+				}, reducedMotion.matches ? 0 : TRANSITION_DURATION);
 				return;
 			}
 
@@ -409,6 +421,7 @@ const firstProject = projects[0];
 				lens?.setPair(activeIndex, activeIndex);
 				lens?.render(0, direction, 0);
 				setResistance(0, 0);
+				finishPanelTransition();
 				isTransitioning = false;
 			};
 			requestAnimationFrame(animateTransition);
@@ -585,6 +598,7 @@ const firstProject = projects[0];
 		font-size: 20px;
 		font-weight: 400;
 		line-height: 24px;
+		margin-left: 4px;
 	}
 
 	@media (prefers-reduced-motion: reduce) {
