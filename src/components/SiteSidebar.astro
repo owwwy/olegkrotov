@@ -93,17 +93,38 @@ const navigation = [
 </style>
 
 <script>
-	const updateSidebarState = () => {
-		const pathname = window.location.pathname;
+	const setActiveSidebarLink = (activeLink: HTMLAnchorElement) => {
 		document.querySelectorAll<HTMLAnchorElement>('.sidebar nav a').forEach((link) => {
-			const target = new URL(link.href, window.location.href);
-			const active = target.pathname === pathname && (
-				pathname !== '/' || !target.hash
-			);
+			const active = link === activeLink;
 			link.classList.toggle('is-active', active);
 			if (active) link.setAttribute('aria-current', 'page');
 			else link.removeAttribute('aria-current');
 		});
 	};
+
+	const updateSidebarState = () => {
+		const pathname = window.location.pathname;
+		const hash = window.location.hash;
+		document.querySelectorAll<HTMLAnchorElement>('.sidebar nav a').forEach((link) => {
+			const target = new URL(link.href, window.location.href);
+			const active = target.pathname === pathname
+				&& (target.hash ? target.hash === hash : !hash);
+			link.classList.toggle('is-active', active);
+			if (active) link.setAttribute('aria-current', 'page');
+			else link.removeAttribute('aria-current');
+		});
+	};
+
+	const bindSidebarNavigation = () => {
+		const navigation = document.querySelector<HTMLElement>('.sidebar nav');
+		if (!navigation || navigation.dataset.activeStateBound === 'true') return;
+		navigation.dataset.activeStateBound = 'true';
+		navigation.addEventListener('click', (event) => {
+			const link = (event.target as HTMLElement).closest<HTMLAnchorElement>('a');
+			if (link) setActiveSidebarLink(link);
+		});
+	};
+
 	document.addEventListener('astro:page-load', updateSidebarState);
+	document.addEventListener('astro:page-load', bindSidebarNavigation);
 </script>

@@ -355,6 +355,13 @@ const firstProject = projects[0];
 		let lastWheelAt = 0;
 		let isIntroPlaying = !reducedMotion.matches;
 		let isTransitioning = isIntroPlaying;
+		let queuedPageExit: null | (() => void) = null;
+		const releaseTransition = () => {
+			isTransitioning = false;
+			const queued = queuedPageExit;
+			queuedPageExit = null;
+			if (queued) requestAnimationFrame(queued);
+		};
 		let resistanceFrame = 0;
 		let releaseTimer = 0;
 		let qualityRecoveryId = 0;
@@ -512,7 +519,7 @@ const firstProject = projects[0];
 				setResistance(0, 0);
 				window.setTimeout(() => {
 					finishPanelTransition();
-					isTransitioning = false;
+					releaseTransition();
 					resumeScrollInput();
 				}, 0);
 				return;
@@ -536,7 +543,7 @@ const firstProject = projects[0];
 				setWindowShape(0, 0);
 				finishPanelTransition();
 				const finishTransition = () => {
-					isTransitioning = false;
+					releaseTransition();
 					resumeScrollInput();
 				};
 				if (!lens) {
@@ -628,7 +635,10 @@ const firstProject = projects[0];
 			markCaseTransition = true,
 			clientNavigation = false,
 		) => {
-			if (isTransitioning) return;
+			if (isTransitioning) {
+				queuedPageExit = () => runPageExit(destination, keepSidebar, markCaseTransition, clientNavigation);
+				return;
+			}
 			isTransitioning = true;
 			qualityRecoveryId += 1;
 			scrollInput?.stop();
@@ -887,7 +897,7 @@ const firstProject = projects[0];
 				category.setAttribute('aria-label', introCategories[activeIndex]);
 				setWindowShape(0, 0);
 				const finishIntro = () => {
-					isTransitioning = false;
+					releaseTransition();
 					lastScrollPosition = SCROLL_CENTER;
 					scrollInput?.scrollTo(SCROLL_CENTER, { immediate: true, force: true });
 					scrollInput?.start();
