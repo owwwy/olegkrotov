@@ -14,11 +14,10 @@ interface Props {
 
 const { project } = Astro.props;
 const gallery = project.gallery ?? [];
-const caseBackground = project.caseBackground;
 ---
 
 <!doctype html>
-<html lang="ru" style={`--case-background: ${caseBackground}`}>
+<html lang="ru">
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -37,7 +36,7 @@ const caseBackground = project.caseBackground;
 				<a href="/">Закрыть</a>
 			</header>
 			<div
-				class:list={['case-page__viewport', { 'is-light': caseBackground === '#fff' }]}
+				class="case-page__viewport"
 				data-case-viewport
 				tabindex="0"
 				aria-label={`Проект ${project.title}`}
@@ -146,20 +145,17 @@ const caseBackground = project.caseBackground;
 		margin-inline: auto;
 		overflow: auto;
 		border-radius: 3px;
-		background: var(--case-background);
+		border: 1px solid rgb(25 25 28 / 12%);
+		background: #fff;
 		overscroll-behavior: contain;
 		outline: none;
-	}
-
-	.case-page__viewport.is-light {
-		border: 1px solid #eaeaeb;
 	}
 
 	.case-page__content {
 		width: 100%;
 		min-height: 100%;
 		margin-inline: auto;
-		background: var(--case-background);
+		background: #fff;
 	}
 
 	img {
