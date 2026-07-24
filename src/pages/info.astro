@@ -193,7 +193,13 @@ import TypeScale from '../components/TypeScale.astro';
 	.visual--long { width: var(--info-chip-long-width); }
 	.visual--square { width: var(--info-chip-height); }
 	.visual img { width: 100%; height: 100%; object-fit: cover; }
-	.visual--overflow img { height: 152%; transform: translateY(-17%); }
+	.visual--overflow { overflow: visible; }
+	.visual--overflow img {
+		width: 110%;
+		height: 152%;
+		max-width: none;
+		transform: translateY(-17%);
+	}
 
 	.info-marker {
 		position: absolute;
