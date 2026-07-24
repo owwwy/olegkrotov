@@ -17,13 +17,12 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 		<title>Олег Кротов — Digital Designer</title>
 	</head>
 	<body>
-		<header class="mobile-header" data-mobile-header>
-			<a href="/mobile" data-mobile-scramble>Олег Кротов</a>
-			<span data-mobile-reveal>Digital Designer</span>
-		</header>
-
 		<main class="mobile-feed">
 			<section class="mobile-section mobile-info" data-mobile-section>
+				<header class="mobile-header" data-mobile-header>
+					<a href="/mobile" data-mobile-scramble>Олег Кротов</a>
+					<span data-mobile-reveal>Digital Designer</span>
+				</header>
 				<div class="mobile-info__copy" data-info-copy>
 					<p>
 						<span class="info-row"><strong>Проектирую интерфейсы</strong></span>
@@ -67,7 +66,6 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 
 		<script>
 			const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-			const characterPool = [...'ОлегКротовDigitalDesignerПроектируюинтерфейсыцифровыхпродуктовразвиваюдизайнсистемы'];
 			const randomFrom = (pool: string[]) => pool[Math.floor(Math.random() * pool.length)] ?? '';
 			const fluidScale = (value: number) => Math.max(2, value);
 			const updateTypeScale = () => {
@@ -101,10 +99,12 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 				}
 				nodes.forEach((node) => {
 					const fragment = document.createDocumentFragment();
+					const localPool = [...new Set([...node.data].filter((character) => character !== ' ' && character !== '\u00a0'))].join('');
 					[...node.data].forEach((character) => {
 						const span = document.createElement('span');
 						span.className = character === ' ' || character === '\u00a0' ? 'mobile-char mobile-char--space' : 'mobile-char';
 						span.dataset.character = character;
+						span.dataset.pool = localPool;
 						span.textContent = character === ' ' || character === '\u00a0' ? '\u00a0' : character;
 						fragment.append(span);
 					});
@@ -123,10 +123,11 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 					const styles = getComputedStyle(character);
 					character.style.width = `${width}px`;
 					character.style.opacity = '0';
-					let pool = characterPool;
+					const localPool = [...(character.dataset.pool ?? target)];
+					let pool = localPool;
 					if (context) {
 						context.font = `${styles.fontWeight} ${styles.fontSize} ${styles.fontFamily}`;
-						pool = characterPool.filter((candidate) => context.measureText(candidate).width <= width + .5);
+						pool = localPool.filter((candidate) => context.measureText(candidate).width <= width + .5);
 						if (!pool.length) pool = [target];
 					}
 					window.setTimeout(() => {
@@ -193,6 +194,23 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 			const projectSections = [...document.querySelectorAll<HTMLElement>('[data-mobile-project]')];
 			const visibleProjects = new Set<HTMLElement>();
 			const pixelBuffers = new WeakMap<HTMLElement, HTMLCanvasElement>();
+			const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+			const sections = [...document.querySelectorAll<HTMLElement>('[data-mobile-section]')];
+			const updateThemeColor = () => {
+				const center = (window.visualViewport?.height ?? window.innerHeight) / 2;
+				const active = sections.reduce<HTMLElement | null>((closest, section) => {
+					if (!closest) return section;
+					const sectionDistance = Math.abs(section.getBoundingClientRect().top + section.clientHeight / 2 - center);
+					const closestDistance = Math.abs(closest.getBoundingClientRect().top + closest.clientHeight / 2 - center);
+					return sectionDistance < closestDistance ? section : closest;
+				}, null);
+				if (themeColor && active) themeColor.content = active.classList.contains('mobile-info') ? '#ffffff' : 'transparent';
+			};
+			const themeObserver = new IntersectionObserver(() => {
+				updateThemeColor();
+			}, { threshold: [.35, .55, .75] });
+			sections.forEach((section) => themeObserver.observe(section));
+			updateThemeColor();
 			const projectObserver = new IntersectionObserver((entries) => {
 				entries.forEach((entry) => entry.isIntersecting
 					? visibleProjects.add(entry.target as HTMLElement)
@@ -251,6 +269,7 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 				});
 			};
 			window.addEventListener('scroll', () => {
+				updateThemeColor();
 				const now = performance.now();
 				const distance = Math.abs(window.scrollY - previousScroll);
 				const elapsed = Math.max(8, now - lastScrollAt);
@@ -298,7 +317,7 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 	a { color: inherit; text-decoration: none; }
 
 	.mobile-header {
-		position: fixed;
+		position: absolute;
 		z-index: 20;
 		top: 0;
 		left: 0;
@@ -325,7 +344,7 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 	}
 
 	.mobile-info {
-		padding: calc(var(--mobile-vertical, 32px) + env(safe-area-inset-top)) var(--mobile-side, 24px) calc(var(--mobile-vertical, 32px) + env(safe-area-inset-bottom));
+		padding: calc(var(--mobile-vertical, 32px) + env(safe-area-inset-top)) var(--mobile-side, 24px) calc(var(--mobile-vertical, 32px) + env(safe-area-inset-bottom) + (100lvh - 100dvh));
 		align-items: flex-end;
 		background: #fff;
 	}
@@ -365,8 +384,7 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 	.mobile-char--space { width: .25em; }
 
 	.mobile-project {
-		padding: calc(var(--mobile-vertical, 32px) + env(safe-area-inset-top)) var(--mobile-side, 24px) calc(var(--mobile-vertical, 32px) + env(safe-area-inset-bottom));
-		align-items: flex-end;
+		padding: 0;
 		isolation: isolate;
 	}
 	.mobile-project__image,
@@ -380,7 +398,15 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 		object-fit: cover;
 	}
 	.mobile-project__pixels { z-index: -1; opacity: 0; pointer-events: none; }
-	.mobile-project__copy { position: relative; z-index: 2; display: flex; flex-direction: column; }
+	.mobile-project__copy {
+		position: absolute;
+		z-index: 2;
+		right: var(--mobile-side, 24px);
+		bottom: calc(var(--mobile-vertical, 32px) + env(safe-area-inset-bottom) + (100lvh - 100dvh));
+		left: var(--mobile-side, 24px);
+		display: flex;
+		flex-direction: column;
+	}
 	.mobile-project h2 {
 		margin: 0;
 		font-size: var(--mobile-project-title, 48px);
