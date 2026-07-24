@@ -234,6 +234,85 @@ const gallery = project.gallery ?? [];
 					document.documentElement.classList.remove('case-entering', 'case-revealing');
 				})();
 			}
+
+			const closeLink = document.querySelector<HTMLAnchorElement>('.case-header__close');
+			let isLeaving = false;
+			closeLink?.addEventListener('click', (event) => {
+				event.preventDefault();
+				if (isLeaving) return;
+				isLeaving = true;
+				document.documentElement.classList.add('case-leaving');
+
+				const exitCanvas = document.createElement('canvas');
+				exitCanvas.className = 'case-page__pixel-exit';
+				exitCanvas.setAttribute('aria-hidden', 'true');
+				viewport?.append(exitCanvas);
+				const exitContext = exitCanvas.getContext('2d', { alpha: false });
+				const buffer = document.createElement('canvas');
+				const bufferContext = buffer.getContext('2d', { alpha: false });
+				const width = Math.max(1, viewport?.clientWidth ?? 1);
+				const height = Math.max(1, viewport?.clientHeight ?? 1);
+				exitCanvas.width = width;
+				exitCanvas.height = height;
+				const visibleImages = [...(content?.querySelectorAll<HTMLImageElement>('img') ?? [])];
+				const texts = [...document.querySelectorAll<HTMLElement>('[data-case-reveal]')].map((element) => ({
+					element,
+					characters: [...(element.dataset.value ?? '')],
+					spans: [...element.querySelectorAll<HTMLElement>('span')],
+					pool: [...new Set([...(element.dataset.value ?? '')].filter((character) => character !== ' '))],
+				}));
+				const startedAt = performance.now();
+				let lastTextTick = 0;
+				const duration = 960;
+				const frame = (now: number) => {
+					const progress = Math.min(1, (now - startedAt) / duration);
+					const eased = progress * progress * (3 - 2 * progress);
+					if (now - lastTextTick >= 44 || progress === 1) {
+						lastTextTick = now;
+						texts.forEach(({ characters, spans, pool }) => {
+							const visible = Math.max(0, Math.ceil(characters.length * (1 - eased)));
+							spans.forEach((span, index) => {
+								if (index >= visible) span.textContent = '';
+								else if (characters[index] === ' ') span.textContent = '\u00a0';
+								else span.textContent = pool[Math.floor(Math.random() * pool.length)] ?? characters[index];
+							});
+						});
+					}
+					if (exitContext && bufferContext && viewport) {
+						const pixelWidth = Math.max(5, Math.round(720 + (5 - 720) * eased));
+						const pixelHeight = Math.max(1, Math.round(pixelWidth * height / width));
+						buffer.width = pixelWidth;
+						buffer.height = pixelHeight;
+						bufferContext.fillStyle = '#fff';
+						bufferContext.fillRect(0, 0, pixelWidth, pixelHeight);
+						const viewportRect = viewport.getBoundingClientRect();
+						visibleImages.forEach((image) => {
+							if (!image.complete || !image.naturalWidth) return;
+							const rect = image.getBoundingClientRect();
+							const top = Math.max(rect.top, viewportRect.top);
+							const bottom = Math.min(rect.bottom, viewportRect.bottom);
+							if (bottom <= top) return;
+							const sourceY = (top - rect.top) / rect.height * image.naturalHeight;
+							const sourceHeight = (bottom - top) / rect.height * image.naturalHeight;
+							bufferContext.drawImage(
+								image, 0, sourceY, image.naturalWidth, sourceHeight,
+								0, (top - viewportRect.top) / height * pixelHeight,
+								pixelWidth, (bottom - top) / height * pixelHeight,
+							);
+						});
+						exitContext.imageSmoothingEnabled = false;
+						exitContext.drawImage(buffer, 0, 0, pixelWidth, pixelHeight, 0, 0, width, height);
+						const whiteout = Math.max(0, (progress - 0.76) / 0.24);
+						exitContext.fillStyle = `rgb(255 255 255 / ${whiteout * whiteout})`;
+						exitContext.fillRect(0, 0, width, height);
+					}
+					if (progress < 1) requestAnimationFrame(frame);
+					else {
+						window.location.assign(closeLink.href);
+					}
+				};
+				requestAnimationFrame(frame);
+			});
 		</script>
 	</body>
 </html>
@@ -346,6 +425,26 @@ const gallery = project.gallery ?? [];
 		background: #fff;
 		opacity: 1;
 		pointer-events: none;
+	}
+
+	.case-page__pixel-exit {
+		position: absolute;
+		z-index: 3;
+		inset: 0;
+		display: block;
+		width: 100%;
+		height: 100%;
+		background: #fff;
+		pointer-events: none;
+	}
+
+	:global(.case-leaving) .case-page {
+		pointer-events: none;
+	}
+
+	:global(.case-leaving) .case-header__separator {
+		transition: opacity 280ms ease;
+		opacity: 0;
 	}
 
 	:global(.case-entering) .case-page__pixel-reveal {
