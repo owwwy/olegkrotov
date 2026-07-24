@@ -82,6 +82,7 @@ import { projects } from '../data/projects';
 				const loaderBounds = loaderIdentity.getBoundingClientRect();
 				loaderIdentity.style.width = `${loaderBounds.width}px`;
 				loaderIdentity.style.height = `${loaderBounds.height}px`;
+				const visibleCharacters = [0, 0];
 				const settledCharacters = [0, 0];
 				const previousCharacters = [[], []];
 				const values = [name, role];
@@ -91,6 +92,7 @@ import { projects } from '../data/projects';
 						const source = [...value];
 						const pool = poolFor(value);
 						const output = source.map((character, characterIndex) => {
+							if (characterIndex >= visibleCharacters[valueIndex]) return '';
 							if (character === ' ') return character;
 							if (characterIndex < settledCharacters[valueIndex]) return character;
 							const previous = previousCharacters[valueIndex][characterIndex];
@@ -102,14 +104,23 @@ import { projects } from '../data/projects';
 					});
 				};
 				const scrambleTimer = window.setInterval(scramble, 58);
-				scramble();
-				const build = (valueIndex, value, duration) => new Promise((resolve) => {
+				draw(loaderName, []);
+				draw(loaderRole, []);
+				const build = (valueIndex, value, duration, delay = 0) => new Promise((resolve) => {
 					const source = [...value];
-					const animationStartedAt = performance.now();
+					const animationStartedAt = performance.now() + delay;
 					const frame = (now) => {
+						if (now < animationStartedAt) {
+							requestAnimationFrame(frame);
+							return;
+						}
 						const progress = Math.min(1, (now - animationStartedAt) / duration);
-						const eased = 1 - Math.pow(1 - progress, 2.4);
-						settledCharacters[valueIndex] = Math.floor(eased * source.length);
+						const typingProgress = Math.min(1, progress / 0.68);
+						const settlingProgress = Math.max(0, (progress - 0.68) / 0.32);
+						visibleCharacters[valueIndex] = Math.ceil(typingProgress * source.length);
+						settledCharacters[valueIndex] = Math.floor(
+							(1 - Math.pow(1 - settlingProgress, 2)) * source.length,
+						);
 						if (progress < 1) requestAnimationFrame(frame);
 						else {
 							settledCharacters[valueIndex] = source.length;
@@ -130,8 +141,8 @@ import { projects } from '../data/projects';
 
 				(async () => {
 					await Promise.all([
-						build(0, name, 560),
-						build(1, role, 650),
+						build(0, name, 680),
+						build(1, role, 760, 90),
 					]);
 					window.clearInterval(scrambleTimer);
 					draw(loaderName, [...name]);
