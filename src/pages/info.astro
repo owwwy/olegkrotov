@@ -12,9 +12,15 @@ import TypeScale from '../components/TypeScale.astro';
 		<ClientRouting />
 		<style is:inline>html,body{margin:0;background:#fff}</style>
 		<script is:inline data-astro-rerun>
+			var internalInfoTransition = false;
+			try {
+				internalInfoTransition = sessionStorage.getItem('info-page-transition') === 'true';
+				sessionStorage.removeItem('info-page-transition');
+			} catch {}
 			document.documentElement.classList.remove(
 				'is-preloading', 'is-revealing', 'is-identity-ready', 'info-return-home', 'info-return-ready'
 			);
+			if (!internalInfoTransition) document.documentElement.classList.add('info-direct-preloading');
 			document.documentElement.classList.add('info-entering');
 			window.addEventListener('pageshow', (event) => {
 				if (event.persisted) window.location.reload();
@@ -27,6 +33,12 @@ import TypeScale from '../components/TypeScale.astro';
 		<title>Инфо — Олег Кротов</title>
 	</head>
 	<body>
+		<div class="info-preloader" data-info-preloader aria-live="polite">
+			<div class="info-preloader__identity" data-info-preloader-identity>
+				<strong data-info-preloader-name></strong>
+				<span data-info-preloader-role></span>
+			</div>
+		</div>
 		<div class="page-grid">
 			<SiteSidebar active="info" />
 			<main>
@@ -69,6 +81,84 @@ import TypeScale from '../components/TypeScale.astro';
 				<span class="info-marker" aria-hidden="true"></span>
 			</main>
 		</div>
+		<script is:inline data-astro-rerun>
+			(() => {
+				const loader = document.querySelector('[data-info-preloader]');
+				if (!document.documentElement.classList.contains('info-direct-preloading')) {
+					loader?.remove();
+					return;
+				}
+				const identity = document.querySelector('[data-info-preloader-identity]');
+				const nameElement = document.querySelector('[data-info-preloader-name]');
+				const roleElement = document.querySelector('[data-info-preloader-role]');
+				const targetIdentity = document.querySelector('.identity');
+				if (!loader || !identity || !nameElement || !roleElement || !targetIdentity) return;
+				const values = ['Олег Кротов', 'Digital Designer'];
+				const elements = [nameElement, roleElement];
+				const pools = values.map((value) => [...new Set([...value].filter((character) => character !== ' '))]);
+				const visible = [0, 0];
+				const settled = [0, 0];
+				const draw = (element, characters) => {
+					element.textContent = characters.map((character) => character === ' ' ? '\u00a0' : character).join('');
+				};
+				values.forEach((value, index) => draw(elements[index], [...value]));
+				const bounds = identity.getBoundingClientRect();
+				identity.style.width = `${bounds.width}px`;
+				identity.style.height = `${bounds.height}px`;
+				elements.forEach((element) => draw(element, []));
+				const scrambleTimer = window.setInterval(() => {
+					values.forEach((value, valueIndex) => {
+						const output = [...value].map((character, index) => {
+							if (index >= visible[valueIndex]) return '';
+							if (character === ' ' || index < settled[valueIndex]) return character;
+							const pool = pools[valueIndex];
+							return pool[Math.floor(Math.random() * pool.length)] ?? character;
+						});
+						draw(elements[valueIndex], output);
+					});
+				}, 58);
+				const build = (valueIndex, duration, delay = 0) => new Promise((resolve) => {
+					const startedAt = performance.now() + delay;
+					const length = [...values[valueIndex]].length;
+					const frame = (now) => {
+						if (now < startedAt) {
+							requestAnimationFrame(frame);
+							return;
+						}
+						const progress = Math.min(1, (now - startedAt) / duration);
+						visible[valueIndex] = Math.ceil(Math.min(1, progress / .68) * length);
+						const settling = Math.max(0, (progress - .68) / .32);
+						settled[valueIndex] = Math.floor((1 - Math.pow(1 - settling, 2)) * length);
+						if (progress < 1) requestAnimationFrame(frame);
+						else resolve();
+					};
+					requestAnimationFrame(frame);
+				});
+				(async () => {
+					await Promise.all([build(0, 680), build(1, 760, 90), document.fonts?.ready ?? Promise.resolve()]);
+					window.clearInterval(scrambleTimer);
+					values.forEach((value, index) => draw(elements[index], [...value]));
+					await new Promise((resolve) => window.setTimeout(resolve, 320));
+					const target = targetIdentity.getBoundingClientRect();
+					const source = identity.getBoundingClientRect();
+					identity.style.setProperty('--info-loader-x', `${target.left - source.left}px`);
+					identity.style.setProperty('--info-loader-y', `${target.top - source.top}px`);
+					loader.classList.add('is-returning');
+					identity.classList.add('is-returning');
+					window.setTimeout(() => {
+						document.documentElement.classList.add('info-direct-revealing');
+						window.dispatchEvent(new CustomEvent('info:direct-reveal'));
+					}, 260);
+					window.setTimeout(() => document.documentElement.classList.add('info-direct-identity-ready'), 610);
+					window.setTimeout(() => {
+						document.documentElement.classList.remove(
+							'info-direct-preloading', 'info-direct-identity-ready', 'info-direct-revealing'
+						);
+						loader.remove();
+					}, 760);
+				})();
+			})();
+		</script>
 		<script>
 			import { navigate } from 'astro:transitions/client';
 
@@ -255,7 +345,9 @@ import TypeScale from '../components/TypeScale.astro';
 					});
 				});
 
-				requestAnimationFrame(enter);
+				if (document.documentElement.classList.contains('info-direct-preloading')) {
+					window.addEventListener('info:direct-reveal', enter, { once: true });
+				} else requestAnimationFrame(enter);
 				document.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((link) => {
 					const destination = new URL(link.href, window.location.href);
 					if (destination.origin !== window.location.origin || destination.pathname === '/info') return;
@@ -303,6 +395,64 @@ import TypeScale from '../components/TypeScale.astro';
 </html>
 
 <style is:global>
+	.info-preloader {
+		position: fixed;
+		z-index: 1000;
+		inset: 0;
+		display: grid;
+		place-items: center;
+		background: #fff;
+		transition: background-color 500ms cubic-bezier(.22, 1, .36, 1);
+	}
+
+	.info-preloader.is-returning {
+		background: rgb(255 255 255 / 0%);
+		pointer-events: none;
+	}
+
+	.info-preloader__identity {
+		display: flex;
+		flex-direction: column;
+		transform: translate3d(0, 0, 0);
+		transform-origin: top left;
+		transition: transform 640ms cubic-bezier(.22, 1, .36, 1);
+	}
+
+	.info-preloader__identity.is-returning {
+		transform: translate3d(var(--info-loader-x), var(--info-loader-y), 0) scale(.5);
+	}
+
+	.info-preloader__identity strong {
+		font-size: calc(var(--ui-font-size) * 2);
+		font-weight: 400;
+		line-height: calc(var(--ui-line-height) * 2);
+	}
+
+	.info-preloader__identity span {
+		color: rgb(25 25 28 / 60%);
+		font-size: calc(var(--role-font-size) * 2);
+		font-weight: 300;
+		line-height: calc(var(--ui-line-height) * 2);
+	}
+
+	.info-direct-preloading .identity,
+	.info-direct-preloading nav,
+	.info-direct-preloading main {
+		opacity: 0;
+	}
+
+	.identity,
+	nav,
+	main {
+		transition: opacity 420ms ease-out;
+	}
+
+	.info-direct-preloading.info-direct-revealing nav,
+	.info-direct-preloading.info-direct-revealing main,
+	.info-direct-preloading.info-direct-identity-ready .identity {
+		opacity: 1;
+	}
+
 	:root {
 		--page-padding: 40px;
 		--grid-gap: 20px;

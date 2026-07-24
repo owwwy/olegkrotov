@@ -707,6 +707,7 @@ const firstProject = projects[0];
 		const onInfoClick = (event: MouseEvent) => {
 			if (!infoLink) return;
 			event.preventDefault();
+			try { sessionStorage.setItem('info-page-transition', 'true'); } catch {}
 			if (reducedMotion.matches) {
 				window.location.assign(infoLink.href);
 				return;
