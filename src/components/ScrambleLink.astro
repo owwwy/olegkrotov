@@ -92,6 +92,31 @@ const { href, label, active = false } = Astro.props;
 	const animate = (link: HTMLElement) => {
 		link.querySelectorAll<HTMLElement>('[data-scramble-text]').forEach(animateText);
 	};
+	const buildText = (text: HTMLElement, delay: number) => {
+		const original = [...(text.dataset.original ?? '')];
+		const spans = [...text.querySelectorAll<HTMLElement>('.scramble-link__char')];
+		const pool = original.filter((character) => !LOCKED_CHARACTERS.has(character));
+		spans.forEach((span) => { span.textContent = ''; });
+		window.setTimeout(() => {
+			const startedAt = performance.now();
+			const duration = Math.max(260, original.length * 48);
+			const frame = (now: number) => {
+				const progress = Math.min(1, (now - startedAt) / duration);
+				const visible = Math.ceil(progress * original.length);
+				const settled = Math.max(0, visible - 2);
+				spans.forEach((span, index) => {
+					if (index >= visible) span.textContent = '';
+					else if (original[index] === ' ') span.textContent = '\u00a0';
+					else span.textContent = index < settled
+						? original[index]
+						: pool[Math.floor(Math.random() * pool.length)] ?? original[index];
+				});
+				if (progress < 1) requestAnimationFrame(frame);
+				else render(spans, original);
+			};
+			requestAnimationFrame(frame);
+		}, delay);
+	};
 
 	document.querySelectorAll<HTMLElement>('[data-scramble-link]').forEach((link) => {
 		if (link.dataset.scrambleBound === 'true') return;
@@ -99,6 +124,16 @@ const { href, label, active = false } = Astro.props;
 		link.addEventListener('pointerenter', () => animate(link));
 		link.addEventListener('focus', () => animate(link));
 	});
+
+	if (document.documentElement.classList.contains('is-preloading')) {
+		const menuTexts = [...document.querySelectorAll<HTMLElement>('nav [data-scramble-text]')];
+		menuTexts.forEach((text) => {
+			text.querySelectorAll<HTMLElement>('.scramble-link__char').forEach((span) => { span.textContent = ''; });
+		});
+		window.addEventListener('site:reveal', () => {
+			menuTexts.forEach((text, index) => buildText(text, index * 150));
+		}, { once: true });
+	}
 </script>
 
 <style>

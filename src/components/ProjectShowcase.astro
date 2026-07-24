@@ -536,6 +536,7 @@ const firstProject = projects[0];
 		};
 		requestAnimationFrame(renderScroll);
 
+		const startIntro = () => {
 		if (isIntroPlaying) {
 			const introTitles = panels.map((panel) => panel.dataset.title ?? '');
 			const introCategories = panels.map((panel) => panel.dataset.category ?? '');
@@ -547,13 +548,15 @@ const firstProject = projects[0];
 				nextIndex: number,
 				transition: number,
 				uppercase: boolean,
+				revealProgress: number,
 			) => {
 				const normalize = (value: string) => uppercase ? value.toUpperCase() : value.toLowerCase();
 				const current = normalize(values[index] ?? '');
 				const next = normalize(values[nextIndex] ?? '');
 				const template = transition < 0.5 ? current : next;
 				const pool = [...new Set([...current, ...next].filter((character) => character !== ' '))];
-				const scrambled = [...template].map((character) =>
+				const visibleCharacters = Math.ceil(template.length * revealProgress);
+				const scrambled = [...template].slice(0, visibleCharacters).map((character) =>
 					character === ' ' ? ' ' : randomCharacter(pool),
 				).join('');
 				element.setAttribute('aria-label', transition < 0.5 ? values[index] : values[nextIndex]);
@@ -641,8 +644,9 @@ const firstProject = projects[0];
 
 				if (now - lastIntroScramble >= SCRAMBLE_TICK || progress === 1) {
 					lastIntroScramble = now;
-					renderIntroScramble(title, introTitles, projectIndex, nextProjectIndex, projectTransition, true);
-					renderIntroScramble(category, introCategories, projectIndex, nextProjectIndex, projectTransition, false);
+					const revealProgress = Math.min(1, progress * 1.55);
+					renderIntroScramble(title, introTitles, projectIndex, nextProjectIndex, projectTransition, true, revealProgress);
+					renderIntroScramble(category, introCategories, projectIndex, nextProjectIndex, projectTransition, false, revealProgress);
 				}
 
 				panels.forEach((panel, index) => {
@@ -679,6 +683,12 @@ const firstProject = projects[0];
 				scrollInput?.start();
 			};
 			requestAnimationFrame(animateIntro);
+		}
+		};
+		if (document.documentElement.classList.contains('is-preloading')) {
+			window.addEventListener('site:reveal', startIntro, { once: true });
+		} else {
+			startIntro();
 		}
 
 		window.addEventListener('keydown', onKeyDown);

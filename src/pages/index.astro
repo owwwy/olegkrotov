@@ -17,6 +17,7 @@ const navigation = [
 <html lang="ru">
 	<head>
 		<meta charset="utf-8" />
+		<script is:inline>document.documentElement.classList.add('is-preloading');</script>
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
@@ -55,6 +56,12 @@ const navigation = [
 		<title>Олег Кротов — Digital Designer</title>
 	</head>
 	<body>
+		<div class="site-preloader" data-site-preloader aria-live="polite">
+			<div class="site-preloader__identity" data-preloader-identity>
+				<strong data-preloader-name></strong>
+				<span data-preloader-role></span>
+			</div>
+		</div>
 		<div class="page-grid">
 			<aside class="sidebar">
 				<a class="identity" href="/" aria-label="Олег Кротов — на главную" data-scramble-link>
@@ -85,6 +92,94 @@ const navigation = [
 			</main>
 		</div>
 		<ProjectCaseModal projects={projects} />
+		<script is:inline>
+			(() => {
+				const startedAt = performance.now();
+				const loader = document.querySelector('[data-site-preloader]');
+				const loaderIdentity = document.querySelector('[data-preloader-identity]');
+				const loaderName = document.querySelector('[data-preloader-name]');
+				const loaderRole = document.querySelector('[data-preloader-role]');
+				const targetIdentity = document.querySelector('.identity');
+				if (!loader || !loaderIdentity || !loaderName || !loaderRole || !targetIdentity) return;
+
+				const name = 'Олег Кротов';
+				const role = 'Digital Designer';
+				const poolFor = (value) => [...new Set([...value].filter((character) => character !== ' '))];
+				const randomFrom = (pool) => pool[Math.floor(Math.random() * pool.length)] || '';
+				const draw = (element, characters) => {
+					element.textContent = characters.map((character) => character === ' ' ? '\u00a0' : character).join('');
+				};
+				const build = (element, value, duration) => new Promise((resolve) => {
+					const source = [...value];
+					const pool = poolFor(value);
+					const animationStartedAt = performance.now();
+					const frame = (now) => {
+						const progress = Math.min(1, (now - animationStartedAt) / duration);
+						const head = Math.ceil(progress * source.length);
+						const settled = Math.max(0, head - 2);
+						const output = source.slice(0, head).map((character, index) => {
+							if (character === ' ') return character;
+							return index < settled ? character : randomFrom(pool);
+						});
+						draw(element, progress === 1 ? source : output);
+						if (progress < 1) requestAnimationFrame(frame);
+						else resolve();
+					};
+					requestAnimationFrame(frame);
+				});
+				const loaded = Promise.all([
+					document.fonts?.ready || Promise.resolve(),
+					...[...document.querySelectorAll('[data-project-panel] img')].map((image) =>
+						image.complete ? Promise.resolve() : new Promise((resolve) => {
+							image.addEventListener('load', resolve, { once: true });
+							image.addEventListener('error', resolve, { once: true });
+						}),
+					),
+				]);
+
+				(async () => {
+					await build(loaderName, name, 390);
+					await build(loaderRole, role, 430);
+					const idleStartedAt = performance.now();
+					const idle = window.setInterval(() => {
+						[name, role].forEach((value, index) => {
+							const source = [...value];
+							const pool = poolFor(value);
+							const output = source.map((character) => character === ' ' ? character : randomFrom(pool));
+							draw(index === 0 ? loaderName : loaderRole, output);
+						});
+					}, 58);
+					await Promise.all([
+						loaded,
+						new Promise((resolve) => window.setTimeout(resolve, Math.max(0, 1000 - (performance.now() - startedAt)))),
+					]);
+					window.clearInterval(idle);
+					draw(loaderName, [...name]);
+					draw(loaderRole, [...role]);
+					const idleDuration = performance.now() - idleStartedAt;
+					if (idleDuration < 90) await new Promise((resolve) => window.setTimeout(resolve, 90 - idleDuration));
+
+					const target = targetIdentity.getBoundingClientRect();
+					const source = loaderIdentity.getBoundingClientRect();
+					loaderIdentity.style.setProperty('--loader-x', `${target.left - source.left}px`);
+					loaderIdentity.style.setProperty('--loader-y', `${target.top - source.top}px`);
+					loader.classList.add('is-returning');
+					loaderIdentity.classList.add('is-returning');
+					window.setTimeout(() => {
+						document.documentElement.classList.add('is-revealing');
+						window.dispatchEvent(new CustomEvent('site:reveal'));
+					}, 260);
+					window.setTimeout(() => {
+						document.documentElement.classList.add('is-identity-ready');
+					}, 610);
+					window.setTimeout(() => {
+						document.documentElement.classList.remove('is-preloading');
+						document.documentElement.classList.remove('is-identity-ready');
+						loader.remove();
+					}, 760);
+				})();
+			})();
+		</script>
 	</body>
 </html>
 
@@ -115,6 +210,68 @@ const navigation = [
 		display: none;
 		width: 0;
 		height: 0;
+	}
+
+	.site-preloader {
+		position: fixed;
+		z-index: 1000;
+		inset: 0;
+		display: grid;
+		place-items: center;
+		background: #fff;
+		transition: background-color 500ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.site-preloader.is-returning {
+		background: rgb(255 255 255 / 0%);
+		pointer-events: none;
+	}
+
+	.site-preloader__identity {
+		display: flex;
+		flex-direction: column;
+		min-width: max-content;
+		transform: translate3d(0, 0, 0);
+		transform-origin: top left;
+		transition: transform 640ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.site-preloader__identity.is-returning {
+		transform: translate3d(var(--loader-x), var(--loader-y), 0) scale(0.5);
+	}
+
+	.site-preloader__identity strong {
+		font-size: calc(var(--ui-font-size) * 2);
+		font-weight: 400;
+		line-height: calc(var(--ui-line-height) * 2);
+	}
+
+	.site-preloader__identity span {
+		color: var(--color-muted);
+		font-size: calc(var(--role-font-size) * 2);
+		font-weight: 300;
+		line-height: calc(var(--ui-line-height) * 2);
+	}
+
+	.is-preloading .identity,
+	.is-preloading nav,
+	.is-preloading main {
+		opacity: 0;
+	}
+
+	.identity,
+	nav,
+	main {
+		transition: opacity 420ms ease-out;
+	}
+
+	.is-preloading.is-revealing nav,
+	.is-preloading.is-revealing main {
+		opacity: 1;
+	}
+
+	.is-preloading.is-identity-ready .identity {
+		opacity: 1;
 	}
 
 	.c-scrollbar {
