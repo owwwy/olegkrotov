@@ -232,6 +232,7 @@ import TypeScale from '../components/TypeScale.astro';
 						image.addEventListener('error', () => resolve(), { once: true });
 					});
 					if (!image.naturalWidth) return;
+					try { await image.decode(); } catch {}
 					visual.style.opacity = '1';
 					const canvas = document.createElement('canvas');
 					const isOverflow = visual.classList.contains('visual--overflow');
@@ -545,6 +546,7 @@ import TypeScale from '../components/TypeScale.astro';
 	.info-char { display: inline-block; }
 	.info-char--space { flex: none; }
 	.info-entering:not(.info-ready) .info-copy { visibility: hidden; }
+	.info-entering .visual { opacity: 0; }
 
 	.visual {
 		position: relative;
@@ -593,7 +595,10 @@ import TypeScale from '../components/TypeScale.astro';
 		width: 150%;
 		height: 150%;
 	}
-	.visual--overflow { overflow: visible; }
+	.visual--overflow {
+		width: calc(var(--info-chip-width) * .9);
+		overflow: visible;
+	}
 	.visual--overflow img {
 		width: 110%;
 		height: 152%;
