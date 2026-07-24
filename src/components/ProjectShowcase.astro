@@ -48,7 +48,9 @@ const firstProject = projects[0];
 	const TRANSITION_DURATION = 720;
 	const INTRO_MIN_PROJECT_DURATION = 80;
 	const INTRO_MAX_PROJECT_DURATION = 240;
-	const INTRO_LOOPS = 2;
+	const INTRO_LOOPS = 1;
+	const INTRO_BOUNCE_DISTANCE = 0.25;
+	const INTRO_BOUNCE_DURATION = 360;
 	const WHEEL_THRESHOLD = 110;
 	const SCROLL_CENTER = 50000;
 	const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -569,24 +571,31 @@ const firstProject = projects[0];
 				return INTRO_MIN_PROJECT_DURATION
 					+ (INTRO_MAX_PROJECT_DURATION - INTRO_MIN_PROJECT_DURATION) * progress;
 			});
-			const introDuration = introDurations.reduce((total, duration) => total + duration, 0);
+			const introSpinDuration = introDurations.reduce((total, duration) => total + duration, 0);
+			const introDuration = introSpinDuration + INTRO_BOUNCE_DURATION;
 			const animateIntro = (now: number) => {
 				const elapsed = Math.min(introDuration, now - introStartedAt);
 				const progress = elapsed / introDuration;
-				let elapsedBeforeStep = 0;
-				let completedSteps = 0;
-				while (
-					completedSteps < introSteps - 1
-					&& elapsed >= elapsedBeforeStep + introDurations[completedSteps]
-				) {
-					elapsedBeforeStep += introDurations[completedSteps];
-					completedSteps += 1;
+				let travel = introSteps;
+				if (elapsed < introSpinDuration) {
+					let elapsedBeforeStep = 0;
+					let completedSteps = 0;
+					while (
+						completedSteps < introSteps - 1
+						&& elapsed >= elapsedBeforeStep + introDurations[completedSteps]
+					) {
+						elapsedBeforeStep += introDurations[completedSteps];
+						completedSteps += 1;
+					}
+					const stepProgress = Math.min(
+						1,
+						(elapsed - elapsedBeforeStep) / introDurations[completedSteps],
+					);
+					travel = completedSteps + stepProgress;
+				} else {
+					const bounceProgress = (elapsed - introSpinDuration) / INTRO_BOUNCE_DURATION;
+					travel += Math.sin(bounceProgress * Math.PI) * INTRO_BOUNCE_DISTANCE;
 				}
-				const stepProgress = Math.min(
-					1,
-					(elapsed - elapsedBeforeStep) / introDurations[completedSteps],
-				);
-				const travel = progress === 1 ? introSteps : completedSteps + stepProgress;
 				const travelBase = Math.floor(travel);
 				const projectIndex = travelBase % panels.length;
 				const nextProjectIndex = (projectIndex + 1) % panels.length;
