@@ -92,6 +92,7 @@ import TypeScale from '../components/TypeScale.astro';
 				const visuals = [...copy.querySelectorAll<HTMLElement>('.visual')];
 				const characterPool = [...new Set(characters.map((character) => character.dataset.character ?? '').filter(Boolean))];
 				const randomCharacter = () => characterPool[Math.floor(Math.random() * characterPool.length)] ?? '';
+				const enterSpeed = 1.4;
 				characters.forEach((character) => {
 					character.style.width = `${character.getBoundingClientRect().width}px`;
 					character.style.opacity = '0';
@@ -122,7 +123,7 @@ import TypeScale from '../components/TypeScale.astro';
 					const bufferContext = buffer.getContext('2d');
 					if (!context || !bufferContext) return;
 					image.style.opacity = reverse ? '1' : '0';
-					const duration = reverse ? 360 : 620;
+					const duration = reverse ? 360 : 620 / enterSpeed;
 					const startedAt = performance.now();
 					await new Promise<void>((resolve) => {
 						const frame = (now: number) => {
@@ -161,14 +162,14 @@ import TypeScale from '../components/TypeScale.astro';
 					}
 					let position = 0;
 					orderedItems.forEach((item) => {
-						const delay = position * 8 + Math.random() * 90;
+						const delay = (position * 8 + Math.random() * 90) / enterSpeed;
 						if (item.classList.contains('visual')) {
 							window.setTimeout(() => { void pixelate(item); }, delay);
 							position += 5;
 							return;
 						}
 						const target = item.dataset.character ?? '';
-						const duration = 300 + Math.random() * 380;
+						const duration = (300 + Math.random() * 380) / enterSpeed;
 						window.setTimeout(() => {
 							item.style.opacity = '1';
 							const startedAt = performance.now();
