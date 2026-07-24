@@ -52,7 +52,6 @@ const animatedPngs = new Set([
 		<TypeScale />
 		{projects.map((item) => <link rel="preload" as="image" href={item.image} />)}
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="theme-color" content="transparent" />
 		<meta name="description" content={`${project.title} — ${project.category}. Проект Олега Кротова.`} />
 		<title>{project.title} — Олег Кротов</title>
 	</head>
@@ -110,10 +109,10 @@ const animatedPngs = new Set([
 			const mobileCase = window.matchMedia('(max-width: 767px)').matches;
 			if (viewport && content) {
 				if (mobileCase) {
-					let lastScroll = viewport.scrollTop;
-					viewport.addEventListener('scroll', () => {
+					let lastScroll = window.scrollY;
+					window.addEventListener('scroll', () => {
 						if (!casePage) return;
-						const scroll = viewport.scrollTop;
+						const scroll = window.scrollY;
 						const delta = scroll - lastScroll;
 						lastScroll = scroll;
 						if (scroll <= 12) casePage.classList.remove('is-header-hidden');
@@ -160,7 +159,7 @@ const animatedPngs = new Set([
 						}, 320);
 						unloadTimers.set(image, timer);
 					});
-				}, { root: viewport, rootMargin: '60% 0px', threshold: 0 });
+				}, { root: mobileCase ? null : viewport, rootMargin: '60% 0px', threshold: 0 });
 				animatedImages.forEach((image) => animationObserver.observe(image));
 			}
 
@@ -600,19 +599,24 @@ const animatedPngs = new Set([
 	@media (max-width: 767px) {
 		:global(html),
 		:global(body) {
-			background: transparent;
+			height: auto;
+			overflow: visible;
+			background: #fff;
 		}
 
 		.case-page {
-			height: 100lvh;
+			height: auto;
 			min-height: 100dvh;
-			padding: 0;
+			padding: calc(56px + env(safe-area-inset-top)) 0 0;
 			gap: 0;
 		}
 
 		.case-header {
-			position: relative;
+			position: fixed;
 			z-index: 5;
+			top: 0;
+			left: 0;
+			right: 0;
 			min-height: calc(56px + env(safe-area-inset-top));
 			padding: calc(16px + env(safe-area-inset-top)) 16px 16px;
 			align-items: flex-start;
@@ -654,16 +658,19 @@ const animatedPngs = new Set([
 
 		.case-page__viewport {
 			width: 100%;
+			min-height: 0;
+			flex: none;
 			margin: 0;
+			overflow: visible;
 			border: 0;
 			border-radius: 0;
-			background: transparent;
+			background: #fff;
 			contain: none;
 			transition: margin-top 300ms cubic-bezier(.22, 1, .36, 1);
 		}
 
 		.case-page.is-header-hidden .case-page__viewport {
-			margin-top: calc((56px + env(safe-area-inset-top)) * -1);
+			margin-top: 0;
 		}
 
 		.case-page__content {
