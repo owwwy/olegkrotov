@@ -13,18 +13,27 @@ import { projects } from '../data/projects';
 	<head>
 		<meta charset="utf-8" />
 		<ClientRouting />
-		<style is:inline>html,body{margin:0;background:#fff}</style>
+		<style is:inline>
+			html,body{margin:0;background:#fff}
+			html.info-return-home .site-preloader,
+			html.case-return-home .site-preloader{display:none!important}
+		</style>
 		<script is:inline data-astro-rerun>
-			document.documentElement.classList.remove('info-entering', 'info-ready');
-			const caseReturnFromUrl = new URLSearchParams(window.location.search).has('case-return');
-			if (caseReturnFromUrl) {
+			document.documentElement.classList.remove(
+				'info-entering', 'info-ready', 'info-return-home', 'info-return-ready',
+				'case-return-home', 'case-return-ready', 'is-preloading', 'is-revealing', 'is-identity-ready'
+			);
+			const returnParameters = new URLSearchParams(window.location.search);
+			const caseReturnFromUrl = returnParameters.has('case-return');
+			const infoReturnFromUrl = returnParameters.has('info-return');
+			if (caseReturnFromUrl || infoReturnFromUrl) {
 				window.history.replaceState(window.history.state, '', '/');
 			}
 			try {
 				if (caseReturnFromUrl || sessionStorage.getItem('case-return-home') === 'true') {
 					document.documentElement.classList.add('case-return-home');
 					sessionStorage.removeItem('case-return-home');
-				} else if (sessionStorage.getItem('info-return-home') === 'true') {
+				} else if (infoReturnFromUrl || sessionStorage.getItem('info-return-home') === 'true') {
 					document.documentElement.classList.add('info-return-home');
 					sessionStorage.removeItem('info-return-home');
 				} else document.documentElement.classList.add('is-preloading');

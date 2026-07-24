@@ -263,6 +263,7 @@ import TypeScale from '../components/TypeScale.astro';
 						if (reducedMotion.matches) {
 							if (destination.pathname === '/') {
 								try { sessionStorage.setItem('info-return-home', 'true'); } catch {}
+								destination.searchParams.set('info-return', Date.now().toString());
 							}
 							void navigate(destination.href);
 						}
@@ -270,6 +271,7 @@ import TypeScale from '../components/TypeScale.astro';
 							await leave();
 							if (destination.pathname === '/') {
 								try { sessionStorage.setItem('info-return-home', 'true'); } catch {}
+								destination.searchParams.set('info-return', Date.now().toString());
 							}
 							void navigate(destination.href);
 						}
