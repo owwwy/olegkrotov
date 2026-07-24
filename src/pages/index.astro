@@ -161,7 +161,7 @@ const navigation = [
 					await build(1, role, 430);
 					await Promise.all([
 						loaded,
-						new Promise((resolve) => window.setTimeout(resolve, Math.max(0, 2000 - (performance.now() - startedAt)))),
+						new Promise((resolve) => window.setTimeout(resolve, Math.max(0, 1200 - (performance.now() - startedAt)))),
 					]);
 					window.clearInterval(scrambleTimer);
 					draw(loaderName, [...name]);

@@ -51,6 +51,7 @@ const firstProject = projects[0];
 	const INTRO_LOOPS = 1;
 	const INTRO_BOUNCE_DISTANCE = 0.25;
 	const INTRO_BOUNCE_SHAPE_PEAK = 0.579;
+	const INTRO_QUALITY_FINISH_DURATION = 620;
 	const WHEEL_THRESHOLD = 110;
 	const SCROLL_CENTER = 50000;
 	const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -138,7 +139,7 @@ const firstProject = projects[0];
 				warped.y += sin(warped.x * 3.14159265) * uDirection * lens * 0.09;
 				warped.x += sin((warped.y + uTime * 0.00018) * 10.0) * lens * 0.018;
 
-				float pixelCount = mix(240.0, 12.0, pow(uPixelation, 0.72));
+				float pixelCount = mix(180.0, 6.0, pow(uPixelation, 0.72));
 				vec2 pixelGrid = vec2(pixelCount, pixelCount * uCanvasSize.y / uCanvasSize.x);
 				vec2 pixelCell = floor(warped * pixelGrid);
 				vec2 pixelJitter = vec2(
@@ -146,7 +147,7 @@ const firstProject = projects[0];
 					noise(pixelCell.yx + floor(uTime * 0.014) + 17.0)
 				) - 0.5;
 				vec2 pixelatedUv = (pixelCell + 0.5) / pixelGrid
-					+ pixelJitter * 0.055 * uPixelation * uPixelation;
+					+ pixelJitter * 0.09 * uPixelation * uPixelation;
 				warped = mix(warped, pixelatedUv, uPixelation);
 
 				vec2 chroma = normalize(centered + vec2(0.0001)) * lens * 0.018;
@@ -653,8 +654,7 @@ const firstProject = projects[0];
 						introLensPair = projectIndex;
 						lens.setPair(projectIndex, nextProjectIndex);
 					}
-					const qualityProgress = Math.min(1, progress / 0.84);
-					const pixelation = Math.pow(1 - qualityProgress, 1.18);
+					const pixelation = 0.5 + 0.5 * Math.pow(1 - progress, 1.18);
 					lens.render(introStrength * 0.7, 1, projectTransition, pixelation);
 				}
 
@@ -684,19 +684,31 @@ const firstProject = projects[0];
 					panel.setAttribute('aria-hidden', index === activeIndex ? 'false' : 'true');
 				});
 				isIntroPlaying = false;
-				isTransitioning = false;
 				renderTitle(title, introTitles[activeIndex]);
 				title.setAttribute('aria-label', introTitles[activeIndex]);
 				renderTitle(category, introCategories[activeIndex]);
 				category.setAttribute('aria-label', introCategories[activeIndex]);
 				setWindowShape(0, 0);
-				if (lens) {
-					lens.setPair(activeIndex, activeIndex);
-					lens.render(0, 1, 0);
+				const finishIntro = () => {
+					isTransitioning = false;
+					lastScrollPosition = SCROLL_CENTER;
+					scrollInput?.scrollTo(SCROLL_CENTER, { immediate: true, force: true });
+					scrollInput?.start();
+				};
+				if (!lens) {
+					finishIntro();
+					return;
 				}
-				lastScrollPosition = SCROLL_CENTER;
-				scrollInput?.scrollTo(SCROLL_CENTER, { immediate: true, force: true });
-				scrollInput?.start();
+				lens.setPair(activeIndex, activeIndex);
+				const qualityStartedAt = performance.now();
+				const finishQuality = (qualityNow: number) => {
+					const qualityProgress = Math.min(1, (qualityNow - qualityStartedAt) / INTRO_QUALITY_FINISH_DURATION);
+					const easedQuality = 1 - Math.pow(1 - qualityProgress, 3);
+					lens?.render(0, 1, 0, 0.5 * (1 - easedQuality));
+					if (qualityProgress < 1) requestAnimationFrame(finishQuality);
+					else finishIntro();
+				};
+				requestAnimationFrame(finishQuality);
 			};
 			requestAnimationFrame(animateIntro);
 		}
