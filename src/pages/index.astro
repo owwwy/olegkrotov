@@ -1,7 +1,6 @@
 ---
 import '@fontsource-variable/onest';
 import ProjectShowcase from '../components/ProjectShowcase.astro';
-import ProjectCaseModal from '../components/ProjectCaseModal.astro';
 import ScrambleLink from '../components/ScrambleLink.astro';
 import { projects } from '../data/projects';
 
@@ -91,7 +90,6 @@ const navigation = [
 				<ProjectShowcase projects={projects} />
 			</main>
 		</div>
-		<ProjectCaseModal projects={projects} />
 		<script is:inline>
 			(() => {
 				const startedAt = performance.now();

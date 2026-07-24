@@ -1,0 +1,89 @@
+---
+import '@fontsource-variable/onest';
+import type { GetStaticPaths } from 'astro';
+import type { Project } from '../data/projects';
+import { projects } from '../data/projects';
+import { detectCaseBackground } from '../utils/case-background';
+
+export const getStaticPaths = (() => projects
+	.filter((project) => project.gallery?.length)
+	.map((project) => ({ params: { slug: project.slug }, props: { project } }))) satisfies GetStaticPaths;
+
+interface Props {
+	project: Project;
+}
+
+const { project } = Astro.props;
+const gallery = project.gallery ?? [];
+const lastImage = gallery.at(-1);
+const caseBackground = lastImage ? await detectCaseBackground(lastImage) : '#fff';
+---
+
+<!doctype html>
+<html lang="ru" style={`--case-background: ${caseBackground}`}>
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="description" content={`${project.title} — ${project.category}. Проект Олега Кротова.`} />
+		<title>{project.title} — Олег Кротов</title>
+	</head>
+	<body>
+		<main class="case-page">
+			<div class:list={['case-page__content', { 'is-light': caseBackground === '#fff' }]}>
+				{gallery.map((image, index) => (
+					<img
+						src={image}
+						alt={`${project.title} — изображение ${index + 1}`}
+						loading={index < 2 ? 'eager' : 'lazy'}
+						decoding="async"
+					/>
+				))}
+			</div>
+		</main>
+	</body>
+</html>
+
+<style>
+	:global(*) {
+		box-sizing: border-box;
+		scrollbar-width: none;
+	}
+
+	:global(*::-webkit-scrollbar) {
+		display: none;
+		width: 0;
+		height: 0;
+	}
+
+	:global(html),
+	:global(body) {
+		min-width: 0;
+		min-height: 100%;
+		margin: 0;
+		background: var(--case-background);
+	}
+
+	.case-page {
+		width: 100%;
+		min-height: 100dvh;
+		padding: 40px;
+		background: var(--case-background);
+	}
+
+	.case-page__content {
+		width: min(1600px, 100%);
+		margin-inline: auto;
+		overflow: hidden;
+	}
+
+	.case-page__content.is-light {
+		border: 1px solid #eaeaeb;
+	}
+
+	img {
+		display: block;
+		width: 100%;
+		height: auto;
+	}
+</style>

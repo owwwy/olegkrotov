@@ -15,19 +15,18 @@ const firstProject = projects[0];
 	</div>
 	<div class="showcase__media" data-project-media>
 		{projects.map((project, index) => (
-			<div
+			<a
 				class="showcase__panel"
 				data-project-panel
 				data-title={project.title}
 				data-category={project.category}
-				data-open-case={project.gallery?.length ? project.slug : undefined}
-				role={project.gallery?.length ? 'button' : undefined}
-				tabindex={project.gallery?.length ? 0 : undefined}
+				href={`/${project.slug}`}
+				tabindex={index === 0 ? 0 : -1}
 				aria-hidden={index === 0 ? 'false' : 'true'}
 				style={`transform: translate3d(0, ${index * 100}%, 0)`}
 			>
 				<img src={project.image} alt={project.imageAlt} loading="eager" decoding="async" />
-			</div>
+			</a>
 		))}
 		<canvas class="showcase__lens" data-project-lens aria-hidden="true"></canvas>
 	</div>
@@ -456,6 +455,7 @@ const firstProject = projects[0];
 					? 'translate3d(0, 0%, 0)'
 					: `translate3d(0, ${direction * -100}%, 0)`;
 				panel.setAttribute('aria-hidden', index === activeIndex ? 'false' : 'true');
+				panel.tabIndex = index === activeIndex ? 0 : -1;
 			});
 
 			scrambleText(title, previousTitle, nextTitle);
@@ -522,7 +522,7 @@ const firstProject = projects[0];
 		const consumeScroll = (position: number) => {
 			const delta = position - lastScrollPosition;
 			lastScrollPosition = position;
-			if (document.documentElement.classList.contains('case-is-open') || isTransitioning) return;
+			if (isTransitioning) return;
 			const direction = Math.sign(delta);
 			if (direction === 0) return;
 			qualityRecoveryId += 1;
@@ -545,7 +545,6 @@ const firstProject = projects[0];
 		};
 
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (document.documentElement.classList.contains('case-is-open')) return;
 			if (['ArrowDown', 'PageDown', ' '].includes(event.key)) {
 				event.preventDefault();
 				move(1);
@@ -566,7 +565,6 @@ const firstProject = projects[0];
 			syncTouchLerp: 0.12,
 			autoResize: false,
 			overscroll: false,
-			prevent: (node) => Boolean(node.closest('[data-case-layer]')),
 		});
 		scrollInput.scrollTo(SCROLL_CENTER, { immediate: true, force: true });
 		lastScrollPosition = scrollInput.scroll;
@@ -709,6 +707,7 @@ const firstProject = projects[0];
 					panel.style.transform = index === activeIndex ? 'translate3d(0, 0%, 0)' : 'translate3d(0, 100%, 0)';
 					panel.style.removeProperty('transition');
 					panel.setAttribute('aria-hidden', index === activeIndex ? 'false' : 'true');
+					panel.tabIndex = index === activeIndex ? 0 : -1;
 				});
 				isIntroPlaying = false;
 				renderTitle(title, introTitles[activeIndex]);
@@ -829,7 +828,7 @@ const firstProject = projects[0];
 		will-change: transform;
 	}
 
-	.showcase__panel[data-open-case] {
+	.showcase__panel {
 		cursor: pointer;
 	}
 
