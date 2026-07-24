@@ -1,5 +1,9 @@
 ---
 import '@fontsource-variable/onest';
+import { projects } from '../data/projects';
+
+const order = ['jetsite', 'addinol', 's-industrial', 'upravlead', 'podryado'];
+const mobileProjects = order.map((slug) => projects.find((project) => project.slug === slug)).filter(Boolean);
 ---
 
 <!doctype html>
@@ -13,23 +17,389 @@ import '@fontsource-variable/onest';
 		<title>Олег Кротов — Digital Designer</title>
 	</head>
 	<body>
-		<main aria-label="Мобильная версия сайта"></main>
+		<header class="mobile-header" data-mobile-header>
+			<a href="/mobile" data-mobile-scramble>Олег Кротов</a>
+			<span data-mobile-reveal>Digital Designer</span>
+		</header>
+
+		<main class="mobile-feed">
+			<section class="mobile-section mobile-info" data-mobile-section>
+				<div class="mobile-info__copy" data-info-copy>
+					<p>
+						<span class="info-row"><strong>Проектирую интерфейсы</strong></span>
+						<span class="info-row"><span class="info-visual info-visual--01"><img src="/info/01.png" alt="" /></span><span>цифровых продуктов</span></span>
+						<span class="info-row"><span>и&nbsp;</span><strong>развиваю дизайн-системы</strong><span>.</span></span>
+					</p>
+					<p>
+						<span class="info-row"><span>Для меня хорошие продукты</span></span>
+						<span class="info-row"><span>— это баланс</span><span class="info-visual info-visual--long"><img src="/info/03.png" alt="" /></span><span>между</span></span>
+						<span class="info-row"><span>экспертизой, эстетикой</span></span>
+						<span class="info-row"><span>и простыми исследованиями.</span></span>
+					</p>
+					<p>
+						<span class="info-row"><span>Я глубоко ценю визуальную</span></span>
+						<span class="info-row"><span>выразительность в цифровых</span></span>
+						<span class="info-row"><span>продуктах, но считаю,</span></span>
+						<span class="info-row"><span>что она&nbsp;</span><strong>должна работать</strong><span class="info-visual info-visual--hand"><img src="/info/05.png" alt="" /></span></span>
+						<span class="info-row"><strong>в пользу понятности</strong></span>
+						<span class="info-row"><strong>и интуитивности</strong><span>.</span></span>
+					</p>
+				</div>
+			</section>
+
+			{mobileProjects.map((project) => project && (
+				<a
+					class="mobile-section mobile-project"
+					href={`/${project.slug}`}
+					data-mobile-section
+					data-mobile-project
+					data-mobile-scramble
+				>
+					<img class="mobile-project__image" src={`/projects/m-${project.slug}.webp`} alt={project.imageAlt} />
+					<canvas class="mobile-project__pixels" aria-hidden="true"></canvas>
+					<div class="mobile-project__copy">
+						<h2>{project.title}</h2>
+						<p>{project.category}</p>
+					</div>
+				</a>
+			))}
+		</main>
+
+		<script>
+			const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+			const characterPool = [...'ОлегКротовDigitalDesignerПроектируюинтерфейсыцифровыхпродуктовразвиваюдизайнсистемы'];
+			const randomFrom = (pool: string[]) => pool[Math.floor(Math.random() * pool.length)] ?? '';
+			const fluidScale = (value: number) => Math.max(2, value);
+			const updateTypeScale = () => {
+				const ratio = document.documentElement.clientWidth / 400;
+				document.documentElement.style.setProperty('--mobile-side', `${24 * ratio}px`);
+				document.documentElement.style.setProperty('--mobile-vertical', `${32 * ratio}px`);
+				document.documentElement.style.setProperty('--mobile-inline-gap', `${6 * ratio}px`);
+				document.documentElement.style.setProperty('--mobile-copy-gap', `${20 * ratio}px`);
+				document.documentElement.style.setProperty('--mobile-visual-height', `${30 * ratio}px`);
+				document.documentElement.style.setProperty('--mobile-info-size', `${fluidScale(24 * ratio)}px`);
+				document.documentElement.style.setProperty('--mobile-info-line', `${fluidScale(30 * ratio)}px`);
+				document.documentElement.style.setProperty('--mobile-project-description', `${fluidScale(18 * ratio)}px`);
+				const titles = [...document.querySelectorAll<HTMLElement>('.mobile-project h2')];
+				const baseTitleSize = fluidScale(48 * ratio);
+				titles.forEach((title) => { title.style.fontSize = `${baseTitleSize}px`; });
+				const available = Math.max(1, document.documentElement.clientWidth - 48 * ratio);
+				const widestTitle = Math.max(1, ...titles.map((title) => title.scrollWidth));
+				const titleSize = baseTitleSize * Math.min(1, available / widestTitle);
+				titles.forEach((title) => { title.style.fontSize = `${titleSize}px`; });
+				document.documentElement.style.setProperty('--mobile-project-title', `${titleSize}px`);
+			};
+			updateTypeScale();
+			window.addEventListener('resize', updateTypeScale, { passive: true });
+
+			const wrapCharacters = (root: HTMLElement) => {
+				const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+				const nodes: Text[] = [];
+				while (walker.nextNode()) {
+					const node = walker.currentNode as Text;
+					if (node.data.trim()) nodes.push(node);
+				}
+				nodes.forEach((node) => {
+					const fragment = document.createDocumentFragment();
+					[...node.data].forEach((character) => {
+						const span = document.createElement('span');
+						span.className = character === ' ' || character === '\u00a0' ? 'mobile-char mobile-char--space' : 'mobile-char';
+						span.dataset.character = character;
+						span.textContent = character === ' ' || character === '\u00a0' ? '\u00a0' : character;
+						fragment.append(span);
+					});
+					node.replaceWith(fragment);
+				});
+			};
+
+			const revealText = (root: HTMLElement, stagger = 9) => {
+				wrapCharacters(root);
+				const characters = [...root.querySelectorAll<HTMLElement>('.mobile-char:not(.mobile-char--space)')];
+				const canvas = document.createElement('canvas');
+				const context = canvas.getContext('2d');
+				characters.forEach((character, index) => {
+					const target = character.dataset.character ?? '';
+					const width = character.getBoundingClientRect().width;
+					const styles = getComputedStyle(character);
+					character.style.width = `${width}px`;
+					character.style.opacity = '0';
+					let pool = characterPool;
+					if (context) {
+						context.font = `${styles.fontWeight} ${styles.fontSize} ${styles.fontFamily}`;
+						pool = characterPool.filter((candidate) => context.measureText(candidate).width <= width + .5);
+						if (!pool.length) pool = [target];
+					}
+					window.setTimeout(() => {
+						character.style.opacity = '1';
+						if (reduceMotion.matches) { character.textContent = target; return; }
+						const started = performance.now();
+						const duration = 260 + Math.random() * 260;
+						let lastTick = 0;
+						const frame = (now: number) => {
+							const progress = Math.min(1, (now - started) / duration);
+							if (now - lastTick > 42 || progress === 1) {
+								lastTick = now;
+								character.textContent = progress === 1 ? target : randomFrom(pool);
+							}
+							if (progress < 1) requestAnimationFrame(frame);
+						};
+						requestAnimationFrame(frame);
+					}, index * stagger + Math.random() * 70);
+				});
+			};
+
+			const pixelReveal = async (visual: HTMLElement, delay: number) => {
+				const image = visual.querySelector<HTMLImageElement>('img');
+				if (!image) return;
+				if (!image.complete) await new Promise<void>((resolve) => image.addEventListener('load', () => resolve(), { once: true }));
+				if (!image.naturalWidth) return;
+				window.setTimeout(() => {
+					const canvas = document.createElement('canvas');
+					canvas.className = 'info-pixel-canvas';
+					canvas.width = Math.max(1, visual.clientWidth);
+					canvas.height = Math.max(1, visual.clientHeight);
+					visual.append(canvas);
+					const context = canvas.getContext('2d');
+					const buffer = document.createElement('canvas');
+					const bufferContext = buffer.getContext('2d');
+					if (!context || !bufferContext) return;
+					image.style.opacity = '0';
+					const started = performance.now();
+					const frame = (now: number) => {
+						const progress = Math.min(1, (now - started) / 520);
+						const eased = progress * progress * (3 - 2 * progress);
+						const pixelWidth = Math.max(3, Math.round(3 + (canvas.width - 3) * eased));
+						buffer.width = pixelWidth;
+						buffer.height = Math.max(1, Math.round(pixelWidth * canvas.height / canvas.width));
+						bufferContext.drawImage(image, 0, 0, buffer.width, buffer.height);
+						context.imageSmoothingEnabled = false;
+						context.clearRect(0, 0, canvas.width, canvas.height);
+						context.drawImage(buffer, 0, 0, canvas.width, canvas.height);
+						if (progress < 1) requestAnimationFrame(frame);
+						else { image.style.opacity = '1'; canvas.remove(); }
+					};
+					requestAnimationFrame(frame);
+				}, delay);
+			};
+
+			const header = document.querySelector<HTMLElement>('[data-mobile-header]');
+			if (header) revealText(header, 26);
+			const info = document.querySelector<HTMLElement>('[data-info-copy]');
+			if (info) {
+				revealText(info, 7);
+				info.querySelectorAll<HTMLElement>('.info-visual').forEach((visual, index) => void pixelReveal(visual, 180 + index * 260));
+			}
+
+			const projectSections = [...document.querySelectorAll<HTMLElement>('[data-mobile-project]')];
+			const visibleProjects = new Set<HTMLElement>();
+			const pixelBuffers = new WeakMap<HTMLElement, HTMLCanvasElement>();
+			const projectObserver = new IntersectionObserver((entries) => {
+				entries.forEach((entry) => entry.isIntersecting
+					? visibleProjects.add(entry.target as HTMLElement)
+					: visibleProjects.delete(entry.target as HTMLElement));
+			}, { rootMargin: '30% 0px', threshold: 0 });
+			projectSections.forEach((section) => projectObserver.observe(section));
+
+			const drawPixels = (section: HTMLElement, intensity: number) => {
+				const image = section.querySelector<HTMLImageElement>('.mobile-project__image');
+				const canvas = section.querySelector<HTMLCanvasElement>('.mobile-project__pixels');
+				if (!image?.naturalWidth || !canvas) return;
+				const width = section.clientWidth;
+				const height = section.clientHeight;
+				const density = Math.min(devicePixelRatio, 1.25);
+				const outputWidth = Math.max(1, Math.round(width * density));
+				const outputHeight = Math.max(1, Math.round(height * density));
+				if (canvas.width !== outputWidth || canvas.height !== outputHeight) {
+					canvas.width = outputWidth;
+					canvas.height = outputHeight;
+				}
+				const context = canvas.getContext('2d', { alpha: false });
+				if (!context) return;
+				const cells = Math.max(7, Math.round(140 - intensity * 126));
+				let buffer = pixelBuffers.get(section);
+				if (!buffer) {
+					buffer = document.createElement('canvas');
+					pixelBuffers.set(section, buffer);
+				}
+				buffer.width = cells;
+				buffer.height = Math.max(1, Math.round(cells * height / width));
+				const bufferContext = buffer.getContext('2d');
+				if (!bufferContext) return;
+				const sourceRatio = image.naturalWidth / image.naturalHeight;
+				const targetRatio = width / height;
+				let sx = 0; let sy = 0; let sw = image.naturalWidth; let sh = image.naturalHeight;
+				if (sourceRatio > targetRatio) { sw = image.naturalHeight * targetRatio; sx = (image.naturalWidth - sw) / 2; }
+				else { sh = image.naturalWidth / targetRatio; sy = (image.naturalHeight - sh) / 2; }
+				bufferContext.drawImage(image, sx, sy, sw, sh, 0, 0, buffer.width, buffer.height);
+				context.imageSmoothingEnabled = false;
+				context.drawImage(buffer, 0, 0, buffer.width, buffer.height, 0, 0, outputWidth, outputHeight);
+				canvas.style.opacity = `${Math.min(1, intensity * 1.25)}`;
+			};
+
+			let scrollIntensity = 0;
+			let previousScroll = window.scrollY;
+			let lastScrollAt = performance.now();
+			let pixelFrame = 0;
+			const animatePixels = (now: number) => {
+				const elapsed = Math.max(1, now - lastScrollAt);
+				scrollIntensity *= Math.pow(.955, elapsed / 16.67);
+				visibleProjects.forEach((section) => drawPixels(section, scrollIntensity));
+				if (scrollIntensity > .015) pixelFrame = requestAnimationFrame(animatePixels);
+				else visibleProjects.forEach((section) => {
+					const canvas = section.querySelector<HTMLCanvasElement>('.mobile-project__pixels');
+					if (canvas) canvas.style.opacity = '0';
+				});
+			};
+			window.addEventListener('scroll', () => {
+				const now = performance.now();
+				const distance = Math.abs(window.scrollY - previousScroll);
+				const elapsed = Math.max(8, now - lastScrollAt);
+				previousScroll = window.scrollY;
+				lastScrollAt = now;
+				scrollIntensity = Math.min(1, Math.max(scrollIntensity, distance / elapsed / 2.1));
+				cancelAnimationFrame(pixelFrame);
+				pixelFrame = requestAnimationFrame(animatePixels);
+			}, { passive: true });
+
+			document.querySelectorAll<HTMLAnchorElement>('[data-mobile-scramble]').forEach((link) => {
+				link.addEventListener('click', (event) => {
+					if (link.pathname === location.pathname) return;
+					event.preventDefault();
+					const copy = link.matches('[data-mobile-project]')
+						? link.querySelector<HTMLElement>('.mobile-project__copy')
+						: link;
+					if (copy && !copy.querySelector('.mobile-char')) revealText(copy, 4);
+					try { sessionStorage.setItem('case-page-transition', 'true'); } catch {}
+					window.setTimeout(() => { location.href = link.href; }, reduceMotion.matches ? 0 : 340);
+				});
+			});
+		</script>
 	</body>
 </html>
 
-<style>
-	:global(*) {
-		box-sizing: border-box;
-	}
-
-	:global(html),
-	:global(body) {
-		min-height: 100%;
+<style is:global>
+	* { box-sizing: border-box; }
+	html {
 		margin: 0;
 		background: #fff;
+		scroll-snap-type: y mandatory;
+		scroll-behavior: smooth;
+		scrollbar-width: none;
+	}
+	body {
+		margin: 0;
+		background: #fff;
+		color: #19191c;
+		font-family: 'Onest Variable', Onest, sans-serif;
+		-webkit-font-smoothing: antialiased;
+	}
+	html::-webkit-scrollbar,
+	body::-webkit-scrollbar { display: none; }
+	a { color: inherit; text-decoration: none; }
+
+	.mobile-header {
+		position: fixed;
+		z-index: 20;
+		top: 0;
+		left: 0;
+		display: flex;
+		width: 100%;
+		padding: calc(16px + env(safe-area-inset-top)) 16px 16px;
+		border-bottom: 1px solid rgb(25 25 28 / 8%);
+		justify-content: space-between;
+		background: #fff;
+		font-size: 18px;
+		font-weight: 400;
+		line-height: 24px;
+	}
+	.mobile-header > span { color: rgb(25 25 28 / 60%); font-weight: 300; }
+
+	.mobile-section {
+		position: relative;
+		display: flex;
+		width: 100%;
+		height: 100lvh;
+		overflow: hidden;
+		scroll-snap-align: start;
+		scroll-snap-stop: always;
 	}
 
-	main {
-		min-height: 100svh;
+	.mobile-info {
+		padding: calc(var(--mobile-vertical, 32px) + env(safe-area-inset-top)) var(--mobile-side, 24px) calc(var(--mobile-vertical, 32px) + env(safe-area-inset-bottom));
+		align-items: flex-end;
+		background: #fff;
+	}
+	.mobile-info__copy {
+		display: flex;
+		width: 100%;
+		flex-direction: column;
+		gap: var(--mobile-copy-gap, 20px);
+		color: rgb(25 25 28 / 56%);
+		font-size: var(--mobile-info-size, 24px);
+		font-weight: 400;
+		line-height: var(--mobile-info-line, 30px);
+		letter-spacing: 0;
+	}
+	.mobile-info__copy p { display: flex; margin: 0; flex-direction: column; }
+	.info-row { display: flex; align-items: center; gap: var(--mobile-inline-gap, 6px); white-space: nowrap; }
+	.info-row strong { color: #19191c; font-weight: inherit; }
+	.info-visual {
+		position: relative;
+		display: inline-block;
+		width: calc(var(--mobile-visual-height, 30px) * 52 / 30);
+		height: var(--mobile-visual-height, 30px);
+		flex: none;
+		overflow: hidden;
+		border-radius: 3px;
+	}
+	.info-visual--long { width: calc(var(--mobile-visual-height, 30px) * 81 / 30); }
+	.info-visual--hand { width: var(--mobile-visual-height, 30px); overflow: visible; }
+	.info-visual img { width: 100%; height: 100%; object-fit: cover; }
+	.info-visual--hand img {
+		width: calc(var(--mobile-visual-height, 30px) * 4 / 3);
+		height: calc(var(--mobile-visual-height, 30px) * 4 / 3);
+		transform: translate(-12.5%, -12.5%);
+	}
+	.info-pixel-canvas { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+	.mobile-char { display: inline-block; flex: none; }
+	.mobile-char--space { width: .25em; }
+
+	.mobile-project {
+		padding: calc(var(--mobile-vertical, 32px) + env(safe-area-inset-top)) var(--mobile-side, 24px) calc(var(--mobile-vertical, 32px) + env(safe-area-inset-bottom));
+		align-items: flex-end;
+		isolation: isolate;
+	}
+	.mobile-project__image,
+	.mobile-project__pixels {
+		position: absolute;
+		z-index: -2;
+		inset: 0;
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.mobile-project__pixels { z-index: -1; opacity: 0; pointer-events: none; }
+	.mobile-project__copy { position: relative; z-index: 2; display: flex; flex-direction: column; }
+	.mobile-project h2 {
+		margin: 0;
+		font-size: var(--mobile-project-title, 48px);
+		font-weight: 500;
+		line-height: 1;
+		white-space: nowrap;
+	}
+	.mobile-project p {
+		margin: 0;
+		color: rgb(25 25 28 / 60%);
+		font-size: var(--mobile-project-description, 18px);
+		font-weight: 400;
+		line-height: 24px;
+	}
+
+	@media (min-width: 768px) {
+		body { max-width: 767px; margin-inline: auto; }
+	}
+	@media (prefers-reduced-motion: reduce) {
+		html { scroll-behavior: auto; }
 	}
 </style>
