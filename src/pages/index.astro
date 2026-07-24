@@ -116,18 +116,31 @@ const navigation = [
 				loaderIdentity.style.height = `${loaderBounds.height}px`;
 				draw(loaderName, []);
 				draw(loaderRole, []);
-				const build = (element, value, duration) => new Promise((resolve) => {
+				const visibleCharacters = [0, 0];
+				const previousCharacters = [[], []];
+				const values = [name, role];
+				const elements = [loaderName, loaderRole];
+				const scramble = () => {
+					values.forEach((value, valueIndex) => {
+						const source = [...value].slice(0, visibleCharacters[valueIndex]);
+						const pool = poolFor(value);
+						const output = source.map((character, characterIndex) => {
+							if (character === ' ') return character;
+							const previous = previousCharacters[valueIndex][characterIndex];
+							const alternatives = pool.filter((candidate) => candidate !== previous);
+							return randomFrom(alternatives.length ? alternatives : pool);
+						});
+						previousCharacters[valueIndex] = output;
+						draw(elements[valueIndex], output);
+					});
+				};
+				const scrambleTimer = window.setInterval(scramble, 58);
+				const build = (valueIndex, value, duration) => new Promise((resolve) => {
 					const source = [...value];
-					const pool = poolFor(value);
 					const animationStartedAt = performance.now();
 					const frame = (now) => {
 						const progress = Math.min(1, (now - animationStartedAt) / duration);
-						const head = Math.ceil(progress * source.length);
-						const output = source.slice(0, head).map((character) => {
-							if (character === ' ') return character;
-							return randomFrom(pool);
-						});
-						draw(element, progress === 1 ? source : output);
+						visibleCharacters[valueIndex] = Math.ceil(progress * source.length);
 						if (progress < 1) requestAnimationFrame(frame);
 						else resolve();
 					};
@@ -144,26 +157,16 @@ const navigation = [
 				]);
 
 				(async () => {
-					await build(loaderName, name, 390);
-					await build(loaderRole, role, 430);
-					const idleStartedAt = performance.now();
-					const idle = window.setInterval(() => {
-						[name, role].forEach((value, index) => {
-							const source = [...value];
-							const pool = poolFor(value);
-							const output = source.map((character) => character === ' ' ? character : randomFrom(pool));
-							draw(index === 0 ? loaderName : loaderRole, output);
-						});
-					}, 58);
+					await build(0, name, 390);
+					await build(1, role, 430);
 					await Promise.all([
 						loaded,
 						new Promise((resolve) => window.setTimeout(resolve, Math.max(0, 2000 - (performance.now() - startedAt)))),
 					]);
-					window.clearInterval(idle);
+					window.clearInterval(scrambleTimer);
 					draw(loaderName, [...name]);
 					draw(loaderRole, [...role]);
-					const idleDuration = performance.now() - idleStartedAt;
-					if (idleDuration < 90) await new Promise((resolve) => window.setTimeout(resolve, 90 - idleDuration));
+					await new Promise((resolve) => window.setTimeout(resolve, 140));
 
 					const target = targetIdentity.getBoundingClientRect();
 					const source = loaderIdentity.getBoundingClientRect();
