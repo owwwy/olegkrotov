@@ -2,6 +2,7 @@ export interface Project {
 	slug: string;
 	title: string;
 	caseDescription: string;
+	website: string;
 	category: string;
 	image: string;
 	imageAlt: string;
@@ -24,6 +25,7 @@ export const projects: Project[] = [
 		slug: 'addinol',
 		title: 'ADDINOL',
 		caseDescription: 'Редизайн сайта дистрибьютора смазочных материалов',
+		website: 'addinol.ru',
 		category: 'редизайн сайта дистрибьютора смазочных материалов',
 		image: '/projects/addinol.webp',
 		imageAlt: 'Проект ADDINOL',
@@ -33,6 +35,7 @@ export const projects: Project[] = [
 		slug: 'jetsite',
 		title: 'JETSITE',
 		caseDescription: 'Редизайн сайта студии реактивной разработки',
+		website: 'jet-site.ru',
 		category: 'редизайн сайта студии реактивной разработки',
 		image: '/projects/jetsite.webp',
 		imageAlt: 'Проект JETSITE',
@@ -52,6 +55,7 @@ export const projects: Project[] = [
 		slug: 's-industrial',
 		title: 'S-INDUSTRIAL',
 		caseDescription: 'Дизайн интернет-магазина спорт оборудования',
+		website: 'индустрия-спорта.рф',
 		category: 'дизайн интернет-магазина спорт оборудования',
 		image: '/projects/s-industrial.webp',
 		imageAlt: 'Проект S-INDUSTRIAL',
@@ -61,6 +65,7 @@ export const projects: Project[] = [
 		slug: 'podryado',
 		title: 'PODRYADO',
 		caseDescription: 'Дизайн бизнес портала для строителей и клиентов',
+		website: 'podryado.ru',
 		category: 'дизайн бизнес-портала для строителей и клиентов',
 		image: '/projects/podryado.webp',
 		imageAlt: 'Проект PODRYADO',

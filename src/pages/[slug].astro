@@ -31,11 +31,21 @@ const gallery = project.gallery ?? [];
 		<main class="case-page">
 			<header class="case-header">
 				<div class="case-header__meta">
-					<strong>{project.title}</strong>
+					<strong data-case-scramble data-value={project.title}>
+						{[...project.title].map((character) => <span>{character === ' ' ? '\u00a0' : character}</span>)}
+					</strong>
 					<span class="case-header__separator" aria-hidden="true">·</span>
-					<span>{project.caseDescription}</span>
+					<span data-case-scramble data-value={project.caseDescription}>
+						{[...project.caseDescription].map((character) => <span>{character === ' ' ? '\u00a0' : character}</span>)}
+					</span>
+					<span class="case-header__separator" aria-hidden="true">·</span>
+					<a class="case-header__website" href={`https://${project.website}`} target="_blank" rel="noreferrer" data-case-scramble data-value={project.website}>
+						{[...project.website].map((character) => <span>{character}</span>)}
+					</a>
 				</div>
-				<a href="/">Закрыть</a>
+				<a class="case-header__close" href="/" data-case-scramble data-value="Закрыть">
+					{[...'Закрыть'].map((character) => <span>{character}</span>)}
+				</a>
 			</header>
 			<div
 				class="case-page__viewport"
@@ -73,6 +83,45 @@ const gallery = project.gallery ?? [];
 					overscroll: false,
 				});
 			}
+
+			const shuffle = (values: string[]) => {
+				const result = [...values];
+				for (let index = result.length - 1; index > 0; index -= 1) {
+					const target = Math.floor(Math.random() * (index + 1));
+					[result[index], result[target]] = [result[target], result[index]];
+				}
+				return result;
+			};
+			document.querySelectorAll<HTMLElement>('[data-case-scramble]').forEach((element) => {
+				const run = () => {
+					if (element.dataset.animating === 'true') return;
+					const original = [...(element.dataset.value ?? '')];
+					const spans = [...element.querySelectorAll<HTMLElement>('span')];
+					const mutable = original.flatMap((character, index) => character === ' ' ? [] : [index]);
+					const characters = mutable.map((index) => original[index]);
+					const startedAt = performance.now();
+					let lastTick = 0;
+					element.dataset.animating = 'true';
+					const frame = (now: number) => {
+						const progress = Math.min(1, (now - startedAt) / 260);
+						if (now - lastTick >= 46 || progress === 1) {
+							lastTick = now;
+							const shuffled = shuffle(characters);
+							mutable.forEach((characterIndex, index) => {
+								spans[characterIndex].textContent = shuffled[index];
+							});
+						}
+						if (progress < 1) requestAnimationFrame(frame);
+						else {
+							spans.forEach((span, index) => { span.textContent = original[index] === ' ' ? '\u00a0' : original[index]; });
+							element.dataset.animating = 'false';
+						}
+					};
+					requestAnimationFrame(frame);
+				};
+				element.addEventListener('pointerenter', run);
+				element.addEventListener('focus', run);
+			});
 		</script>
 	</body>
 </html>
@@ -124,11 +173,15 @@ const gallery = project.gallery ?? [];
 	.case-header__meta {
 		display: flex;
 		align-items: flex-end;
-		gap: 12px;
+		gap: 6px;
 	}
 
 	.case-header strong {
 		font-weight: 400;
+	}
+
+	.case-header [data-case-scramble] span {
+		display: inline-block;
 	}
 
 	.case-header__meta > span {
@@ -136,11 +189,14 @@ const gallery = project.gallery ?? [];
 	}
 
 	.case-header a {
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.case-header__close {
 		display: inline-flex;
 		margin: -12px;
 		padding: 12px;
-		color: inherit;
-		text-decoration: none;
 	}
 
 	.case-page__viewport {
