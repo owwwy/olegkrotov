@@ -248,9 +248,11 @@ const gallery = project.gallery ?? [];
 
 			const closeLink = document.querySelector<HTMLAnchorElement>('.case-header__close');
 			let isLeaving = false;
-			closeLink?.addEventListener('click', (event) => {
-				event.preventDefault();
-				if (isLeaving) return;
+			const leaveCase = () => new Promise<void>((resolve) => {
+				if (isLeaving) {
+					resolve();
+					return;
+				}
 				isLeaving = true;
 				document.documentElement.classList.add('case-leaving');
 
@@ -329,11 +331,33 @@ const gallery = project.gallery ?? [];
 					}
 					if (progress < 1) requestAnimationFrame(frame);
 					else {
-						window.location.assign(closeLink.href);
+						resolve();
 					}
 				};
 				requestAnimationFrame(frame);
 			});
+			closeLink?.addEventListener('click', async (event) => {
+				event.preventDefault();
+				await leaveCase();
+				window.location.assign(closeLink.href);
+			});
+
+			const browserNavigation = (window as typeof window & {
+				navigation?: EventTarget;
+			}).navigation;
+			browserNavigation?.addEventListener('navigate', ((navigationEvent: Event & {
+				navigationType?: string;
+				canIntercept?: boolean;
+				intercept?: (options: { handler: () => Promise<void> }) => void;
+			}) => {
+				if (
+					navigationEvent.navigationType !== 'traverse'
+					|| !navigationEvent.canIntercept
+					|| !navigationEvent.intercept
+					|| isLeaving
+				) return;
+				navigationEvent.intercept({ handler: leaveCase });
+			}) as EventListener);
 		</script>
 	</body>
 </html>

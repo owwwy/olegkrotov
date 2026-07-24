@@ -18,7 +18,12 @@ const navigation = [
 	<head>
 		<meta charset="utf-8" />
 		<style is:inline>html,body{margin:0;background:#fff}</style>
-		<script is:inline>document.documentElement.classList.add('is-preloading');</script>
+		<script is:inline>
+			document.documentElement.classList.add('is-preloading');
+			window.addEventListener('pageshow', (event) => {
+				if (event.persisted) window.location.reload();
+			});
+		</script>
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
