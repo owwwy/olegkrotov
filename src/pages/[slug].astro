@@ -61,6 +61,7 @@ const gallery = project.gallery ?? [];
 				tabindex="0"
 				aria-label={`Проект ${project.title}`}
 			>
+				<canvas class="case-page__pixel-reveal" data-case-pixel-reveal aria-hidden="true"></canvas>
 				<div class="case-page__content" data-case-content>
 					{gallery.map((image, index) => (
 						<img
@@ -132,6 +133,8 @@ const gallery = project.gallery ?? [];
 			});
 
 			if (document.documentElement.classList.contains('case-entering')) {
+				const pixelCanvas = document.querySelector<HTMLCanvasElement>('[data-case-pixel-reveal]');
+				const firstImage = content?.querySelector<HTMLImageElement>('img');
 				const revealElements = [...document.querySelectorAll<HTMLElement>('[data-case-reveal]')];
 				const separators = [...document.querySelectorAll<HTMLElement>('.case-header__separator')];
 				revealElements.forEach((element) => {
@@ -163,9 +166,64 @@ const gallery = project.gallery ?? [];
 					};
 					requestAnimationFrame(frame);
 				});
+				const revealPixels = async () => {
+					if (!pixelCanvas || !viewport || !firstImage) return;
+					if (!firstImage.complete) {
+						await new Promise<void>((resolve) => {
+							firstImage.addEventListener('load', () => resolve(), { once: true });
+							firstImage.addEventListener('error', () => resolve(), { once: true });
+						});
+					}
+					if (!firstImage.naturalWidth) return;
+					const width = Math.max(1, viewport.clientWidth);
+					const height = Math.max(1, viewport.clientHeight);
+					const density = 1;
+					pixelCanvas.width = Math.round(width * density);
+					pixelCanvas.height = Math.round(height * density);
+					const context = pixelCanvas.getContext('2d', { alpha: false });
+					const buffer = document.createElement('canvas');
+					const bufferContext = buffer.getContext('2d', { alpha: false });
+					if (!context || !bufferContext) return;
+					context.setTransform(density, 0, 0, density, 0, 0);
+					context.imageSmoothingEnabled = false;
+					const imageRect = firstImage.getBoundingClientRect();
+					const imageHeight = imageRect.height;
+					const visibleHeight = Math.min(height, imageHeight);
+					const sourceHeight = firstImage.naturalHeight * (visibleHeight / imageHeight);
+					const startedAt = performance.now();
+					const duration = 1250;
+					const frame = (now: number) => {
+						const progress = Math.min(1, (now - startedAt) / duration);
+						const resolutionProgress = progress * progress * (3 - 2 * progress);
+						const maximumPixelWidth = Math.min(320, width);
+						const pixelWidth = Math.max(6, Math.round(6 + (maximumPixelWidth - 6) * resolutionProgress));
+						const pixelHeight = Math.max(1, Math.round(pixelWidth * visibleHeight / width));
+						buffer.width = pixelWidth;
+						buffer.height = pixelHeight;
+						bufferContext.imageSmoothingEnabled = true;
+						bufferContext.drawImage(
+							firstImage,
+							0, 0, firstImage.naturalWidth, sourceHeight,
+							0, 0, pixelWidth, pixelHeight,
+						);
+						context.fillStyle = '#fff';
+						context.fillRect(0, 0, width, height);
+						context.drawImage(buffer, 0, 0, pixelWidth, pixelHeight, 0, 0, width, visibleHeight);
+						const fadeProgress = Math.max(0, Math.min(1, (progress - 0.68) / 0.32));
+						const faded = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
+						pixelCanvas.style.opacity = `${1 - faded}`;
+						if (progress < 1) requestAnimationFrame(frame);
+						else {
+							pixelCanvas.classList.add('is-finished');
+							window.setTimeout(() => pixelCanvas.remove(), 220);
+						}
+					};
+					requestAnimationFrame(frame);
+				};
 				requestAnimationFrame(() => requestAnimationFrame(() => {
 					document.documentElement.classList.add('case-revealing');
 				}));
+				revealPixels();
 				(async () => {
 					await reveal(revealElements[0]);
 					separators[0]?.classList.add('is-visible');
@@ -255,6 +313,7 @@ const gallery = project.gallery ?? [];
 	}
 
 	.case-page__viewport {
+		position: relative;
 		width: 100%;
 		min-height: 0;
 		flex: 1;
@@ -266,7 +325,7 @@ const gallery = project.gallery ?? [];
 		overscroll-behavior: contain;
 		outline: none;
 		transform: translate3d(0, 0, 0);
-		transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+		transition: transform 1250ms cubic-bezier(0.32, 0, 0.2, 1);
 	}
 
 	:global(.case-entering) .case-page__viewport {
@@ -275,6 +334,26 @@ const gallery = project.gallery ?? [];
 
 	:global(.case-entering.case-revealing) .case-page__viewport {
 		transform: translate3d(0, 0, 0);
+	}
+
+	.case-page__pixel-reveal {
+		position: absolute;
+		z-index: 2;
+		inset: 0;
+		display: none;
+		width: 100%;
+		height: 100%;
+		background: #fff;
+		opacity: 1;
+		pointer-events: none;
+	}
+
+	:global(.case-entering) .case-page__pixel-reveal {
+		display: block;
+	}
+
+	.case-page__pixel-reveal.is-finished {
+		opacity: 0;
 	}
 
 	:global(.case-entering) .case-header__separator {
