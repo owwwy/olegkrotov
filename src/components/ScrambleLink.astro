@@ -2,12 +2,19 @@
 interface Props {
 	href: string;
 	label: string;
+	active?: boolean;
 }
 
-const { href, label } = Astro.props;
+const { href, label, active = false } = Astro.props;
 ---
 
-<a class="scramble-link" href={href} aria-label={label} data-scramble-link>
+<a
+	class:list={['scramble-link', { 'is-active': active }]}
+	href={href}
+	aria-label={label}
+	aria-current={active ? 'page' : undefined}
+	data-scramble-link={active ? undefined : ''}
+>
 	<span class="scramble-link__text" aria-hidden="true" data-scramble-text data-original={label}>
 		{[...label].map((character) => (
 			<span class="scramble-link__char">{character === ' ' ? '\u00a0' : character}</span>
@@ -106,6 +113,11 @@ const { href, label } = Astro.props;
 
 	.scramble-link__char {
 		display: inline-block;
+	}
+
+	.scramble-link.is-active {
+		opacity: 0.6;
+		pointer-events: none;
 	}
 
 	.scramble-link:focus-visible {

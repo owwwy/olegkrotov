@@ -6,7 +6,7 @@ import ScrambleLink from '../components/ScrambleLink.astro';
 import { projects } from '../data/projects';
 
 const navigation = [
-	{ label: 'Проекты', href: '#works' },
+	{ label: 'Проекты', href: '#works', active: true },
 	{ label: 'Инфо', href: '#about' },
 	{ label: 'Контакты', href: '#contacts' },
 ];
@@ -73,7 +73,7 @@ const navigation = [
 				<nav aria-label="Основная навигация">
 					{navigation.map((item, index) => (
 						<>
-							<ScrambleLink href={item.href} label={item.label} />
+							<ScrambleLink href={item.href} label={item.label} active={item.active} />
 							{index < navigation.length - 1 && <span class="nav-separator" aria-hidden="true"></span>}
 						</>
 					))}
