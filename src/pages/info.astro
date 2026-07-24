@@ -63,17 +63,18 @@ import TypeScale from '../components/TypeScale.astro';
 							<span>между экспертизой,</span>
 						</span>
 						<span class="info-line">
-							<span>эстетикой и простыми исследованиями</span>
+							<span>эстетикой и простыми</span>
 							<span class="visual visual--wide visual--overflow" aria-hidden="true"><img src="/info/04.png" alt="" /></span>
-							<span>.</span>
+							<span>исследованиями.</span>
 						</span>
 					</p>
 					<p>
 						<span class="info-line"><span>Я глубоко ценю визуальную</span></span>
 						<span class="info-line"><span>выразительность в цифровых продуктах,</span></span>
 						<span class="info-line">
-							<span>но считаю, что она <strong>должна работать</strong></span>
+							<span>но считаю, что она <strong>должна</strong></span>
 							<span class="visual visual--square visual--zoom" aria-hidden="true"><img src="/info/05.png" alt="" /></span>
+							<span><strong>работать</strong></span>
 						</span>
 						<span class="info-line"><strong>в пользу понятности и интуитивности.</strong></span>
 					</p>
@@ -261,10 +262,10 @@ import TypeScale from '../components/TypeScale.astro';
 							if (isZoomed) {
 								bufferContext.drawImage(
 									image,
-									-pixelWidth * .1,
-									-pixelHeight * .1,
-									pixelWidth * 1.2,
-									pixelHeight * 1.2,
+									-pixelWidth * .25,
+									-pixelHeight * .25,
+									pixelWidth * 1.5,
+									pixelHeight * 1.5,
 								);
 							} else bufferContext.drawImage(image, 0, 0, pixelWidth, pixelHeight);
 							context.imageSmoothingEnabled = false;
@@ -566,8 +567,12 @@ import TypeScale from '../components/TypeScale.astro';
 	.visual--square { width: var(--info-chip-height); }
 	.visual img { width: 100%; height: 100%; object-fit: cover; }
 	.visual--zoom img {
-		transform: scale(1.2);
+		transform: scale(1.5);
 		transform-origin: center;
+	}
+	.visual--zoom,
+	.visual--overflow {
+		margin-inline: calc(var(--info-inline-gap) * -0.5);
 	}
 	.info-pixel-canvas {
 		position: absolute;
