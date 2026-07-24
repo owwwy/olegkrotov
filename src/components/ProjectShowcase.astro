@@ -46,6 +46,7 @@ const firstProject = projects[0];
 
 <script>
 	import Lenis from 'lenis';
+	import { navigate } from 'astro:transitions/client';
 
 	const SCRAMBLE_DURATION = 560;
 	const SCRAMBLE_TICK = 46;
@@ -65,6 +66,7 @@ const firstProject = projects[0];
 	type LensRenderer = {
 		setPair: (current: number, next: number) => void;
 		render: (strength: number, direction: number, transition?: number, pixelation?: number) => void;
+		dispose: () => void;
 	};
 
 	const createLensRenderer = async (canvas: HTMLCanvasElement, images: HTMLImageElement[]): Promise<LensRenderer | null> => {
@@ -243,8 +245,9 @@ const firstProject = projects[0];
 		resizeObserver.observe(canvas);
 
 		const setPair = (current: number, next: number) => {
-			currentIndex = current;
-			nextIndex = next;
+			if (!textures.length || !images.length) return;
+			currentIndex = ((current % textures.length) + textures.length) % textures.length;
+			nextIndex = ((next % textures.length) + textures.length) % textures.length;
 			gl.activeTexture(gl.TEXTURE0);
 			gl.bindTexture(gl.TEXTURE_2D, textures[currentIndex]);
 			gl.uniform1i(uniforms.current, 0);
@@ -265,7 +268,11 @@ const firstProject = projects[0];
 		};
 
 		setPair(currentIndex, nextIndex);
-		return { setPair, render };
+		const dispose = () => {
+			resizeObserver.disconnect();
+			gl.getExtension('WEBGL_lose_context')?.loseContext();
+		};
+		return { setPair, render, dispose };
 	};
 
 	const randomCharacter = (pool: string[]) => pool[Math.floor(Math.random() * pool.length)] ?? '';
@@ -325,7 +332,11 @@ const firstProject = projects[0];
 		requestAnimationFrame(frame);
 	};
 
-	document.querySelectorAll<HTMLElement>('[data-project-showcase]').forEach((showcase) => {
+	let cleanupProjectShowcases = () => {};
+	const initializeProjectShowcases = () => {
+		cleanupProjectShowcases();
+		const cleanups: Array<() => void> = [];
+		document.querySelectorAll<HTMLElement>('[data-project-showcase]').forEach((showcase) => {
 		const media = showcase.querySelector<HTMLElement>('[data-project-media]');
 		const canvas = showcase.querySelector<HTMLCanvasElement>('[data-project-lens]');
 		const panels = [...showcase.querySelectorAll<HTMLElement>('[data-project-panel]')];
@@ -358,6 +369,10 @@ const firstProject = projects[0];
 		if (canvas && !reducedMotion.matches) {
 			lensReady = createLensRenderer(canvas, images).then((renderer) => {
 				if (!renderer) return;
+				if (!showcase.isConnected) {
+					renderer.dispose();
+					return;
+				}
 				if (isIntroPlaying) {
 					lens = renderer;
 					media.classList.add('is-webgl');
@@ -584,12 +599,18 @@ const firstProject = projects[0];
 		if (isIntroPlaying) scrollInput.stop();
 		scrollInput.on('scroll', (instance) => consumeScroll(instance.scroll));
 		const renderScroll = (time: number) => {
+			if (!showcase.isConnected) return;
 			scrollInput?.raf(time);
 			requestAnimationFrame(renderScroll);
 		};
 		requestAnimationFrame(renderScroll);
 
-		const runPageExit = (destination: string, keepSidebar = false, markCaseTransition = true) => {
+		const runPageExit = (
+			destination: string,
+			keepSidebar = false,
+			markCaseTransition = true,
+			clientNavigation = false,
+		) => {
 			if (isTransitioning) return;
 			isTransitioning = true;
 			qualityRecoveryId += 1;
@@ -635,7 +656,10 @@ const firstProject = projects[0];
 					requestAnimationFrame(animateExit);
 					return;
 				}
-				window.setTimeout(() => window.location.assign(destination), 70);
+				window.setTimeout(() => {
+					if (clientNavigation) void navigate(destination);
+					else window.location.assign(destination);
+				}, 70);
 			};
 			requestAnimationFrame(animateExit);
 		};
@@ -650,14 +674,17 @@ const firstProject = projects[0];
 		});
 
 		const infoLink = document.querySelector<HTMLAnchorElement>('nav a[href="/info"]');
-		infoLink?.addEventListener('click', (event) => {
+		const onInfoClick = (event: MouseEvent) => {
+			if (!infoLink) return;
 			event.preventDefault();
 			if (reducedMotion.matches) {
 				window.location.assign(infoLink.href);
 				return;
 			}
-			runPageExit(infoLink.href, true, false);
-		});
+			runPageExit(infoLink.href, true, false, true);
+		};
+		infoLink?.addEventListener('click', onInfoClick);
+		if (infoLink) cleanups.push(() => infoLink.removeEventListener('click', onInfoClick));
 
 		const startIntro = () => {
 		if (isIntroPlaying) {
@@ -835,7 +862,18 @@ const firstProject = projects[0];
 		}
 
 		window.addEventListener('keydown', onKeyDown);
-	});
+		cleanups.push(() => {
+			window.removeEventListener('keydown', onKeyDown);
+			scrollInput?.destroy();
+			lens?.dispose();
+		});
+		});
+		cleanupProjectShowcases = () => {
+			cleanups.splice(0).forEach((cleanup) => cleanup());
+		};
+	};
+	document.addEventListener('astro:page-load', initializeProjectShowcases);
+	document.addEventListener('astro:before-swap', () => cleanupProjectShowcases());
 </script>
 
 <style>

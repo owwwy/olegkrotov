@@ -1,5 +1,6 @@
 ---
 import '@fontsource-variable/onest';
+import ClientRouting from '../components/ClientRouting.astro';
 import ProjectShowcase from '../components/ProjectShowcase.astro';
 import SiteSidebar from '../components/SiteSidebar.astro';
 import TypeScale from '../components/TypeScale.astro';
@@ -11,8 +12,10 @@ import { projects } from '../data/projects';
 <html lang="ru">
 	<head>
 		<meta charset="utf-8" />
+		<ClientRouting />
 		<style is:inline>html,body{margin:0;background:#fff}</style>
-		<script is:inline>
+		<script is:inline data-astro-rerun>
+			document.documentElement.classList.remove('info-entering', 'info-ready');
 			try {
 				if (sessionStorage.getItem('info-return-home') === 'true') {
 					document.documentElement.classList.add('info-return-home');
@@ -47,7 +50,7 @@ import { projects } from '../data/projects';
 				<ProjectShowcase projects={projects} />
 			</main>
 		</div>
-		<script is:inline>
+		<script is:inline data-astro-rerun>
 			(() => {
 				if (document.documentElement.classList.contains('info-return-home')) {
 					document.querySelector('[data-site-preloader]')?.remove();

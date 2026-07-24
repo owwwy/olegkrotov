@@ -13,7 +13,7 @@ const navigation = [
 ] as const;
 ---
 
-<aside class="sidebar">
+<aside class="sidebar" transition:persist="site-sidebar">
 	<a class="identity" href="/" aria-label="Олег Кротов — на главную" data-scramble-link>
 		<strong data-scramble-text data-original="Олег Кротов">
 			{[...'Олег Кротов'].map((character) => (
@@ -37,38 +37,18 @@ const navigation = [
 	</nav>
 </aside>
 
-<style is:global>
-	@view-transition {
-		navigation: auto;
-	}
-
-	.sidebar {
-		view-transition-name: site-sidebar;
-	}
-
-	::view-transition-old(root),
-	::view-transition-new(root),
-	::view-transition-group(root),
-	::view-transition-old(site-sidebar),
-	::view-transition-new(site-sidebar) {
-		animation: none;
-		mix-blend-mode: normal;
-	}
-
-	::view-transition-group(site-sidebar) {
-		z-index: 10000;
-		animation: sidebar-hold 320ms linear both;
-	}
-
-	::view-transition-old(site-sidebar) {
-		opacity: 1;
-	}
-
-	::view-transition-new(site-sidebar) {
-		opacity: 0;
-	}
-
-	@keyframes sidebar-hold {
-		from, to { transform: none; }
-	}
-</style>
+<script>
+	const updateSidebarState = () => {
+		const pathname = window.location.pathname;
+		document.querySelectorAll<HTMLAnchorElement>('.sidebar nav a').forEach((link) => {
+			const target = new URL(link.href, window.location.href);
+			const active = target.pathname === pathname && (
+				pathname !== '/' || !target.hash
+			);
+			link.classList.toggle('is-active', active);
+			if (active) link.setAttribute('aria-current', 'page');
+			else link.removeAttribute('aria-current');
+		});
+	};
+	document.addEventListener('astro:page-load', updateSidebarState);
+</script>

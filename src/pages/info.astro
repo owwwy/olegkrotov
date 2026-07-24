@@ -1,5 +1,6 @@
 ---
 import '@fontsource-variable/onest';
+import ClientRouting from '../components/ClientRouting.astro';
 import SiteSidebar from '../components/SiteSidebar.astro';
 import TypeScale from '../components/TypeScale.astro';
 ---
@@ -8,8 +9,12 @@ import TypeScale from '../components/TypeScale.astro';
 <html lang="ru">
 	<head>
 		<meta charset="utf-8" />
+		<ClientRouting />
 		<style is:inline>html,body{margin:0;background:#fff}</style>
-		<script is:inline>
+		<script is:inline data-astro-rerun>
+			document.documentElement.classList.remove(
+				'is-preloading', 'is-revealing', 'is-identity-ready', 'info-return-home', 'info-return-ready'
+			);
 			document.documentElement.classList.add('info-entering');
 			window.addEventListener('pageshow', (event) => {
 				if (event.persisted) window.location.reload();
@@ -65,9 +70,16 @@ import TypeScale from '../components/TypeScale.astro';
 			</main>
 		</div>
 		<script>
-			const copy = document.querySelector<HTMLElement>('.info-copy');
+			import { navigate } from 'astro:transitions/client';
+
 			const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-			if (copy) {
+			let cleanupInfoPage = () => {};
+			const initializeInfoPage = () => {
+				cleanupInfoPage();
+				const controller = new AbortController();
+				const copy = document.querySelector<HTMLElement>('.info-copy');
+				if (!copy) return;
+				document.documentElement.classList.add('info-entering');
 				const textNodes: Text[] = [];
 				const walker = document.createTreeWalker(copy, NodeFilter.SHOW_TEXT);
 				let node = walker.nextNode();
@@ -233,41 +245,24 @@ import TypeScale from '../components/TypeScale.astro';
 							if (destination.pathname === '/') {
 								try { sessionStorage.setItem('info-return-home', 'true'); } catch {}
 							}
-							window.location.assign(destination.href);
+							void navigate(destination.href);
 						}
 						else {
 							await leave();
 							if (destination.pathname === '/') {
 								try { sessionStorage.setItem('info-return-home', 'true'); } catch {}
 							}
-							window.location.assign(destination.href);
+							void navigate(destination.href);
 						}
-					});
+					}, { signal: controller.signal });
 				});
-				const browserNavigation = (window as typeof window & { navigation?: EventTarget }).navigation;
-				browserNavigation?.addEventListener('navigate', ((navigationEvent: Event & {
-					navigationType?: string;
-					canIntercept?: boolean;
-					destination?: { url?: string };
-					intercept?: (options: { handler: () => Promise<void> }) => void;
-				}) => {
-					if (
-						navigationEvent.navigationType !== 'traverse'
-						|| !navigationEvent.canIntercept
-						|| !navigationEvent.intercept
-						|| isLeaving
-					) return;
-					navigationEvent.intercept({ handler: async () => {
-						await leave();
-						const destination = navigationEvent.destination?.url
-							? new URL(navigationEvent.destination.url)
-							: null;
-						if (destination?.origin === window.location.origin && destination.pathname === '/') {
-							try { sessionStorage.setItem('info-return-home', 'true'); } catch {}
-						}
-					} });
-				}) as EventListener);
-			}
+				cleanupInfoPage = () => {
+					controller.abort();
+					document.documentElement.classList.remove('info-entering', 'info-ready');
+				};
+			};
+			document.addEventListener('astro:page-load', initializeInfoPage);
+			document.addEventListener('astro:before-swap', () => cleanupInfoPage());
 		</script>
 	</body>
 </html>
