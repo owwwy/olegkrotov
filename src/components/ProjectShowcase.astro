@@ -315,7 +315,7 @@ const firstProject = projects[0];
 		let resistanceFrame = 0;
 		let releaseTimer = 0;
 		let lens: LensRenderer | null = null;
-		let pendingLens: LensRenderer | null = null;
+		let introLensPair = -1;
 		let scrollInput: Lenis | null = null;
 		let lastScrollPosition = SCROLL_CENTER;
 		panels.forEach((panel, index) => {
@@ -326,7 +326,8 @@ const firstProject = projects[0];
 			createLensRenderer(canvas, images).then((renderer) => {
 				if (!renderer) return;
 				if (isIntroPlaying) {
-					pendingLens = renderer;
+					lens = renderer;
+					media.classList.add('is-webgl');
 					return;
 				}
 				lens = renderer;
@@ -452,7 +453,7 @@ const firstProject = projects[0];
 			const startedAt = performance.now();
 			const animateTransition = (now: number) => {
 				const progress = Math.min(1, (now - startedAt) / TRANSITION_DURATION);
-				const eased = 1 - Math.pow(1 - progress, 4);
+				const eased = 1 - Math.pow(1 - progress, 3);
 				const impulse = Math.sin(progress * Math.PI);
 				const windowImpulse = Math.max(1 - progress, impulse * 0.9);
 				const opticalImpulse = Math.max((1 - progress) * 0.58, impulse * 0.68);
@@ -532,6 +533,29 @@ const firstProject = projects[0];
 		requestAnimationFrame(renderScroll);
 
 		if (isIntroPlaying) {
+			const introTitles = panels.map((panel) => panel.dataset.title ?? '');
+			const introCategories = panels.map((panel) => panel.dataset.category ?? '');
+			let lastIntroScramble = 0;
+			const renderIntroScramble = (
+				element: HTMLElement,
+				values: string[],
+				index: number,
+				nextIndex: number,
+				transition: number,
+				uppercase: boolean,
+			) => {
+				const normalize = (value: string) => uppercase ? value.toUpperCase() : value.toLowerCase();
+				const current = normalize(values[index] ?? '');
+				const next = normalize(values[nextIndex] ?? '');
+				const template = transition < 0.5 ? current : next;
+				const pool = [...new Set([...current, ...next].filter((character) => character !== ' '))];
+				const scrambled = [...template].map((character) =>
+					character === ' ' ? ' ' : randomCharacter(pool),
+				).join('');
+				element.setAttribute('aria-label', transition < 0.5 ? values[index] : values[nextIndex]);
+				renderTitle(element, scrambled);
+			};
+
 			panels.forEach((panel) => {
 				panel.style.transition = 'none';
 				panel.setAttribute('aria-hidden', 'true');
@@ -539,10 +563,27 @@ const firstProject = projects[0];
 			const introStartedAt = performance.now();
 			const animateIntro = (now: number) => {
 				const progress = Math.min(1, (now - introStartedAt) / INTRO_DURATION);
-				const eased = progress < 0.5
-					? 4 * progress * progress * progress
-					: 1 - Math.pow(-2 * progress + 2, 3) / 2;
+				const eased = 1 - Math.pow(1 - progress, 3);
 				const travel = eased * panels.length;
+				const travelBase = Math.floor(travel);
+				const projectIndex = travelBase % panels.length;
+				const nextProjectIndex = (projectIndex + 1) % panels.length;
+				const projectTransition = travel - travelBase;
+				const introStrength = Math.sin(progress * Math.PI) * 0.88;
+				setWindowShape(introStrength, 1);
+				if (lens) {
+					if (introLensPair !== projectIndex) {
+						introLensPair = projectIndex;
+						lens.setPair(projectIndex, nextProjectIndex);
+					}
+					lens.render(introStrength * 0.7, 1, projectTransition);
+				}
+
+				if (now - lastIntroScramble >= SCRAMBLE_TICK || progress === 1) {
+					lastIntroScramble = now;
+					renderIntroScramble(title, introTitles, projectIndex, nextProjectIndex, projectTransition, true);
+					renderIntroScramble(category, introCategories, projectIndex, nextProjectIndex, projectTransition, false);
+				}
 
 				panels.forEach((panel, index) => {
 					let offset = index - travel;
@@ -564,12 +605,14 @@ const firstProject = projects[0];
 				});
 				isIntroPlaying = false;
 				isTransitioning = false;
-				if (pendingLens) {
-					lens = pendingLens;
-					pendingLens = null;
+				renderTitle(title, introTitles[activeIndex]);
+				title.setAttribute('aria-label', introTitles[activeIndex]);
+				renderTitle(category, introCategories[activeIndex]);
+				category.setAttribute('aria-label', introCategories[activeIndex]);
+				setWindowShape(0, 0);
+				if (lens) {
 					lens.setPair(activeIndex, activeIndex);
 					lens.render(0, 1, 0);
-					media.classList.add('is-webgl');
 				}
 				lastScrollPosition = SCROLL_CENTER;
 				scrollInput?.scrollTo(SCROLL_CENTER, { immediate: true, force: true });
@@ -657,7 +700,7 @@ const firstProject = projects[0];
 	.showcase__panel {
 		position: absolute;
 		inset: 0;
-		transition: transform 720ms cubic-bezier(0.76, 0, 0.24, 1);
+		transition: transform 720ms cubic-bezier(0.22, 1, 0.36, 1);
 		will-change: transform;
 	}
 
