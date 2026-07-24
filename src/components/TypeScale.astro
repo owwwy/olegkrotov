@@ -14,7 +14,14 @@
 			const width = window.innerWidth;
 			const ui = Math.round(scale(width, 16, 20, 28));
 			const title = Math.round(scale(width, 80, 120, 160));
-			const info = Math.round(scale(width, 34, 48, 56));
+			const info = roundToEven(scale(width, 34, 48, 56));
+			const infoLine = roundToEven(scale(width, 40, 58, 68));
+			const infoGap = roundToEven(scale(width, 8, 12, 14));
+			const infoParagraphGap = roundToEven(scale(width, 34, 48, 56));
+			const infoChip = roundToEven(scale(width, 84, 120, 140));
+			const infoChipLong = roundToEven(scale(width, 110, 156, 182));
+			const infoChipHeight = roundToEven(scale(width, 40, 58, 68));
+			const infoTop = roundToEven(scale(width, 122, 172, 200));
 			const root = document.documentElement;
 			root.style.setProperty('--ui-font-size', `${ui}px`);
 			root.style.setProperty('--ui-line-height', `${roundToEven(ui * 1.2)}px`);
@@ -22,7 +29,13 @@
 			root.style.setProperty('--project-title-size', `${title}px`);
 			root.style.setProperty('--project-title-line-height', `${roundToEven(title)}px`);
 			root.style.setProperty('--info-font-size', `${info}px`);
-			root.style.setProperty('--info-line-height', `${roundToEven(info * 1.2)}px`);
+			root.style.setProperty('--info-line-height', `${infoLine}px`);
+			root.style.setProperty('--info-inline-gap', `${infoGap}px`);
+			root.style.setProperty('--info-paragraph-gap', `${infoParagraphGap}px`);
+			root.style.setProperty('--info-chip-width', `${infoChip}px`);
+			root.style.setProperty('--info-chip-long-width', `${infoChipLong}px`);
+			root.style.setProperty('--info-chip-height', `${infoChipHeight}px`);
+			root.style.setProperty('--info-top', `${infoTop}px`);
 		};
 
 		updateTypeScale();
