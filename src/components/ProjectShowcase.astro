@@ -57,7 +57,7 @@ const firstProject = projects[0];
 
 	type LensRenderer = {
 		setPair: (current: number, next: number) => void;
-		render: (strength: number, direction: number, transition?: number) => void;
+		render: (strength: number, direction: number, transition?: number, pixelation?: number) => void;
 	};
 
 	const createLensRenderer = async (canvas: HTMLCanvasElement, images: HTMLImageElement[]): Promise<LensRenderer | null> => {
@@ -98,6 +98,7 @@ const firstProject = projects[0];
 			uniform float uStrength;
 			uniform float uDirection;
 			uniform float uTransition;
+			uniform float uPixelation;
 			uniform float uTime;
 
 			vec2 coverUv(vec2 uv, vec2 imageSize) {
@@ -136,6 +137,17 @@ const firstProject = projects[0];
 				vec2 warped = 0.5 + centered * (1.0 - lens * 0.52);
 				warped.y += sin(warped.x * 3.14159265) * uDirection * lens * 0.09;
 				warped.x += sin((warped.y + uTime * 0.00018) * 10.0) * lens * 0.018;
+
+				float pixelCount = mix(240.0, 12.0, pow(uPixelation, 0.72));
+				vec2 pixelGrid = vec2(pixelCount, pixelCount * uCanvasSize.y / uCanvasSize.x);
+				vec2 pixelCell = floor(warped * pixelGrid);
+				vec2 pixelJitter = vec2(
+					noise(pixelCell + floor(uTime * 0.018)),
+					noise(pixelCell.yx + floor(uTime * 0.014) + 17.0)
+				) - 0.5;
+				vec2 pixelatedUv = (pixelCell + 0.5) / pixelGrid
+					+ pixelJitter * 0.055 * uPixelation * uPixelation;
+				warped = mix(warped, pixelatedUv, uPixelation);
 
 				vec2 chroma = normalize(centered + vec2(0.0001)) * lens * 0.018;
 				vec4 base = readScene(warped);
@@ -196,7 +208,8 @@ const firstProject = projects[0];
 		const uniforms = {
 			current: location('uCurrent'), next: location('uNext'), currentSize: location('uCurrentSize'),
 			nextSize: location('uNextSize'), canvasSize: location('uCanvasSize'), strength: location('uStrength'),
-			direction: location('uDirection'), transition: location('uTransition'), time: location('uTime'),
+			direction: location('uDirection'), transition: location('uTransition'), pixelation: location('uPixelation'),
+			time: location('uTime'),
 		};
 
 		let currentIndex = 0;
@@ -228,11 +241,12 @@ const firstProject = projects[0];
 			gl.uniform2f(uniforms.nextSize, images[nextIndex].naturalWidth, images[nextIndex].naturalHeight);
 		};
 
-		const render = (strength: number, direction: number, transition = 0) => {
+		const render = (strength: number, direction: number, transition = 0, pixelation = 0) => {
 			resize();
 			gl.uniform1f(uniforms.strength, strength);
 			gl.uniform1f(uniforms.direction, direction || 1);
 			gl.uniform1f(uniforms.transition, transition);
+			gl.uniform1f(uniforms.pixelation, pixelation);
 			gl.uniform1f(uniforms.time, performance.now());
 			gl.drawArrays(gl.TRIANGLES, 0, 6);
 		};
@@ -639,7 +653,9 @@ const firstProject = projects[0];
 						introLensPair = projectIndex;
 						lens.setPair(projectIndex, nextProjectIndex);
 					}
-					lens.render(introStrength * 0.7, 1, projectTransition);
+					const qualityProgress = Math.min(1, progress / 0.84);
+					const pixelation = Math.pow(1 - qualityProgress, 1.18);
+					lens.render(introStrength * 0.7, 1, projectTransition, pixelation);
 				}
 
 				if (now - lastIntroScramble >= SCRAMBLE_TICK || progress === 1) {
