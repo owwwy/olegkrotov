@@ -345,9 +345,31 @@ const firstProject = projects[0];
 	const initializeProjectShowcases = () => {
 		cleanupProjectShowcases();
 		if (window.matchMedia('(max-width: 767px)').matches) {
-			document.querySelectorAll<HTMLElement>('[data-project-panel]').forEach((panel) => {
+			const mobilePanels = [...document.querySelectorAll<HTMLElement>('[data-project-panel]')];
+			mobilePanels.forEach((panel) => {
 				panel.setAttribute('aria-hidden', 'false');
 			});
+			const fitMobileTitles = () => {
+				mobilePanels.forEach((panel) => {
+					const title = panel.querySelector<HTMLElement>('.showcase__mobile-title');
+					const container = title?.parentElement;
+					if (!title || !container) return;
+					let size = 48;
+					title.style.fontSize = `${size}px`;
+					title.style.lineHeight = `${size}px`;
+					while (title.scrollWidth > container.clientWidth && size > 24) {
+						size -= 1;
+						title.style.fontSize = `${size}px`;
+						title.style.lineHeight = `${size}px`;
+					}
+				});
+			};
+			const resizeObserver = new ResizeObserver(fitMobileTitles);
+			document.querySelectorAll<HTMLElement>('[data-project-showcase]').forEach((showcase) => {
+				resizeObserver.observe(showcase);
+			});
+			requestAnimationFrame(fitMobileTitles);
+			cleanupProjectShowcases = () => resizeObserver.disconnect();
 			return;
 		}
 		const cleanups: Array<() => void> = [];
@@ -1160,8 +1182,12 @@ const firstProject = projects[0];
 		}
 
 		.showcase__mobile-copy {
+			position: relative;
+			z-index: 2;
 			display: flex;
 			align-items: flex-start;
+			width: 100%;
+			margin-top: -20px;
 			flex-direction: column;
 		}
 
@@ -1172,7 +1198,7 @@ const firstProject = projects[0];
 			font-weight: 500;
 			line-height: 48px;
 			mix-blend-mode: normal;
-			white-space: normal;
+			white-space: nowrap;
 		}
 
 		.showcase__mobile-description {
