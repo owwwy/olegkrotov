@@ -376,7 +376,31 @@ const firstProject = projects[0];
 		document.querySelectorAll<HTMLElement>('[data-project-showcase]').forEach((showcase) => {
 		const media = showcase.querySelector<HTMLElement>('[data-project-media]');
 		const canvas = showcase.querySelector<HTMLCanvasElement>('[data-project-lens]');
-		const panels = [...showcase.querySelectorAll<HTMLElement>('[data-project-panel]')];
+		const sourcePanels = [...showcase.querySelectorAll<HTMLElement>('[data-project-panel]')];
+		const isReturningHome = document.documentElement.classList.contains('info-return-home')
+			|| document.documentElement.classList.contains('case-return-home');
+		const storageKey = 'desktop-project-order';
+		let storedOrder: string[] = [];
+		try { storedOrder = JSON.parse(sessionStorage.getItem(storageKey) ?? '[]'); } catch {}
+		const panelKey = (panel: HTMLElement) => panel.dataset.projectHref ?? '';
+		const validStoredOrder = storedOrder.length === sourcePanels.length
+			&& sourcePanels.every((panel) => storedOrder.includes(panelKey(panel)));
+		let projectOrder = isReturningHome && validStoredOrder
+			? storedOrder
+			: shuffle(sourcePanels.map(panelKey));
+		if (!isReturningHome && validStoredOrder && projectOrder.every((key, index) => key === storedOrder[index])) {
+			projectOrder = [...projectOrder.slice(1), projectOrder[0]];
+		}
+		try { sessionStorage.setItem(storageKey, JSON.stringify(projectOrder)); } catch {}
+		const panelByKey = new Map(sourcePanels.map((panel) => [panelKey(panel), panel]));
+		const panels = projectOrder.flatMap((key) => {
+			const panel = panelByKey.get(key);
+			return panel ? [panel] : [];
+		});
+		panels.forEach((panel, index) => {
+			panel.style.transform = `translate3d(0, ${index * 100}%, 0)`;
+			media?.insertBefore(panel, canvas);
+		});
 		const images = [...showcase.querySelectorAll<HTMLImageElement>('[data-project-panel] img')];
 		const title = showcase.querySelector<HTMLElement>('[data-project-title]');
 		const category = showcase.querySelector<HTMLElement>('[data-project-category]');
@@ -384,6 +408,13 @@ const firstProject = projects[0];
 		const scrollProxy = showcase.querySelector<HTMLElement>('[data-project-scroll-proxy]');
 		const scrollContent = showcase.querySelector<HTMLElement>('[data-project-scroll-content]');
 		if (!media || !title || !category || !projectLink || !scrollProxy || !scrollContent || panels.length === 0) return;
+		const initialTitle = panels[0].dataset.title ?? '';
+		const initialCategory = panels[0].dataset.category ?? '';
+		renderTitle(title, initialTitle);
+		title.setAttribute('aria-label', initialTitle);
+		category.textContent = initialCategory;
+		projectLink.href = panels[0].dataset.projectHref ?? '/';
+		projectLink.setAttribute('aria-label', `Открыть проект ${initialTitle}`);
 
 		let activeIndex = 0;
 		let wheelAmount = 0;
