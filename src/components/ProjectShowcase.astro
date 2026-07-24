@@ -50,7 +50,7 @@ const firstProject = projects[0];
 	const INTRO_MAX_PROJECT_DURATION = 240;
 	const INTRO_LOOPS = 1;
 	const INTRO_BOUNCE_DISTANCE = 0.25;
-	const INTRO_BOUNCE_DURATION = 360;
+	const INTRO_BOUNCE_SHAPE_PEAK = 0.579;
 	const WHEEL_THRESHOLD = 110;
 	const SCROLL_CENTER = 50000;
 	const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -571,37 +571,66 @@ const firstProject = projects[0];
 				return INTRO_MIN_PROJECT_DURATION
 					+ (INTRO_MAX_PROJECT_DURATION - INTRO_MIN_PROJECT_DURATION) * progress;
 			});
+			const introBoundaries = introDurations.reduce<number[]>((boundaries, duration) => {
+				boundaries.push(boundaries[boundaries.length - 1] + duration);
+				return boundaries;
+			}, [0]);
+			const introSlopes = introDurations.map((duration) => 1 / duration);
+			const introTangents = Array.from({ length: introSteps + 1 }, (_, index) => {
+				if (index === 0) return introSlopes[0];
+				if (index === introSteps) return introSlopes[introSteps - 1];
+				const previous = introSlopes[index - 1];
+				const next = introSlopes[index];
+				return (2 * previous * next) / (previous + next);
+			});
 			const introSpinDuration = introDurations.reduce((total, duration) => total + duration, 0);
-			const introDuration = introSpinDuration + INTRO_BOUNCE_DURATION;
+			const finalSpinVelocity = introTangents[introTangents.length - 1];
+			const introBounceDuration = (
+				INTRO_BOUNCE_DISTANCE * Math.PI
+				/ (finalSpinVelocity * INTRO_BOUNCE_SHAPE_PEAK)
+			);
+			const introBounceScale = finalSpinVelocity * introBounceDuration / Math.PI;
+			const introDuration = introSpinDuration + introBounceDuration;
+			let previousTravel = 0;
 			const animateIntro = (now: number) => {
 				const elapsed = Math.min(introDuration, now - introStartedAt);
 				const progress = elapsed / introDuration;
 				let travel = introSteps;
 				if (elapsed < introSpinDuration) {
-					let elapsedBeforeStep = 0;
 					let completedSteps = 0;
 					while (
 						completedSteps < introSteps - 1
-						&& elapsed >= elapsedBeforeStep + introDurations[completedSteps]
+						&& elapsed >= introBoundaries[completedSteps + 1]
 					) {
-						elapsedBeforeStep += introDurations[completedSteps];
 						completedSteps += 1;
 					}
-					const stepProgress = Math.min(
-						1,
-						(elapsed - elapsedBeforeStep) / introDurations[completedSteps],
-					);
-					travel = completedSteps + stepProgress;
+					const duration = introDurations[completedSteps];
+					const stepProgress = Math.min(1, (elapsed - introBoundaries[completedSteps]) / duration);
+					const squared = stepProgress * stepProgress;
+					const cubed = squared * stepProgress;
+					const startWeight = 2 * cubed - 3 * squared + 1;
+					const startTangentWeight = cubed - 2 * squared + stepProgress;
+					const endWeight = -2 * cubed + 3 * squared;
+					const endTangentWeight = cubed - squared;
+					travel = startWeight * completedSteps
+						+ startTangentWeight * duration * introTangents[completedSteps]
+						+ endWeight * (completedSteps + 1)
+						+ endTangentWeight * duration * introTangents[completedSteps + 1];
 				} else {
-					const bounceProgress = (elapsed - introSpinDuration) / INTRO_BOUNCE_DURATION;
-					travel += Math.sin(bounceProgress * Math.PI) * INTRO_BOUNCE_DISTANCE;
+					const bounceProgress = (elapsed - introSpinDuration) / introBounceDuration;
+					travel += introBounceScale
+						* Math.sin(bounceProgress * Math.PI)
+						* (1 - bounceProgress);
 				}
 				const travelBase = Math.floor(travel);
 				const projectIndex = travelBase % panels.length;
 				const nextProjectIndex = (projectIndex + 1) % panels.length;
 				const projectTransition = travel - travelBase;
-				const introStrength = Math.sin(progress * Math.PI) * 0.88;
-				setWindowShape(introStrength, 1);
+				const frameTravel = Math.abs(travel - previousTravel);
+				const introStrength = Math.min(0.88, Math.sqrt(frameTravel / 0.2) * 0.88);
+				const introDirection = Math.sign(travel - previousTravel) || 1;
+				previousTravel = travel;
+				setWindowShape(introStrength, introDirection);
 				if (lens) {
 					if (introLensPair !== projectIndex) {
 						introLensPair = projectIndex;
