@@ -99,7 +99,7 @@ const caseBackground = lastImage ? await detectCaseBackground(lastImage) : '#fff
 	}
 
 	.case-page__viewport {
-		width: min(1600px, 100%);
+		width: 100%;
 		height: 100%;
 		margin-inline: auto;
 		overflow: auto;
@@ -114,8 +114,9 @@ const caseBackground = lastImage ? await detectCaseBackground(lastImage) : '#fff
 	}
 
 	.case-page__content {
-		width: 100%;
+		width: min(1600px, 100%);
 		min-height: 100%;
+		margin-inline: auto;
 		background: var(--case-background);
 	}
 
