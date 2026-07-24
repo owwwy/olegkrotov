@@ -73,6 +73,7 @@ import TypeScale from '../components/TypeScale.astro';
 			import { navigate } from 'astro:transitions/client';
 
 			const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+			let isReturningHome = false;
 			let cleanupInfoPage = () => {};
 			const initializeInfoPage = () => {
 				cleanupInfoPage();
@@ -262,6 +263,7 @@ import TypeScale from '../components/TypeScale.astro';
 						event.preventDefault();
 						if (reducedMotion.matches) {
 							if (destination.pathname === '/') {
+								isReturningHome = true;
 								try { sessionStorage.setItem('info-return-home', 'true'); } catch {}
 								destination.searchParams.set('info-return', Date.now().toString());
 							}
@@ -270,6 +272,7 @@ import TypeScale from '../components/TypeScale.astro';
 						else {
 							await leave();
 							if (destination.pathname === '/') {
+								isReturningHome = true;
 								try { sessionStorage.setItem('info-return-home', 'true'); } catch {}
 								destination.searchParams.set('info-return', Date.now().toString());
 							}
@@ -283,7 +286,18 @@ import TypeScale from '../components/TypeScale.astro';
 				};
 			};
 			document.addEventListener('astro:page-load', initializeInfoPage);
-			document.addEventListener('astro:before-swap', () => cleanupInfoPage());
+			document.addEventListener('astro:before-swap', (event) => {
+				if (isReturningHome) {
+					const swapEvent = event as Event & { newDocument?: Document };
+					const incomingDocument = swapEvent.newDocument;
+					if (incomingDocument) {
+						incomingDocument.documentElement.classList.remove('is-preloading');
+						incomingDocument.documentElement.classList.add('info-return-home');
+						incomingDocument.querySelector('[data-site-preloader]')?.remove();
+					}
+				}
+				cleanupInfoPage();
+			});
 		</script>
 	</body>
 </html>
