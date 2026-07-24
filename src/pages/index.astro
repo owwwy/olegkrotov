@@ -75,6 +75,41 @@ const navigation = [
 			(() => {
 				if (document.documentElement.classList.contains('skip-home-preloader')) {
 					document.querySelector('[data-site-preloader]')?.remove();
+					const texts = [...document.querySelectorAll('.identity [data-scramble-text], nav [data-scramble-text]')];
+					const separators = [...document.querySelectorAll('nav .nav-separator')];
+					separators.forEach((separator) => { separator.style.opacity = '0'; });
+					const buildText = (element, delay) => {
+						const original = [...(element.dataset.original || '')];
+						const spans = [...element.querySelectorAll('.scramble-link__char')];
+						const pool = [...new Set(original.filter((character) => character !== ' '))];
+						spans.forEach((span) => { span.textContent = ''; });
+						window.setTimeout(() => {
+							const startedAt = performance.now();
+							let lastTick = 0;
+							const duration = Math.max(320, original.length * 48);
+							const frame = (now) => {
+								const progress = Math.min(1, (now - startedAt) / duration);
+								if (now - lastTick >= 46 || progress === 1) {
+									lastTick = now;
+									const visible = Math.ceil(original.length * progress);
+									spans.forEach((span, index) => {
+										if (index >= visible) span.textContent = '';
+										else if (original[index] === ' ') span.textContent = '\u00a0';
+										else span.textContent = pool[Math.floor(Math.random() * pool.length)] || original[index];
+									});
+								}
+								if (progress < 1) requestAnimationFrame(frame);
+								else spans.forEach((span, index) => {
+									span.textContent = original[index] === ' ' ? '\u00a0' : original[index];
+								});
+							};
+							requestAnimationFrame(frame);
+						}, delay);
+					};
+					texts.forEach((text, index) => buildText(text, index * 120));
+					separators.forEach((separator, index) => {
+						window.setTimeout(() => { separator.style.opacity = ''; }, 650 + index * 120);
+					});
 					return;
 				}
 				const startedAt = performance.now();

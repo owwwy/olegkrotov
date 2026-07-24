@@ -342,6 +342,7 @@ const firstProject = projects[0];
 		let releaseTimer = 0;
 		let qualityRecoveryId = 0;
 		let lens: LensRenderer | null = null;
+		let lensReady: Promise<void> = Promise.resolve();
 		let introLensPair = -1;
 		let scrollInput: Lenis | null = null;
 		let lastScrollPosition = SCROLL_CENTER;
@@ -349,8 +350,11 @@ const firstProject = projects[0];
 			panel.style.visibility = isIntroPlaying || index === activeIndex ? 'visible' : 'hidden';
 		});
 
+		const isReturningHome = document.documentElement.classList.contains('skip-home-preloader');
+		if (isReturningHome) media.style.opacity = '0';
 		if (canvas && !reducedMotion.matches) {
-			createLensRenderer(canvas, images).then((renderer) => {
+			lensReady = createLensRenderer(canvas, images).then((renderer) => {
+				media.style.opacity = '';
 				if (!renderer) return;
 				if (isIntroPlaying) {
 					lens = renderer;
@@ -362,8 +366,11 @@ const firstProject = projects[0];
 				lens.render(0, 1, 0);
 				media.classList.add('is-webgl');
 			}).catch(() => {
+				media.style.opacity = '';
 				canvas.remove();
 			});
+		} else if (isReturningHome) {
+			media.style.opacity = '';
 		}
 
 		const setWindowShape = (amount: number, direction: number) => {
@@ -803,6 +810,8 @@ const firstProject = projects[0];
 		};
 		if (document.documentElement.classList.contains('is-preloading')) {
 			window.addEventListener('site:reveal', startIntro, { once: true });
+		} else if (isReturningHome) {
+			lensReady.then(startIntro);
 		} else {
 			startIntro();
 		}
