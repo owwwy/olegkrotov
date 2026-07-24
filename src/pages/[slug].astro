@@ -30,6 +30,14 @@ const caseBackground = lastImage ? await detectCaseBackground(lastImage) : '#fff
 	</head>
 	<body>
 		<main class="case-page">
+			<header class="case-header">
+				<div class="case-header__meta">
+					<strong>{project.title}</strong>
+					<span class="case-header__separator" aria-hidden="true">·</span>
+					<span>{project.caseDescription}</span>
+				</div>
+				<a href="/">Закрыть</a>
+			</header>
 			<div
 				class:list={['case-page__viewport', { 'is-light': caseBackground === '#fff' }]}
 				data-case-viewport
@@ -92,15 +100,50 @@ const caseBackground = lastImage ? await detectCaseBackground(lastImage) : '#fff
 	}
 
 	.case-page {
+		display: flex;
 		width: 100%;
 		height: 100dvh;
 		padding: 40px;
+		flex-direction: column;
+		gap: 24px;
 		background: #fff;
+	}
+
+	.case-header {
+		display: flex;
+		width: 100%;
+		flex: none;
+		align-items: flex-start;
+		justify-content: space-between;
+		color: #19191c;
+		font-size: 20px;
+		font-weight: 400;
+		line-height: 24px;
+	}
+
+	.case-header__meta {
+		display: flex;
+		align-items: flex-end;
+		gap: 12px;
+	}
+
+	.case-header strong {
+		font-weight: 400;
+	}
+
+	.case-header__meta > span {
+		color: rgb(25 25 28 / 60%);
+	}
+
+	.case-header a {
+		color: inherit;
+		text-decoration: none;
 	}
 
 	.case-page__viewport {
 		width: 100%;
-		height: 100%;
+		min-height: 0;
+		flex: 1;
 		margin-inline: auto;
 		overflow: auto;
 		border-radius: 3px;
