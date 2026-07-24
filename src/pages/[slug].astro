@@ -257,14 +257,18 @@ const gallery = project.gallery ?? [];
 				const exitCanvas = document.createElement('canvas');
 				exitCanvas.className = 'case-page__pixel-exit';
 				exitCanvas.setAttribute('aria-hidden', 'true');
-				viewport?.append(exitCanvas);
-				const exitContext = exitCanvas.getContext('2d', { alpha: false });
-				const buffer = document.createElement('canvas');
-				const bufferContext = buffer.getContext('2d', { alpha: false });
 				const width = Math.max(1, viewport?.clientWidth ?? 1);
 				const height = Math.max(1, viewport?.clientHeight ?? 1);
 				exitCanvas.width = width;
 				exitCanvas.height = height;
+				const exitContext = exitCanvas.getContext('2d', { alpha: false });
+				const buffer = document.createElement('canvas');
+				const bufferContext = buffer.getContext('2d', { alpha: false });
+				if (exitContext) {
+					exitContext.fillStyle = '#fff';
+					exitContext.fillRect(0, 0, width, height);
+				}
+				viewport?.append(exitCanvas);
 				const visibleImages = [...(content?.querySelectorAll<HTMLImageElement>('img') ?? [])];
 				const texts = [...document.querySelectorAll<HTMLElement>('[data-case-reveal]')].map((element) => ({
 					element,
