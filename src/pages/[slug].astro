@@ -319,7 +319,6 @@ const gallery = project.gallery ?? [];
 					}
 					if (progress < 1) requestAnimationFrame(frame);
 					else {
-						try { sessionStorage.setItem('skip-home-preloader', 'true'); } catch {}
 						window.location.assign(closeLink.href);
 					}
 				};
