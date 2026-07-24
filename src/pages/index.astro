@@ -17,7 +17,10 @@ import { projects } from '../data/projects';
 		<script is:inline data-astro-rerun>
 			document.documentElement.classList.remove('info-entering', 'info-ready');
 			try {
-				if (sessionStorage.getItem('info-return-home') === 'true') {
+				if (sessionStorage.getItem('case-return-home') === 'true') {
+					document.documentElement.classList.add('case-return-home');
+					sessionStorage.removeItem('case-return-home');
+				} else if (sessionStorage.getItem('info-return-home') === 'true') {
 					document.documentElement.classList.add('info-return-home');
 					sessionStorage.removeItem('info-return-home');
 				} else document.documentElement.classList.add('is-preloading');
@@ -52,7 +55,10 @@ import { projects } from '../data/projects';
 		</div>
 		<script is:inline data-astro-rerun>
 			(() => {
-				if (document.documentElement.classList.contains('info-return-home')) {
+				if (
+					document.documentElement.classList.contains('info-return-home')
+					|| document.documentElement.classList.contains('case-return-home')
+				) {
 					document.querySelector('[data-site-preloader]')?.remove();
 					return;
 				}
@@ -76,18 +82,17 @@ import { projects } from '../data/projects';
 				const loaderBounds = loaderIdentity.getBoundingClientRect();
 				loaderIdentity.style.width = `${loaderBounds.width}px`;
 				loaderIdentity.style.height = `${loaderBounds.height}px`;
-				draw(loaderName, []);
-				draw(loaderRole, []);
-				const visibleCharacters = [0, 0];
+				const settledCharacters = [0, 0];
 				const previousCharacters = [[], []];
 				const values = [name, role];
 				const elements = [loaderName, loaderRole];
 				const scramble = () => {
 					values.forEach((value, valueIndex) => {
-						const source = [...value].slice(0, visibleCharacters[valueIndex]);
+						const source = [...value];
 						const pool = poolFor(value);
 						const output = source.map((character, characterIndex) => {
 							if (character === ' ') return character;
+							if (characterIndex < settledCharacters[valueIndex]) return character;
 							const previous = previousCharacters[valueIndex][characterIndex];
 							const alternatives = pool.filter((candidate) => candidate !== previous);
 							return randomFrom(alternatives.length ? alternatives : pool);
@@ -97,14 +102,19 @@ import { projects } from '../data/projects';
 					});
 				};
 				const scrambleTimer = window.setInterval(scramble, 58);
+				scramble();
 				const build = (valueIndex, value, duration) => new Promise((resolve) => {
 					const source = [...value];
 					const animationStartedAt = performance.now();
 					const frame = (now) => {
 						const progress = Math.min(1, (now - animationStartedAt) / duration);
-						visibleCharacters[valueIndex] = Math.ceil(progress * source.length);
+						const eased = 1 - Math.pow(1 - progress, 2.4);
+						settledCharacters[valueIndex] = Math.floor(eased * source.length);
 						if (progress < 1) requestAnimationFrame(frame);
-						else resolve();
+						else {
+							settledCharacters[valueIndex] = source.length;
+							resolve();
+						}
 					};
 					requestAnimationFrame(frame);
 				});
@@ -119,13 +129,38 @@ import { projects } from '../data/projects';
 				]);
 
 				(async () => {
-					await build(0, name, 390);
-					await build(1, role, 430);
+					await Promise.all([
+						build(0, name, 560),
+						build(1, role, 650),
+					]);
+					window.clearInterval(scrambleTimer);
+					draw(loaderName, [...name]);
+					draw(loaderRole, [...role]);
+
+					let glitchRestore = 0;
+					const glitch = () => {
+						const valueIndex = Math.random() < 0.62 ? 0 : 1;
+						const value = values[valueIndex];
+						const pool = poolFor(value);
+						const output = [...value];
+						const mutable = output.flatMap((character, index) => character === ' ' ? [] : [index]);
+						const changes = Math.random() < 0.7 ? 1 : 2;
+						for (let index = 0; index < changes && mutable.length; index += 1) {
+							const slot = mutable.splice(Math.floor(Math.random() * mutable.length), 1)[0];
+							const alternatives = pool.filter((character) => character !== output[slot]);
+							output[slot] = randomFrom(alternatives.length ? alternatives : pool);
+						}
+						draw(elements[valueIndex], output);
+						window.clearTimeout(glitchRestore);
+						glitchRestore = window.setTimeout(() => draw(elements[valueIndex], [...value]), 72);
+					};
+					const glitchTimer = window.setInterval(glitch, 190 + Math.random() * 90);
 					await Promise.all([
 						loaded,
 						new Promise((resolve) => window.setTimeout(resolve, Math.max(0, 1200 - (performance.now() - startedAt)))),
 					]);
-					window.clearInterval(scrambleTimer);
+					window.clearInterval(glitchTimer);
+					window.clearTimeout(glitchRestore);
 					draw(loaderName, [...name]);
 					draw(loaderRole, [...role]);
 					await new Promise((resolve) => window.setTimeout(resolve, 140));
@@ -246,6 +281,12 @@ import { projects } from '../data/projects';
 
 	.info-return-home:not(.info-return-ready) main {
 		visibility: hidden;
+	}
+
+	.case-return-home:not(.case-return-ready) .identity,
+	.case-return-home:not(.case-return-ready) nav,
+	.case-return-home:not(.case-return-ready) main {
+		opacity: 0;
 	}
 
 	.c-scrollbar {

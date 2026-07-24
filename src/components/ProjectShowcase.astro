@@ -686,6 +686,48 @@ const firstProject = projects[0];
 		infoLink?.addEventListener('click', onInfoClick);
 		if (infoLink) cleanups.push(() => infoLink.removeEventListener('click', onInfoClick));
 
+		const revealSidebar = () => {
+			const elements = [...document.querySelectorAll<HTMLElement>(
+				'.identity [data-scramble-text], nav [data-scramble-text]',
+			)];
+			const states = elements.map((element) => {
+				const value = element.dataset.original ?? '';
+				const spans = [...element.querySelectorAll<HTMLElement>('span')];
+				const pool = [...new Set([...value].filter((character) => character !== ' '))];
+				spans.forEach((span) => { span.textContent = ''; });
+				return { value, spans, pool };
+			});
+			if (reducedMotion.matches) {
+				states.forEach(({ value, spans }) => spans.forEach((span, index) => {
+					span.textContent = value[index] === ' ' ? '\u00a0' : value[index] ?? '';
+				}));
+				return;
+			}
+			const startedAt = performance.now();
+			const duration = 1050;
+			let lastTick = 0;
+			const frame = (now: number) => {
+				const elapsed = now - startedAt;
+				if (now - lastTick >= 44 || elapsed >= duration) {
+					lastTick = now;
+					states.forEach(({ value, spans, pool }, elementIndex) => {
+						const delay = elementIndex * 105;
+						const local = Math.max(0, Math.min(1, (elapsed - delay) / (duration - delay)));
+						const visible = Math.ceil(Math.min(1, local * 1.7) * value.length);
+						const settled = Math.floor(Math.pow(local, 1.35) * value.length);
+						spans.forEach((span, index) => {
+							if (index >= visible) span.textContent = '';
+							else if (value[index] === ' ') span.textContent = '\u00a0';
+							else if (index < settled || local === 1) span.textContent = value[index] ?? '';
+							else span.textContent = randomCharacter(pool);
+						});
+					});
+				}
+				if (elapsed < duration) requestAnimationFrame(frame);
+			};
+			requestAnimationFrame(frame);
+		};
+
 		const startIntro = () => {
 		if (isIntroPlaying) {
 			const introTitles = panels.map((panel) => panel.dataset.title ?? '');
@@ -855,6 +897,14 @@ const firstProject = projects[0];
 				startIntro();
 				requestAnimationFrame(() => {
 					document.documentElement.classList.add('info-return-ready');
+				});
+			});
+		} else if (document.documentElement.classList.contains('case-return-home')) {
+			lensReady.then(() => {
+				revealSidebar();
+				startIntro();
+				requestAnimationFrame(() => {
+					document.documentElement.classList.add('case-return-ready');
 				});
 			});
 		} else {

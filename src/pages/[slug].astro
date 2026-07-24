@@ -297,6 +297,7 @@ const animatedPngs = new Set([
 					return;
 				}
 				isLeaving = true;
+				try { sessionStorage.setItem('case-return-home', 'true'); } catch {}
 				document.documentElement.classList.add('case-leaving');
 
 				const exitCanvas = document.createElement('canvas');
