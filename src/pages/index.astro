@@ -2,6 +2,7 @@
 import '@fontsource-variable/onest';
 import ProjectShowcase from '../components/ProjectShowcase.astro';
 import ScrambleLink from '../components/ScrambleLink.astro';
+import TypeScale from '../components/TypeScale.astro';
 import { projects } from '../data/projects';
 
 const navigation = [
@@ -20,34 +21,7 @@ const navigation = [
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
-		<script is:inline>
-			(() => {
-				const interpolate = (from, to, progress) => from + (to - from) * progress;
-				const roundToEven = (value) => Math.round(value / 2) * 2;
-				const scale = (width, compact, desktop, wide) => {
-					if (width <= 1200) return compact;
-					if (width < 1780) return interpolate(compact, desktop, (width - 1200) / 580);
-					if (width <= 1920) return desktop;
-					if (width < 2048) return interpolate(desktop, wide, (width - 1920) / 128);
-					return wide;
-				};
-
-				const updateTypeScale = () => {
-					const width = window.innerWidth;
-					const ui = Math.round(scale(width, 16, 20, 28));
-					const title = Math.round(scale(width, 80, 120, 160));
-					const root = document.documentElement;
-					root.style.setProperty('--ui-font-size', `${ui}px`);
-					root.style.setProperty('--ui-line-height', `${roundToEven(ui * 1.2)}px`);
-					root.style.setProperty('--role-font-size', `${Math.round(ui * 0.8)}px`);
-					root.style.setProperty('--project-title-size', `${title}px`);
-					root.style.setProperty('--project-title-line-height', `${roundToEven(title)}px`);
-				};
-
-				updateTypeScale();
-				window.addEventListener('resize', updateTypeScale, { passive: true });
-			})();
-		</script>
+		<TypeScale />
 		<meta
 			name="description"
 			content="Портфолио Олега Кротова — digital designer."

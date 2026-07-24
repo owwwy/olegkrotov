@@ -1,6 +1,7 @@
 ---
 import '@fontsource-variable/onest';
 import type { GetStaticPaths } from 'astro';
+import TypeScale from '../components/TypeScale.astro';
 import type { Project } from '../data/projects';
 import { projects } from '../data/projects';
 
@@ -20,6 +21,7 @@ const gallery = project.gallery ?? [];
 <html lang="ru">
 	<head>
 		<meta charset="utf-8" />
+		<TypeScale />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="description" content={`${project.title} — ${project.category}. Проект Олега Кротова.`} />
@@ -114,9 +116,9 @@ const gallery = project.gallery ?? [];
 		align-items: flex-start;
 		justify-content: space-between;
 		color: #19191c;
-		font-size: 20px;
+		font-size: var(--ui-font-size, 20px);
 		font-weight: 400;
-		line-height: 24px;
+		line-height: var(--ui-line-height, 24px);
 	}
 
 	.case-header__meta {
