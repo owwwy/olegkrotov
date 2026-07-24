@@ -79,7 +79,6 @@ import TypeScale from '../components/TypeScale.astro';
 						<span class="info-line"><strong>в пользу понятности и интуитивности.</strong></span>
 					</p>
 				</div>
-				<span class="info-marker" aria-hidden="true"></span>
 			</main>
 		</div>
 		<script is:inline data-astro-rerun>
@@ -621,12 +620,4 @@ import TypeScale from '../components/TypeScale.astro';
 		transform: translateY(-13.45%);
 	}
 
-	.info-marker {
-		position: absolute;
-		bottom: calc(var(--page-padding) + 50px);
-		left: calc((100% - var(--grid-gap) * 8) / 9 * 2 + var(--grid-gap) * 2);
-		width: 36px;
-		height: 1px;
-		background: #eaeaeb;
-	}
 </style>
