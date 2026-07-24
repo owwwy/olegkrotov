@@ -46,7 +46,7 @@ import TypeScale from '../components/TypeScale.astro';
 					<p>
 						<span class="info-line">
 							<strong>Проектирую интерфейсы</strong>
-							<span class="visual visual--wide" aria-hidden="true"><img src="/info/01.png" alt="" /></span>
+							<span class="visual visual--01" aria-hidden="true"><img src="/info/01.png" alt="" /></span>
 							<span>цифровых</span>
 						</span>
 						<span class="info-line">
@@ -552,6 +552,7 @@ import TypeScale from '../components/TypeScale.astro';
 	}
 
 	.visual--wide { width: var(--info-chip-width); }
+	.visual--01 { width: calc(var(--info-chip-height) * 100 / 58); }
 	.visual--long { width: var(--info-chip-long-width); }
 	.visual--square { width: var(--info-chip-height); }
 	.visual img { width: 100%; height: 100%; object-fit: cover; }
