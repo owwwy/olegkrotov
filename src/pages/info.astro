@@ -13,6 +13,8 @@ import TypeScale from '../components/TypeScale.astro';
 		<style is:inline>html,body{margin:0;background:#fff}</style>
 		<script is:inline data-astro-rerun>
 			var internalInfoTransition = false;
+			var mobileInfoLayout = window.matchMedia('(max-width: 767px)').matches;
+			document.documentElement.classList.toggle('mobile-layout', mobileInfoLayout);
 			try {
 				internalInfoTransition = sessionStorage.getItem('info-page-transition') === 'true';
 				sessionStorage.removeItem('info-page-transition');
@@ -20,7 +22,7 @@ import TypeScale from '../components/TypeScale.astro';
 			document.documentElement.classList.remove(
 				'is-preloading', 'is-revealing', 'is-identity-ready', 'info-return-home', 'info-return-ready'
 			);
-			if (!internalInfoTransition) document.documentElement.classList.add('info-direct-preloading');
+			if (!internalInfoTransition && !mobileInfoLayout) document.documentElement.classList.add('info-direct-preloading');
 			document.documentElement.classList.add('info-entering');
 			window.addEventListener('pageshow', (event) => {
 				if (event.persisted) window.location.reload();
