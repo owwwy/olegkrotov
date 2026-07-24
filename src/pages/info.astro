@@ -77,7 +77,6 @@ import TypeScale from '../components/TypeScale.astro';
 		--info-chip-width: 120px;
 		--info-chip-long-width: 156px;
 		--info-chip-height: 58px;
-		--info-top: 172px;
 	}
 
 	*, *::before, *::after { box-sizing: border-box; }
@@ -146,7 +145,7 @@ import TypeScale from '../components/TypeScale.astro';
 		grid-column: 4 / span 9;
 		grid-template-columns: repeat(9, minmax(0, 1fr));
 		column-gap: var(--grid-gap);
-		align-content: start;
+		align-content: center;
 		height: 100svh;
 		min-width: 0;
 	}
@@ -156,7 +155,6 @@ import TypeScale from '../components/TypeScale.astro';
 		grid-column: 1 / span 8;
 		flex-direction: column;
 		gap: var(--info-paragraph-gap);
-		padding-top: var(--info-top);
 		color: var(--color-muted);
 		font-size: var(--info-font-size);
 		font-weight: 400;
