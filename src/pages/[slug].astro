@@ -150,6 +150,7 @@ const gallery = project.gallery ?? [];
 				revealElements.forEach((element) => {
 					element.querySelectorAll<HTMLElement>('span').forEach((span) => { span.textContent = ''; });
 				});
+				document.documentElement.classList.add('case-entry-ready');
 				const reveal = (element: HTMLElement) => new Promise<void>((resolve) => {
 					const original = [...(element.dataset.value ?? '')];
 					const spans = [...element.querySelectorAll<HTMLElement>('span')];
@@ -241,7 +242,7 @@ const gallery = project.gallery ?? [];
 					separators[1]?.classList.add('is-visible');
 					await reveal(revealElements[2]);
 					await reveal(revealElements[3]);
-					document.documentElement.classList.remove('case-entering', 'case-revealing');
+					document.documentElement.classList.remove('case-entering', 'case-revealing', 'case-entry-ready');
 				})();
 			}
 
@@ -488,6 +489,10 @@ const gallery = project.gallery ?? [];
 
 	:global(.case-entering) .case-header__separator {
 		opacity: 0;
+	}
+
+	:global(.case-entering:not(.case-entry-ready)) .case-header {
+		visibility: hidden;
 	}
 
 	:global(.case-entering) .case-header__separator.is-visible {
