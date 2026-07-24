@@ -31,13 +31,9 @@ const gallery = project.gallery ?? [];
 		<main class="case-page">
 			<header class="case-header">
 				<div class="case-header__meta">
-					<strong data-case-scramble data-value={project.title}>
-						{[...project.title].map((character) => <span>{character === ' ' ? '\u00a0' : character}</span>)}
-					</strong>
+					<strong>{project.title}</strong>
 					<span class="case-header__separator" aria-hidden="true">·</span>
-					<span data-case-scramble data-value={project.caseDescription}>
-						{[...project.caseDescription].map((character) => <span>{character === ' ' ? '\u00a0' : character}</span>)}
-					</span>
+					<span>{project.caseDescription}</span>
 					<span class="case-header__separator" aria-hidden="true">·</span>
 					<a class="case-header__website" href={`https://${project.website}`} target="_blank" rel="noreferrer" data-case-scramble data-value={project.website}>
 						{[...project.website].map((character) => <span>{character}</span>)}
