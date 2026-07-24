@@ -1,6 +1,7 @@
 ---
 import '@fontsource-variable/onest';
 import type { GetStaticPaths } from 'astro';
+import MobileTapScramble from '../components/MobileTapScramble.astro';
 import TypeScale from '../components/TypeScale.astro';
 import type { Project } from '../data/projects';
 import { projects } from '../data/projects';
@@ -57,6 +58,7 @@ const animatedPngs = new Set([
 		<title>{project.title} — Олег Кротов</title>
 	</head>
 	<body>
+		<MobileTapScramble />
 		<main class="case-page">
 			<header class="case-header">
 				<div class="case-header__meta">
@@ -72,7 +74,7 @@ const animatedPngs = new Set([
 						{[...project.website].map((character) => <span>{character}</span>)}
 					</a>
 				</div>
-				<a class="case-header__close" href="/" data-case-scramble data-case-reveal data-value="Закрыть">
+				<a class="case-header__close" href="/" data-case-scramble data-case-reveal data-value="Закрыть" data-mobile-label="Назад">
 					{[...'Закрыть'].map((character) => <span>{character}</span>)}
 				</a>
 			</header>
@@ -654,7 +656,7 @@ const animatedPngs = new Set([
 		}
 
 		.case-header__close::before {
-			content: 'Назад';
+			content: attr(data-mobile-label);
 		}
 
 		.case-page.is-header-hidden .case-header {

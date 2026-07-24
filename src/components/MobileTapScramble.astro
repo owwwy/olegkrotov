@@ -1,0 +1,95 @@
+<script>
+	const mobileQuery = window.matchMedia('(max-width: 767px)');
+	const DURATION = 280;
+	const TICK = 44;
+
+	const scrambleText = (element: HTMLElement) => new Promise<void>((resolve) => {
+		const original = element.dataset.original ?? element.textContent ?? '';
+		const characters = [...original];
+		const pool = [...new Set(characters.filter((character) => character !== ' '))];
+		const spans = [...element.querySelectorAll<HTMLElement>(':scope > span')];
+		const render = (value: string[]) => {
+			if (spans.length === characters.length) {
+				spans.forEach((span, index) => {
+					span.textContent = value[index] === ' ' ? '\u00a0' : value[index] ?? '';
+				});
+			} else element.textContent = value.join('');
+		};
+		const startedAt = performance.now();
+		let lastTick = 0;
+		const frame = (now: number) => {
+			const progress = Math.min(1, (now - startedAt) / DURATION);
+			if (now - lastTick >= TICK || progress === 1) {
+				lastTick = now;
+				const settled = Math.floor(characters.length * Math.pow(progress, 1.4));
+				const output = characters.map((character, index) => {
+					if (character === ' ' || index < settled || progress === 1) return character;
+					return pool[Math.floor(Math.random() * pool.length)] ?? character;
+				});
+				render(output);
+			}
+			if (progress < 1) requestAnimationFrame(frame);
+			else resolve();
+		};
+		requestAnimationFrame(frame);
+	});
+
+	const scramblePseudoLabel = (element: HTMLElement) => new Promise<void>((resolve) => {
+		const original = element.dataset.mobileLabel ?? '';
+		const characters = [...original];
+		const pool = [...new Set(characters)];
+		const startedAt = performance.now();
+		let lastTick = 0;
+		const frame = (now: number) => {
+			const progress = Math.min(1, (now - startedAt) / DURATION);
+			if (now - lastTick >= TICK || progress === 1) {
+				lastTick = now;
+				const settled = Math.floor(characters.length * Math.pow(progress, 1.4));
+				element.dataset.mobileLabel = characters.map((character, index) =>
+					index < settled || progress === 1
+						? character
+						: pool[Math.floor(Math.random() * pool.length)] ?? character,
+				).join('');
+			}
+			if (progress < 1) requestAnimationFrame(frame);
+			else resolve();
+		};
+		requestAnimationFrame(frame);
+	});
+
+	const visible = (element: HTMLElement) => getComputedStyle(element).display !== 'none';
+	const targetsFor = (interactive: HTMLElement) => {
+		const panel = interactive.closest<HTMLElement>('[data-project-panel]');
+		if (panel) return [...panel.querySelectorAll<HTMLElement>(
+			'.showcase__mobile-title, .showcase__mobile-description',
+		)];
+		const nested = [...interactive.querySelectorAll<HTMLElement>('[data-scramble-text]')].filter(visible);
+		if (nested.length) return nested;
+		return interactive.dataset.mobileLabel ? [] : [interactive];
+	};
+
+	if (!(window as typeof window & { __mobileTapScrambleBound?: boolean }).__mobileTapScrambleBound) {
+		(window as typeof window & { __mobileTapScrambleBound?: boolean }).__mobileTapScrambleBound = true;
+		document.addEventListener('click', (event) => {
+			if (!mobileQuery.matches) return;
+			const interactive = (event.target as HTMLElement).closest<HTMLElement>('a, button');
+			if (!interactive || interactive.classList.contains('sidebar__mobile-toggle')) return;
+			const link = interactive instanceof HTMLAnchorElement ? interactive : null;
+			const internal = link
+				&& !link.hasAttribute('download')
+				&& link.target !== '_blank'
+				&& new URL(link.href, window.location.href).origin === window.location.origin;
+			if (internal) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				if (link.dataset.mobileNavigating === 'true') return;
+				link.dataset.mobileNavigating = 'true';
+			}
+			const animations = targetsFor(interactive).map(scrambleText);
+			if (interactive.dataset.mobileLabel) animations.push(scramblePseudoLabel(interactive));
+			void Promise.all(animations).then(() => {
+				if (internal && link) window.location.assign(link.href);
+			});
+		}, true);
+	}
+</script>
