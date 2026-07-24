@@ -313,6 +313,7 @@ const animatedPngs = new Set([
 			}
 
 			const closeLink = document.querySelector<HTMLAnchorElement>('.case-header__close');
+			if (closeLink && mobileCase) closeLink.href = '/mobile';
 			let isLeaving = false;
 			const leaveCase = () => new Promise<void>((resolve) => {
 				if (isLeaving) {

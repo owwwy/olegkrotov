@@ -15,6 +15,9 @@ import TypeScale from '../components/TypeScale.astro';
 			html,body{margin:0;background:#fff}
 			@media(max-width:767px){[data-info-preloader]{display:none!important}}
 		</style>
+		<script is:inline>
+			if (window.matchMedia('(max-width: 767px)').matches) window.location.replace('/mobile');
+		</script>
 		<script is:inline data-astro-rerun>
 			var internalInfoTransition = false;
 			var mobileInfoLayout = window.matchMedia('(max-width: 767px)').matches;

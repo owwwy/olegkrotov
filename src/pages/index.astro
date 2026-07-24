@@ -20,6 +20,9 @@ import { projects } from '../data/projects';
 			html.case-return-home .site-preloader{display:none!important}
 			@media(max-width:767px){[data-site-preloader]{display:none!important}}
 		</style>
+		<script is:inline>
+			if (window.matchMedia('(max-width: 767px)').matches) window.location.replace('/mobile');
+		</script>
 		<script is:inline data-astro-rerun>
 			document.documentElement.classList.remove(
 				'info-entering', 'info-ready', 'info-return-home', 'info-return-ready',
