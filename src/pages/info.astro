@@ -216,11 +216,27 @@ import TypeScale from '../components/TypeScale.astro';
 					return pool[Math.floor(Math.random() * pool.length)] ?? '';
 				};
 				const enterSpeed = 1.4;
-				characters.forEach((character) => {
-					character.style.width = `${character.getBoundingClientRect().width}px`;
-					character.style.opacity = '0';
+				const characterSlots = [...characters, ...spaces];
+				characterSlots.forEach((character) => {
+					character.dataset.slotWidth = character.getBoundingClientRect().width.toString();
+					character.dataset.slotFontSize = parseFloat(getComputedStyle(character).fontSize).toString();
 				});
-				spaces.forEach((space) => { space.style.width = `${space.getBoundingClientRect().width}px`; });
+				const updateCharacterSlots = () => {
+					if (!copy.isConnected) return;
+					characterSlots.forEach((character) => {
+						const baseWidth = Number(character.dataset.slotWidth) || 0;
+						const baseFontSize = Number(character.dataset.slotFontSize) || 1;
+						const fontSize = parseFloat(getComputedStyle(character).fontSize);
+						character.style.width = `${baseWidth * fontSize / baseFontSize}px`;
+					});
+				};
+				updateCharacterSlots();
+				let slotResizeFrame = 0;
+				window.addEventListener('resize', () => {
+					window.cancelAnimationFrame(slotResizeFrame);
+					slotResizeFrame = window.requestAnimationFrame(updateCharacterSlots);
+				}, { passive: true, signal: controller.signal });
+				characters.forEach((character) => { character.style.opacity = '0'; });
 				visuals.forEach((visual) => { visual.style.opacity = '0'; });
 				document.documentElement.classList.add('info-ready');
 
