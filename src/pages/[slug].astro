@@ -30,17 +30,43 @@ const caseBackground = lastImage ? await detectCaseBackground(lastImage) : '#fff
 	</head>
 	<body>
 		<main class="case-page">
-			<div class:list={['case-page__content', { 'is-light': caseBackground === '#fff' }]}>
-				{gallery.map((image, index) => (
-					<img
-						src={image}
-						alt={`${project.title} — изображение ${index + 1}`}
-						loading={index < 2 ? 'eager' : 'lazy'}
-						decoding="async"
-					/>
-				))}
+			<div
+				class:list={['case-page__viewport', { 'is-light': caseBackground === '#fff' }]}
+				data-case-viewport
+				tabindex="0"
+				aria-label={`Проект ${project.title}`}
+			>
+				<div class="case-page__content" data-case-content>
+					{gallery.map((image, index) => (
+						<img
+							src={image}
+							alt={`${project.title} — изображение ${index + 1}`}
+							loading={index < 2 ? 'eager' : 'lazy'}
+							decoding="async"
+						/>
+					))}
+				</div>
 			</div>
 		</main>
+		<script>
+			import Lenis from 'lenis';
+
+			const viewport = document.querySelector<HTMLElement>('[data-case-viewport]');
+			const content = document.querySelector<HTMLElement>('[data-case-content]');
+			if (viewport && content) {
+				new Lenis({
+					wrapper: viewport,
+					content,
+					eventsTarget: viewport,
+					smoothWheel: true,
+					syncTouch: true,
+					lerp: 0.1,
+					autoResize: true,
+					autoRaf: true,
+					overscroll: false,
+				});
+			}
+		</script>
 	</body>
 </html>
 
@@ -59,26 +85,38 @@ const caseBackground = lastImage ? await detectCaseBackground(lastImage) : '#fff
 	:global(html),
 	:global(body) {
 		min-width: 0;
-		min-height: 100%;
+		height: 100%;
 		margin: 0;
-		background: var(--case-background);
+		overflow: hidden;
+		background: #fff;
 	}
 
 	.case-page {
 		width: 100%;
-		min-height: 100dvh;
+		height: 100dvh;
 		padding: 40px;
+		background: #fff;
+	}
+
+	.case-page__viewport {
+		width: min(1600px, 100%);
+		height: 100%;
+		margin-inline: auto;
+		overflow: auto;
+		border-radius: 3px;
 		background: var(--case-background);
+		overscroll-behavior: contain;
+		outline: none;
+	}
+
+	.case-page__viewport.is-light {
+		border: 1px solid #eaeaeb;
 	}
 
 	.case-page__content {
-		width: min(1600px, 100%);
-		margin-inline: auto;
-		overflow: hidden;
-	}
-
-	.case-page__content.is-light {
-		border: 1px solid #eaeaeb;
+		width: 100%;
+		min-height: 100%;
+		background: var(--case-background);
 	}
 
 	img {
