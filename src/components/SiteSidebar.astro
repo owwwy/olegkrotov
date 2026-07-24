@@ -36,3 +36,28 @@ const navigation = [
 		))}
 	</nav>
 </aside>
+
+<style is:global>
+	@view-transition {
+		navigation: auto;
+	}
+
+	.sidebar {
+		view-transition-name: site-sidebar;
+	}
+
+	::view-transition-old(root),
+	::view-transition-new(root),
+	::view-transition-group(root),
+	::view-transition-old(site-sidebar),
+	::view-transition-new(site-sidebar),
+	::view-transition-group(site-sidebar) {
+		animation: none;
+		mix-blend-mode: normal;
+	}
+
+	::view-transition-old(site-sidebar),
+	::view-transition-new(site-sidebar) {
+		opacity: 1;
+	}
+</style>
