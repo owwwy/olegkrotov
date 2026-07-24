@@ -1,7 +1,6 @@
 ---
 import '@fontsource-variable/onest';
 import ClientRouting from '../components/ClientRouting.astro';
-import MobileTapScramble from '../components/MobileTapScramble.astro';
 import ProjectShowcase from '../components/ProjectShowcase.astro';
 import SiteSidebar from '../components/SiteSidebar.astro';
 import TypeScale from '../components/TypeScale.astro';
@@ -62,7 +61,6 @@ import { projects } from '../data/projects';
 		<title>Олег Кротов — Digital Designer</title>
 	</head>
 	<body>
-		<MobileTapScramble />
 		<div class="site-preloader" data-site-preloader aria-live="polite">
 			<div class="site-preloader__identity" data-preloader-identity>
 				<strong data-preloader-name></strong>
@@ -366,11 +364,6 @@ import { projects } from '../data/projects';
 	}
 
 	@media (max-width: 767px) {
-		html.mobile-menu-open,
-		html.mobile-menu-open body {
-			overflow: hidden;
-		}
-
 		html,
 		body {
 			min-width: 0;

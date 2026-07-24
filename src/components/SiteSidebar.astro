@@ -26,9 +26,6 @@ const navigation = [
 			))}
 		</span>
 	</a>
-	<button class="sidebar__mobile-toggle" type="button" aria-expanded="false" aria-label="Открыть меню">
-		<span aria-hidden="true">Меню</span>
-	</button>
 
 	<nav aria-label="Основная навигация">
 		{navigation.map((item, index) => (
@@ -91,17 +88,7 @@ const navigation = [
 		color: currentColor;
 	}
 
-	.sidebar__mobile-toggle {
-		display: none;
-	}
-
 	@media (max-width: 767px) {
-		html.mobile-menu-open,
-		html.mobile-menu-open body {
-			overflow: hidden;
-			background: #19191c;
-		}
-
 		.sidebar {
 			position: sticky;
 			z-index: 20;
@@ -113,12 +100,11 @@ const navigation = [
 			min-height: calc(56px + env(safe-area-inset-top));
 			padding: calc(16px + env(safe-area-inset-top)) 16px 16px;
 			flex-direction: row;
-			justify-content: space-between;
+			justify-content: flex-start;
 			background: #fff;
 		}
 
-		.sidebar .identity strong,
-		.sidebar__mobile-toggle {
+		.sidebar .identity strong {
 			font-size: 18px;
 			font-weight: 400;
 			line-height: 24px;
@@ -127,80 +113,6 @@ const navigation = [
 		.sidebar .identity > span,
 		.sidebar nav {
 			display: none !important;
-		}
-
-		.sidebar__mobile-toggle {
-			display: block;
-			padding: 0;
-			border: 0;
-			color: inherit;
-			background: transparent;
-			font-family: inherit;
-			cursor: pointer;
-		}
-
-		.sidebar.is-mobile-open {
-			position: fixed;
-			inset: 0;
-			width: 100%;
-			height: 100svh;
-			color: #fff;
-			background: #19191c;
-		}
-
-		.sidebar.is-mobile-open .identity strong,
-		.sidebar.is-mobile-open .sidebar__mobile-toggle {
-			color: #fff;
-		}
-
-		.sidebar.is-mobile-open .identity > span {
-			position: fixed;
-			z-index: 2;
-			bottom: 0;
-			left: 0;
-			display: block !important;
-			width: 100%;
-			padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
-			border-top: 1px solid rgb(255 255 255 / 12%);
-			color: rgb(255 255 255 / 60%);
-			font-size: 16px;
-			font-weight: 300;
-			line-height: 24px;
-			text-align: center;
-		}
-
-		.sidebar.is-mobile-open nav {
-			position: fixed;
-			inset: calc(56px + env(safe-area-inset-top)) 0 calc(57px + env(safe-area-inset-bottom));
-			display: flex !important;
-			align-items: stretch;
-			padding: 16px;
-			border-top: 1px solid rgb(255 255 255 / 12%);
-			flex-direction: column;
-			justify-content: center;
-			gap: 4px;
-			color: #fff;
-			font-size: 40px;
-			font-weight: 400;
-			line-height: 40px;
-		}
-
-		.sidebar.is-mobile-open nav .scramble-link {
-			display: flex;
-			width: 100%;
-			padding-block: 16px;
-			justify-content: center;
-			text-align: center;
-		}
-
-		.sidebar.is-mobile-open .nav-separator {
-			display: block;
-			width: 100%;
-			height: 1px;
-			margin: 0;
-			flex: none;
-			color: transparent;
-			background: linear-gradient(90deg, transparent, rgb(255 255 255 / 20%), transparent);
 		}
 	}
 </style>
@@ -241,59 +153,19 @@ const navigation = [
 		});
 	};
 
-	const bindMobileMenu = () => {
-		const sidebar = document.querySelector<HTMLElement>('.sidebar');
-		const toggle = sidebar?.querySelector<HTMLButtonElement>('.sidebar__mobile-toggle');
-		const label = toggle?.querySelector<HTMLElement>('span');
-		if (!sidebar || !toggle || !label || toggle.dataset.mobileMenuBound === 'true') return;
-		toggle.dataset.mobileMenuBound = 'true';
-		let animationFrame = 0;
-		const renderLabel = (value: string) => { label.textContent = value; };
-		const scrambleLabel = (from: string, to: string) => {
-			window.cancelAnimationFrame(animationFrame);
-			const target = [...to];
-			const pool = [...new Set([...from, ...to].filter((character) => character !== ' '))];
-			const startedAt = performance.now();
-			let lastTick = 0;
-			const frame = (now: number) => {
-				const progress = Math.min(1, (now - startedAt) / 320);
-				if (now - lastTick >= 46 || progress === 1) {
-					lastTick = now;
-					const visible = Math.ceil(target.length * Math.min(1, progress * 1.7));
-					const settled = Math.floor(target.length * Math.pow(progress, 1.25));
-					const value = target.slice(0, visible).map((character, index) =>
-						index < settled || progress === 1
-							? character
-							: pool[Math.floor(Math.random() * pool.length)] ?? character,
-					).join('');
-					renderLabel(value);
-				}
-				if (progress < 1) animationFrame = requestAnimationFrame(frame);
-			};
-			animationFrame = requestAnimationFrame(frame);
-		};
-		const setOpen = (open: boolean) => {
-			const from = open ? 'Меню' : 'Закрыть';
-			const to = open ? 'Закрыть' : 'Меню';
-			sidebar.classList.toggle('is-mobile-open', open);
-			document.documentElement.classList.toggle('mobile-menu-open', open);
-			document.querySelector('main')?.toggleAttribute('inert', open);
-			const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-			if (themeColor) themeColor.content = open ? '#19191c' : '#ffffff';
-			toggle.setAttribute('aria-expanded', open.toString());
-			toggle.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню');
-			scrambleLabel(from, to);
-		};
-		toggle.addEventListener('click', () => setOpen(!sidebar.classList.contains('is-mobile-open')));
-		sidebar.querySelectorAll<HTMLAnchorElement>('nav a').forEach((link) => {
-			link.addEventListener('click', () => setOpen(false));
-		});
-		window.addEventListener('keydown', (event) => {
-			if (event.key === 'Escape' && sidebar.classList.contains('is-mobile-open')) setOpen(false);
+	const updateMobileDestinations = () => {
+		const mobile = window.matchMedia('(max-width: 767px)').matches;
+		const identity = document.querySelector<HTMLAnchorElement>('.sidebar .identity');
+		if (identity) identity.href = mobile ? '/mobile' : '/';
+		document.querySelectorAll<HTMLAnchorElement>('.sidebar nav a').forEach((link) => {
+			link.dataset.desktopHref ??= link.getAttribute('href') ?? '/';
+			const isProjects = link.dataset.desktopHref === '/';
+			link.href = mobile && !isProjects ? '/mobile' : link.dataset.desktopHref;
 		});
 	};
 
 	document.addEventListener('astro:page-load', updateSidebarState);
 	document.addEventListener('astro:page-load', bindSidebarNavigation);
-	document.addEventListener('astro:page-load', bindMobileMenu);
+	document.addEventListener('astro:page-load', updateMobileDestinations);
+	window.matchMedia('(max-width: 767px)').addEventListener('change', updateMobileDestinations);
 </script>
