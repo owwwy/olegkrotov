@@ -15,6 +15,22 @@ interface Props {
 
 const { project } = Astro.props;
 const gallery = project.gallery ?? [];
+const animatedPngs = new Set([
+	'/projects/jetsite/2.png',
+	'/projects/jetsite/4.png',
+	'/projects/jetsite/7.png',
+	'/projects/jetsite/10.png',
+	'/projects/jetsite/12.png',
+	'/projects/jetsite/15.png',
+	'/projects/jetsite/17.png',
+	'/projects/jetsite/19.png',
+	'/projects/jetsite/24.png',
+	'/projects/podryado/02.png',
+	'/projects/podryado/15.png',
+	'/projects/podryado/28.png',
+	'/projects/s-industrial-case/10.png',
+	'/projects/s-industrial-case/12.png',
+]);
 ---
 
 <!doctype html>
@@ -63,14 +79,20 @@ const gallery = project.gallery ?? [];
 			>
 				<canvas class="case-page__pixel-reveal" data-case-pixel-reveal aria-hidden="true"></canvas>
 				<div class="case-page__content" data-case-content>
-					{gallery.map((image, index) => (
+					{gallery.map((image, index) => {
+						const isAnimated = animatedPngs.has(image);
+						const poster = isAnimated ? image.replace(/\.png$/, '.poster.png') : image;
+						return (
 						<img
-							src={image}
+							src={poster}
 							alt={`${project.title} — изображение ${index + 1}`}
 							loading={index < 2 ? 'eager' : 'lazy'}
 							decoding="async"
+							data-apng-src={isAnimated ? image : undefined}
+							data-apng-poster={isAnimated ? poster : undefined}
 						/>
-					))}
+						);
+					})}
 				</div>
 			</div>
 		</main>
@@ -101,6 +123,27 @@ const gallery = project.gallery ?? [];
 					if (Math.abs(velocity) < 0.12) return;
 					casePage.classList.toggle('is-header-hidden', direction > 0);
 				});
+
+				const animatedImages = [...content.querySelectorAll<HTMLImageElement>('[data-apng-src]')];
+				const unloadTimers = new WeakMap<HTMLImageElement, number>();
+				const animationObserver = new IntersectionObserver((entries) => {
+					entries.forEach((entry) => {
+						const image = entry.target as HTMLImageElement;
+						const pendingUnload = unloadTimers.get(image);
+						if (pendingUnload) window.clearTimeout(pendingUnload);
+						if (entry.isIntersecting) {
+							const animatedSource = image.dataset.apngSrc;
+							if (animatedSource && image.getAttribute('src') !== animatedSource) image.src = animatedSource;
+							return;
+						}
+						const timer = window.setTimeout(() => {
+							const poster = image.dataset.apngPoster;
+							if (poster && image.getAttribute('src') !== poster) image.src = poster;
+						}, 320);
+						unloadTimers.set(image, timer);
+					});
+				}, { root: viewport, rootMargin: '60% 0px', threshold: 0 });
+				animatedImages.forEach((image) => animationObserver.observe(image));
 			}
 
 			const shuffle = (values: string[]) => {
