@@ -52,6 +52,7 @@ const animatedPngs = new Set([
 		<TypeScale />
 		{projects.map((item) => <link rel="preload" as="image" href={item.image} />)}
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="theme-color" content="#ffffff" data-case-theme-color />
 		<meta name="description" content={`${project.title} — ${project.category}. Проект Олега Кротова.`} />
 		<title>{project.title} — Олег Кротов</title>
 	</head>
@@ -106,17 +107,22 @@ const animatedPngs = new Set([
 			const viewport = document.querySelector<HTMLElement>('[data-case-viewport]');
 			const content = document.querySelector<HTMLElement>('[data-case-content]');
 			const casePage = document.querySelector<HTMLElement>('.case-page');
+			const caseThemeColor = document.querySelector<HTMLMetaElement>('[data-case-theme-color]');
 			const mobileCase = window.matchMedia('(max-width: 767px)').matches;
 			if (viewport && content) {
 				if (mobileCase) {
 					let lastScroll = window.scrollY;
+					const setMobileHeaderHidden = (hidden: boolean) => {
+						casePage?.classList.toggle('is-header-hidden', hidden);
+						if (caseThemeColor) caseThemeColor.content = hidden ? 'transparent' : '#ffffff';
+					};
 					window.addEventListener('scroll', () => {
 						if (!casePage) return;
 						const scroll = window.scrollY;
 						const delta = scroll - lastScroll;
 						lastScroll = scroll;
-						if (scroll <= 12) casePage.classList.remove('is-header-hidden');
-						else if (Math.abs(delta) > 2) casePage.classList.toggle('is-header-hidden', delta > 0);
+						if (scroll <= 12) setMobileHeaderHidden(false);
+						else if (Math.abs(delta) > 2) setMobileHeaderHidden(delta > 0);
 					}, { passive: true });
 				} else {
 					const caseScroll = new Lenis({
