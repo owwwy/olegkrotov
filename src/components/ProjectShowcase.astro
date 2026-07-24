@@ -10,6 +10,9 @@ const firstProject = projects[0];
 ---
 
 <section class="showcase" data-project-showcase>
+	<div class="showcase__scroll-proxy" data-project-scroll-proxy aria-hidden="true">
+		<div class="showcase__scroll-content" data-project-scroll-content></div>
+	</div>
 	<div class="showcase__media" data-project-media>
 		{projects.map((project, index) => (
 			<div
@@ -38,11 +41,13 @@ const firstProject = projects[0];
 </section>
 
 <script>
+	import Lenis from 'lenis';
+
 	const SCRAMBLE_DURATION = 560;
 	const SCRAMBLE_TICK = 46;
 	const TRANSITION_DURATION = 720;
 	const WHEEL_THRESHOLD = 110;
-	const TOUCH_THRESHOLD = 54;
+	const SCROLL_CENTER = 50000;
 	const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 	type LensRenderer = {
@@ -296,18 +301,20 @@ const firstProject = projects[0];
 		const images = [...showcase.querySelectorAll<HTMLImageElement>('[data-project-panel] img')];
 		const title = showcase.querySelector<HTMLElement>('[data-project-title]');
 		const category = showcase.querySelector<HTMLElement>('[data-project-category]');
-		if (!media || !title || !category || panels.length === 0) return;
+		const scrollProxy = showcase.querySelector<HTMLElement>('[data-project-scroll-proxy]');
+		const scrollContent = showcase.querySelector<HTMLElement>('[data-project-scroll-content]');
+		if (!media || !title || !category || !scrollProxy || !scrollContent || panels.length === 0) return;
 
 		let activeIndex = 0;
 		let wheelAmount = 0;
 		let wheelDirection = 0;
 		let lastWheelAt = 0;
 		let isTransitioning = false;
-		let touchStartY = 0;
-		let touchCurrentY = 0;
 		let resistanceFrame = 0;
 		let releaseTimer = 0;
 		let lens: LensRenderer | null = null;
+		let scrollInput: Lenis | null = null;
+		let lastScrollPosition = SCROLL_CENTER;
 		panels.forEach((panel, index) => {
 			panel.style.visibility = index === activeIndex ? 'visible' : 'hidden';
 		});
@@ -384,6 +391,7 @@ const firstProject = projects[0];
 			}
 
 			isTransitioning = true;
+			scrollInput?.stop();
 			window.clearTimeout(releaseTimer);
 			cancelAnimationFrame(resistanceFrame);
 			releaseTimer = 0;
@@ -400,6 +408,11 @@ const firstProject = projects[0];
 				panels.forEach((panel, index) => {
 					panel.style.visibility = index === activeIndex ? 'visible' : 'hidden';
 				});
+			};
+			const resumeScrollInput = () => {
+				lastScrollPosition = SCROLL_CENTER;
+				scrollInput?.scrollTo(SCROLL_CENTER, { immediate: true, force: true });
+				scrollInput?.start();
 			};
 
 			panels.forEach((panel, index) => {
@@ -428,6 +441,7 @@ const firstProject = projects[0];
 				window.setTimeout(() => {
 					finishPanelTransition();
 					isTransitioning = false;
+					resumeScrollInput();
 				}, 0);
 				return;
 			}
@@ -449,26 +463,24 @@ const firstProject = projects[0];
 				setWindowShape(0, 0);
 				finishPanelTransition();
 				isTransitioning = false;
+				resumeScrollInput();
 			};
 			requestAnimationFrame(animateTransition);
 		};
 
 		const move = (direction: number) => selectProject(activeIndex + direction);
 
-		const onWheel = (event: WheelEvent) => {
-			const target = event.target as Element | null;
-			if (document.documentElement.classList.contains('case-is-open') || target?.closest('[data-case-layer]')) return;
-			event.preventDefault();
-			if (isTransitioning || Math.abs(event.deltaY) < Math.abs(event.deltaX)) return;
-
-			const normalizedDelta = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY;
-			const direction = Math.sign(normalizedDelta);
+		const consumeScroll = (position: number) => {
+			const delta = position - lastScrollPosition;
+			lastScrollPosition = position;
+			if (document.documentElement.classList.contains('case-is-open') || isTransitioning) return;
+			const direction = Math.sign(delta);
 			if (direction === 0) return;
 
 			if (direction !== wheelDirection || performance.now() - lastWheelAt > 180) wheelAmount = 0;
 			wheelDirection = direction;
 			lastWheelAt = performance.now();
-			wheelAmount += Math.min(34, Math.abs(normalizedDelta));
+			wheelAmount += Math.min(24, Math.abs(delta));
 			setResistance(wheelAmount / WHEEL_THRESHOLD, direction);
 
 			if (wheelAmount >= WHEEL_THRESHOLD) {
@@ -494,31 +506,28 @@ const firstProject = projects[0];
 			}
 		};
 
-		const onTouchStart = (event: TouchEvent) => {
-			touchStartY = event.touches[0]?.clientY ?? 0;
-			touchCurrentY = touchStartY;
+		scrollInput = new Lenis({
+			wrapper: scrollProxy,
+			content: scrollContent,
+			eventsTarget: window,
+			smoothWheel: true,
+			syncTouch: true,
+			lerp: 0.16,
+			syncTouchLerp: 0.12,
+			autoResize: false,
+			overscroll: false,
+			prevent: (node) => Boolean(node.closest('[data-case-layer]')),
+		});
+		scrollInput.scrollTo(SCROLL_CENTER, { immediate: true, force: true });
+		lastScrollPosition = scrollInput.scroll;
+		scrollInput.on('scroll', (instance) => consumeScroll(instance.scroll));
+		const renderScroll = (time: number) => {
+			scrollInput?.raf(time);
+			requestAnimationFrame(renderScroll);
 		};
+		requestAnimationFrame(renderScroll);
 
-		const onTouchMove = (event: TouchEvent) => {
-			if (document.documentElement.classList.contains('case-is-open')) return;
-			touchCurrentY = event.touches[0]?.clientY ?? touchCurrentY;
-			const distance = touchStartY - touchCurrentY;
-			setResistance(Math.abs(distance) / TOUCH_THRESHOLD, Math.sign(distance));
-			if (Math.abs(distance) > 8) event.preventDefault();
-		};
-
-		const onTouchEnd = () => {
-			if (document.documentElement.classList.contains('case-is-open')) return;
-			const distance = touchStartY - touchCurrentY;
-			if (Math.abs(distance) >= TOUCH_THRESHOLD) move(Math.sign(distance));
-			else releaseResistance();
-		};
-
-		window.addEventListener('wheel', onWheel, { passive: false });
 		window.addEventListener('keydown', onKeyDown);
-		window.addEventListener('touchstart', onTouchStart, { passive: true });
-		window.addEventListener('touchmove', onTouchMove, { passive: false });
-		window.addEventListener('touchend', onTouchEnd, { passive: true });
 	});
 </script>
 
@@ -530,6 +539,20 @@ const firstProject = projects[0];
 		align-items: center;
 		height: 100svh;
 		padding-block: var(--page-padding);
+	}
+
+	.showcase__scroll-proxy {
+		position: fixed;
+		top: 0;
+		left: -2px;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		pointer-events: none;
+	}
+
+	.showcase__scroll-content {
+		height: 100001px;
 	}
 
 	.showcase__media {
