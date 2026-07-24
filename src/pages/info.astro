@@ -103,7 +103,26 @@ import TypeScale from '../components/TypeScale.astro';
 				const spaces = [...copy.querySelectorAll<HTMLElement>('.info-char--space')];
 				const visuals = [...copy.querySelectorAll<HTMLElement>('.visual')];
 				const characterPool = [...new Set(characters.map((character) => character.dataset.character ?? '').filter(Boolean))];
-				const randomCharacter = () => characterPool[Math.floor(Math.random() * characterPool.length)] ?? '';
+				const scramblePools = new WeakMap<HTMLElement, string[]>();
+				const measurementCanvas = document.createElement('canvas');
+				const measurementContext = measurementCanvas.getContext('2d');
+				const randomCharacter = (element: HTMLElement) => {
+					let pool = scramblePools.get(element);
+					if (!pool) {
+						const styles = getComputedStyle(element);
+						const targetWidth = element.getBoundingClientRect().width;
+						if (measurementContext) {
+							measurementContext.font = `${styles.fontStyle} ${styles.fontWeight} ${styles.fontSize} ${styles.fontFamily}`;
+							pool = characterPool.filter((character) => {
+								const width = measurementContext.measureText(character).width;
+								return width <= targetWidth + 0.5 && width >= targetWidth * 0.42;
+							});
+						}
+						pool = pool?.length ? pool : [element.dataset.character ?? ''];
+						scramblePools.set(element, pool);
+					}
+					return pool[Math.floor(Math.random() * pool.length)] ?? '';
+				};
 				const enterSpeed = 1.4;
 				characters.forEach((character) => {
 					character.style.width = `${character.getBoundingClientRect().width}px`;
@@ -190,7 +209,7 @@ import TypeScale from '../components/TypeScale.astro';
 								const progress = Math.min(1, (now - startedAt) / duration);
 								if (now - lastTick >= 42 || progress === 1) {
 									lastTick = now;
-									item.textContent = progress === 1 ? target : randomCharacter();
+									item.textContent = progress === 1 ? target : randomCharacter(item);
 								}
 								if (progress < 1) requestAnimationFrame(frame);
 							};
@@ -224,7 +243,7 @@ import TypeScale from '../components/TypeScale.astro';
 								const progress = Math.min(1, (now - startedAt) / duration);
 								if (now - lastTick >= 36 || progress === 1) {
 									lastTick = now;
-									item.textContent = progress === 1 ? '' : randomCharacter();
+									item.textContent = progress === 1 ? '' : randomCharacter(item);
 									item.style.opacity = `${1 - Math.max(0, (progress - .55) / .45)}`;
 								}
 								if (progress < 1) requestAnimationFrame(frame);
