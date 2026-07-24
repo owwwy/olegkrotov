@@ -202,7 +202,7 @@ const gallery = project.gallery ?? [];
 					const visibleHeight = Math.min(height, imageHeight);
 					const sourceHeight = firstImage.naturalHeight * (visibleHeight / imageHeight);
 					const startedAt = performance.now();
-					const duration = 1250;
+					const duration = 900;
 					const frame = (now: number) => {
 						const progress = Math.min(1, (now - startedAt) / duration);
 						const resolutionProgress = progress * progress * (3 - 2 * progress);
@@ -436,7 +436,7 @@ const gallery = project.gallery ?? [];
 		overscroll-behavior: contain;
 		outline: none;
 		transform: translate3d(0, 0, 0);
-		transition: transform 1250ms cubic-bezier(0.32, 0, 0.2, 1);
+		transition: transform 900ms cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
 	:global(.case-entering) .case-page__viewport {
