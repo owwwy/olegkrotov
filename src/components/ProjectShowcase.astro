@@ -589,15 +589,19 @@ const firstProject = projects[0];
 		};
 		requestAnimationFrame(renderScroll);
 
-		const runPageExit = (destination: string) => {
+		const runPageExit = (destination: string, keepSidebar = false, markCaseTransition = true) => {
 			if (isTransitioning) return;
 			isTransitioning = true;
 			qualityRecoveryId += 1;
 			scrollInput?.stop();
 			showcase.style.pointerEvents = 'none';
-			try { sessionStorage.setItem('case-page-transition', 'true'); } catch {}
+			if (markCaseTransition) {
+				try { sessionStorage.setItem('case-page-transition', 'true'); } catch {}
+			}
 			const exitTexts = [
-				...document.querySelectorAll<HTMLElement>('.identity [data-scramble-text], nav [data-scramble-text]'),
+				...(keepSidebar
+					? []
+					: document.querySelectorAll<HTMLElement>('.identity [data-scramble-text], nav [data-scramble-text]')),
 				title,
 				category,
 			].map((element) => {
@@ -643,6 +647,16 @@ const firstProject = projects[0];
 				return;
 			}
 			runPageExit(projectLink.href);
+		});
+
+		const infoLink = document.querySelector<HTMLAnchorElement>('nav a[href="/info"]');
+		infoLink?.addEventListener('click', (event) => {
+			event.preventDefault();
+			if (reducedMotion.matches) {
+				window.location.assign(infoLink.href);
+				return;
+			}
+			runPageExit(infoLink.href, true, false);
 		});
 
 		const startIntro = () => {
