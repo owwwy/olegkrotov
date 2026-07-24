@@ -50,7 +50,7 @@ const firstProject = projects[0];
 	const INTRO_MAX_PROJECT_DURATION = 240;
 	const INTRO_LOOPS = 1;
 	const INTRO_BOUNCE_DISTANCE = 0.25;
-	const INTRO_BOUNCE_SHAPE_PEAK = 0.579;
+	const INTRO_BOUNCE_SHAPE_PEAK = 27 / 256;
 	const INTRO_QUALITY_FINISH_DURATION = 620;
 	const WHEEL_THRESHOLD = 110;
 	const SCROLL_CENTER = 50000;
@@ -604,10 +604,10 @@ const firstProject = projects[0];
 			const introSpinDuration = introDurations.reduce((total, duration) => total + duration, 0);
 			const finalSpinVelocity = introTangents[introTangents.length - 1];
 			const introBounceDuration = (
-				INTRO_BOUNCE_DISTANCE * Math.PI
+				INTRO_BOUNCE_DISTANCE
 				/ (finalSpinVelocity * INTRO_BOUNCE_SHAPE_PEAK)
 			);
-			const introBounceScale = finalSpinVelocity * introBounceDuration / Math.PI;
+			const introBounceScale = finalSpinVelocity * introBounceDuration;
 			const introDuration = introSpinDuration + introBounceDuration;
 			let previousTravel = 0;
 			const animateIntro = (now: number) => {
@@ -637,8 +637,8 @@ const firstProject = projects[0];
 				} else {
 					const bounceProgress = (elapsed - introSpinDuration) / introBounceDuration;
 					travel += introBounceScale
-						* Math.sin(bounceProgress * Math.PI)
-						* (1 - bounceProgress);
+						* bounceProgress
+						* Math.pow(1 - bounceProgress, 3);
 				}
 				const travelBase = Math.floor(travel);
 				const projectIndex = travelBase % panels.length;
