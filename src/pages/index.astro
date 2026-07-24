@@ -17,7 +17,14 @@ const navigation = [
 <html lang="ru">
 	<head>
 		<meta charset="utf-8" />
-		<script is:inline>document.documentElement.classList.add('is-preloading');</script>
+		<script is:inline>
+			try {
+				if (sessionStorage.getItem('skip-home-preloader') === 'true') {
+					document.documentElement.classList.add('skip-home-preloader');
+					sessionStorage.removeItem('skip-home-preloader');
+				} else document.documentElement.classList.add('is-preloading');
+			} catch { document.documentElement.classList.add('is-preloading'); }
+		</script>
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
@@ -66,6 +73,10 @@ const navigation = [
 		</div>
 		<script is:inline>
 			(() => {
+				if (document.documentElement.classList.contains('skip-home-preloader')) {
+					document.querySelector('[data-site-preloader]')?.remove();
+					return;
+				}
 				const startedAt = performance.now();
 				const loader = document.querySelector('[data-site-preloader]');
 				const loaderIdentity = document.querySelector('[data-preloader-identity]');
