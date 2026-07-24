@@ -5,6 +5,7 @@ export interface Project {
 	category: string;
 	image: string;
 	imageAlt: string;
+	caseBackground: '#fff' | '#000';
 	gallery?: string[];
 }
 
@@ -27,6 +28,7 @@ export const projects: Project[] = [
 		category: 'редизайн сайта дистрибьютора смазочных материалов',
 		image: '/projects/addinol.webp',
 		imageAlt: 'Проект ADDINOL',
+		caseBackground: '#fff',
 		gallery: numberedGallery('addinol', 17, {}, 1),
 	},
 	{
@@ -36,6 +38,7 @@ export const projects: Project[] = [
 		category: 'редизайн сайта студии реактивной разработки',
 		image: '/projects/jetsite.webp',
 		imageAlt: 'Проект JETSITE',
+		caseBackground: '#000',
 		gallery: numberedGallery('jetsite', 25, {
 			2: 'png',
 			4: 'png',
@@ -55,6 +58,7 @@ export const projects: Project[] = [
 		category: 'дизайн интернет-магазина спорт оборудования',
 		image: '/projects/s-industrial.webp',
 		imageAlt: 'Проект S-INDUSTRIAL',
+		caseBackground: '#fff',
 		gallery: numberedGallery('s-industrial-case', 19, { 9: 'png', 10: 'png', 12: 'png' }),
 	},
 	{
@@ -64,6 +68,7 @@ export const projects: Project[] = [
 		category: 'дизайн бизнес-портала для строителей и клиентов',
 		image: '/projects/podryado.webp',
 		imageAlt: 'Проект PODRYADO',
+		caseBackground: '#000',
 		gallery: numberedGallery('podryado', 32, { 2: 'png', 15: 'png', 28: 'png' }),
 	},
 ];

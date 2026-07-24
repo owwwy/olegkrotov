@@ -3,7 +3,6 @@ import '@fontsource-variable/onest';
 import type { GetStaticPaths } from 'astro';
 import type { Project } from '../data/projects';
 import { projects } from '../data/projects';
-import { detectCaseBackground } from '../utils/case-background';
 
 export const getStaticPaths = (() => projects
 	.filter((project) => project.gallery?.length)
@@ -15,8 +14,7 @@ interface Props {
 
 const { project } = Astro.props;
 const gallery = project.gallery ?? [];
-const lastImage = gallery.at(-1);
-const caseBackground = lastImage ? await detectCaseBackground(lastImage) : '#fff';
+const caseBackground = project.caseBackground;
 ---
 
 <!doctype html>
@@ -158,7 +156,7 @@ const caseBackground = lastImage ? await detectCaseBackground(lastImage) : '#fff
 	}
 
 	.case-page__content {
-		width: min(1600px, 100%);
+		width: 100%;
 		min-height: 100%;
 		margin-inline: auto;
 		background: var(--case-background);
