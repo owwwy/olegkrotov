@@ -229,9 +229,17 @@ import TypeScale from '../components/TypeScale.astro';
 					if (destination.origin !== window.location.origin || destination.pathname === '/info') return;
 					link.addEventListener('click', async (event) => {
 						event.preventDefault();
-						if (reducedMotion.matches) window.location.assign(destination.href);
+						if (reducedMotion.matches) {
+							if (destination.pathname === '/') {
+								try { sessionStorage.setItem('info-return-home', 'true'); } catch {}
+							}
+							window.location.assign(destination.href);
+						}
 						else {
 							await leave();
+							if (destination.pathname === '/') {
+								try { sessionStorage.setItem('info-return-home', 'true'); } catch {}
+							}
 							window.location.assign(destination.href);
 						}
 					});
@@ -240,6 +248,7 @@ import TypeScale from '../components/TypeScale.astro';
 				browserNavigation?.addEventListener('navigate', ((navigationEvent: Event & {
 					navigationType?: string;
 					canIntercept?: boolean;
+					destination?: { url?: string };
 					intercept?: (options: { handler: () => Promise<void> }) => void;
 				}) => {
 					if (
@@ -248,7 +257,15 @@ import TypeScale from '../components/TypeScale.astro';
 						|| !navigationEvent.intercept
 						|| isLeaving
 					) return;
-					navigationEvent.intercept({ handler: leave });
+					navigationEvent.intercept({ handler: async () => {
+						await leave();
+						const destination = navigationEvent.destination?.url
+							? new URL(navigationEvent.destination.url)
+							: null;
+						if (destination?.origin === window.location.origin && destination.pathname === '/') {
+							try { sessionStorage.setItem('info-return-home', 'true'); } catch {}
+						}
+					} });
 				}) as EventListener);
 			}
 		</script>

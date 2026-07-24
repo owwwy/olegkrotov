@@ -13,7 +13,12 @@ import { projects } from '../data/projects';
 		<meta charset="utf-8" />
 		<style is:inline>html,body{margin:0;background:#fff}</style>
 		<script is:inline>
-			document.documentElement.classList.add('is-preloading');
+			try {
+				if (sessionStorage.getItem('info-return-home') === 'true') {
+					document.documentElement.classList.add('info-return-home');
+					sessionStorage.removeItem('info-return-home');
+				} else document.documentElement.classList.add('is-preloading');
+			} catch { document.documentElement.classList.add('is-preloading'); }
 			window.addEventListener('pageshow', (event) => {
 				if (event.persisted) window.location.reload();
 			});
@@ -44,6 +49,10 @@ import { projects } from '../data/projects';
 		</div>
 		<script is:inline>
 			(() => {
+				if (document.documentElement.classList.contains('info-return-home')) {
+					document.querySelector('[data-site-preloader]')?.remove();
+					return;
+				}
 				const startedAt = performance.now();
 				const loader = document.querySelector('[data-site-preloader]');
 				const loaderIdentity = document.querySelector('[data-preloader-identity]');
@@ -230,6 +239,10 @@ import { projects } from '../data/projects';
 
 	.is-preloading.is-identity-ready .identity {
 		opacity: 1;
+	}
+
+	.info-return-home:not(.info-return-ready) main {
+		visibility: hidden;
 	}
 
 	.c-scrollbar {

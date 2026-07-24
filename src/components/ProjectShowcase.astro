@@ -347,6 +347,7 @@ const firstProject = projects[0];
 		let releaseTimer = 0;
 		let qualityRecoveryId = 0;
 		let lens: LensRenderer | null = null;
+		let lensReady: Promise<void> = Promise.resolve();
 		let introLensPair = -1;
 		let scrollInput: Lenis | null = null;
 		let lastScrollPosition = SCROLL_CENTER;
@@ -355,7 +356,7 @@ const firstProject = projects[0];
 		});
 
 		if (canvas && !reducedMotion.matches) {
-			createLensRenderer(canvas, images).then((renderer) => {
+			lensReady = createLensRenderer(canvas, images).then((renderer) => {
 				if (!renderer) return;
 				if (isIntroPlaying) {
 					lens = renderer;
@@ -808,6 +809,13 @@ const firstProject = projects[0];
 		};
 		if (document.documentElement.classList.contains('is-preloading')) {
 			window.addEventListener('site:reveal', startIntro, { once: true });
+		} else if (document.documentElement.classList.contains('info-return-home')) {
+			lensReady.then(() => {
+				startIntro();
+				requestAnimationFrame(() => {
+					document.documentElement.classList.add('info-return-ready');
+				});
+			});
 		} else {
 			startIntro();
 		}
