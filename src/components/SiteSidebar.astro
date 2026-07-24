@@ -103,11 +103,14 @@ const navigation = [
 	};
 
 	const updateSidebarState = () => {
-		const pathname = window.location.pathname;
+		const normalizePathname = (pathname: string) => pathname === '/'
+			? '/'
+			: pathname.replace(/\/+$/, '');
+		const pathname = normalizePathname(window.location.pathname);
 		const hash = window.location.hash;
 		document.querySelectorAll<HTMLAnchorElement>('.sidebar nav a').forEach((link) => {
 			const target = new URL(link.href, window.location.href);
-			const active = target.pathname === pathname
+			const active = normalizePathname(target.pathname) === pathname
 				&& (target.hash ? target.hash === hash : !hash);
 			link.classList.toggle('is-active', active);
 			if (active) link.setAttribute('aria-current', 'page');
