@@ -46,6 +46,7 @@ const firstProject = projects[0];
 	const SCRAMBLE_DURATION = 560;
 	const SCRAMBLE_TICK = 46;
 	const TRANSITION_DURATION = 720;
+	const INTRO_DURATION = 800;
 	const WHEEL_THRESHOLD = 110;
 	const SCROLL_CENTER = 50000;
 	const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -309,27 +310,29 @@ const firstProject = projects[0];
 		let wheelAmount = 0;
 		let wheelDirection = 0;
 		let lastWheelAt = 0;
-		let isTransitioning = false;
+		let isIntroPlaying = !reducedMotion.matches;
+		let isTransitioning = isIntroPlaying;
 		let resistanceFrame = 0;
 		let releaseTimer = 0;
 		let lens: LensRenderer | null = null;
+		let pendingLens: LensRenderer | null = null;
 		let scrollInput: Lenis | null = null;
 		let lastScrollPosition = SCROLL_CENTER;
 		panels.forEach((panel, index) => {
-			panel.style.visibility = index === activeIndex ? 'visible' : 'hidden';
+			panel.style.visibility = isIntroPlaying || index === activeIndex ? 'visible' : 'hidden';
 		});
 
 		if (canvas && !reducedMotion.matches) {
 			createLensRenderer(canvas, images).then((renderer) => {
 				if (!renderer) return;
-				const activateLens = () => {
-					lens = renderer;
-					lens.setPair(activeIndex, activeIndex);
-					lens.render(0, 1, 0);
-					media.classList.add('is-webgl');
-				};
-				if (isTransitioning) window.setTimeout(activateLens, TRANSITION_DURATION);
-				else activateLens();
+				if (isIntroPlaying) {
+					pendingLens = renderer;
+					return;
+				}
+				lens = renderer;
+				lens.setPair(activeIndex, activeIndex);
+				lens.render(0, 1, 0);
+				media.classList.add('is-webgl');
 			}).catch(() => {
 				canvas.remove();
 			});
@@ -520,12 +523,60 @@ const firstProject = projects[0];
 		});
 		scrollInput.scrollTo(SCROLL_CENTER, { immediate: true, force: true });
 		lastScrollPosition = scrollInput.scroll;
+		if (isIntroPlaying) scrollInput.stop();
 		scrollInput.on('scroll', (instance) => consumeScroll(instance.scroll));
 		const renderScroll = (time: number) => {
 			scrollInput?.raf(time);
 			requestAnimationFrame(renderScroll);
 		};
 		requestAnimationFrame(renderScroll);
+
+		if (isIntroPlaying) {
+			panels.forEach((panel) => {
+				panel.style.transition = 'none';
+				panel.setAttribute('aria-hidden', 'true');
+			});
+			const introStartedAt = performance.now();
+			const animateIntro = (now: number) => {
+				const progress = Math.min(1, (now - introStartedAt) / INTRO_DURATION);
+				const eased = progress < 0.5
+					? 4 * progress * progress * progress
+					: 1 - Math.pow(-2 * progress + 2, 3) / 2;
+				const travel = eased * panels.length;
+
+				panels.forEach((panel, index) => {
+					let offset = index - travel;
+					while (offset <= -1) offset += panels.length;
+					while (offset > panels.length - 1) offset -= panels.length;
+					panel.style.transform = `translate3d(0, ${offset * 100}%, 0)`;
+				});
+
+				if (progress < 1) {
+					requestAnimationFrame(animateIntro);
+					return;
+				}
+
+				panels.forEach((panel, index) => {
+					panel.style.visibility = index === activeIndex ? 'visible' : 'hidden';
+					panel.style.transform = index === activeIndex ? 'translate3d(0, 0%, 0)' : 'translate3d(0, 100%, 0)';
+					panel.style.removeProperty('transition');
+					panel.setAttribute('aria-hidden', index === activeIndex ? 'false' : 'true');
+				});
+				isIntroPlaying = false;
+				isTransitioning = false;
+				if (pendingLens) {
+					lens = pendingLens;
+					pendingLens = null;
+					lens.setPair(activeIndex, activeIndex);
+					lens.render(0, 1, 0);
+					media.classList.add('is-webgl');
+				}
+				lastScrollPosition = SCROLL_CENTER;
+				scrollInput?.scrollTo(SCROLL_CENTER, { immediate: true, force: true });
+				scrollInput?.start();
+			};
+			requestAnimationFrame(animateIntro);
+		}
 
 		window.addEventListener('keydown', onKeyDown);
 	});
