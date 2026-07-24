@@ -50,14 +50,25 @@ const navigation = [
 	::view-transition-new(root),
 	::view-transition-group(root),
 	::view-transition-old(site-sidebar),
-	::view-transition-new(site-sidebar),
-	::view-transition-group(site-sidebar) {
+	::view-transition-new(site-sidebar) {
 		animation: none;
 		mix-blend-mode: normal;
 	}
 
-	::view-transition-old(site-sidebar),
-	::view-transition-new(site-sidebar) {
+	::view-transition-group(site-sidebar) {
+		z-index: 10000;
+		animation: sidebar-hold 320ms linear both;
+	}
+
+	::view-transition-old(site-sidebar) {
 		opacity: 1;
+	}
+
+	::view-transition-new(site-sidebar) {
+		opacity: 0;
+	}
+
+	@keyframes sidebar-hold {
+		from, to { transform: none; }
 	}
 </style>
