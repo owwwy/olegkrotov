@@ -222,9 +222,13 @@ const firstProject = projects[0];
 		let currentIndex = 0;
 		let nextIndex = Math.min(1, images.length - 1);
 
+		let canvasWidth = 1;
+		let canvasHeight = 1;
 		const resize = () => {
 			const rect = canvas.getBoundingClientRect();
-			const density = Math.min(2, window.devicePixelRatio || 1);
+			canvasWidth = Math.max(1, rect.width);
+			canvasHeight = Math.max(1, rect.height);
+			const density = Math.min(1.5, window.devicePixelRatio || 1);
 			const width = Math.max(1, Math.round(rect.width * density));
 			const height = Math.max(1, Math.round(rect.height * density));
 			if (canvas.width !== width || canvas.height !== height) {
@@ -232,8 +236,11 @@ const firstProject = projects[0];
 				canvas.height = height;
 				gl.viewport(0, 0, width, height);
 			}
-			gl.uniform2f(uniforms.canvasSize, rect.width, rect.height);
+			gl.uniform2f(uniforms.canvasSize, canvasWidth, canvasHeight);
 		};
+		resize();
+		const resizeObserver = new ResizeObserver(resize);
+		resizeObserver.observe(canvas);
 
 		const setPair = (current: number, next: number) => {
 			currentIndex = current;
@@ -249,7 +256,6 @@ const firstProject = projects[0];
 		};
 
 		const render = (strength: number, direction: number, transition = 0, pixelation = 0) => {
-			resize();
 			gl.uniform1f(uniforms.strength, strength);
 			gl.uniform1f(uniforms.direction, direction || 1);
 			gl.uniform1f(uniforms.transition, transition);
@@ -259,7 +265,6 @@ const firstProject = projects[0];
 		};
 
 		setPair(currentIndex, nextIndex);
-		window.addEventListener('resize', () => render(0, 1, 0));
 		return { setPair, render };
 	};
 
