@@ -73,7 +73,7 @@ import TypeScale from '../components/TypeScale.astro';
 						<span class="info-line"><span>выразительность в цифровых продуктах,</span></span>
 						<span class="info-line">
 							<span>но считаю, что она <strong>должна работать</strong></span>
-							<span class="visual visual--square" aria-hidden="true"><img src="/info/05.png" alt="" /></span>
+							<span class="visual visual--square visual--zoom" aria-hidden="true"><img src="/info/05.png" alt="" /></span>
 						</span>
 						<span class="info-line"><strong>в пользу понятности и интуитивности.</strong></span>
 					</p>
@@ -234,6 +234,7 @@ import TypeScale from '../components/TypeScale.astro';
 					visual.style.opacity = '1';
 					const canvas = document.createElement('canvas');
 					const isOverflow = visual.classList.contains('visual--overflow');
+					const isZoomed = visual.classList.contains('visual--zoom');
 					canvas.className = `info-pixel-canvas${isOverflow ? ' info-pixel-canvas--overflow' : ''}`;
 					const width = Math.max(1, Math.round(visual.clientWidth * (isOverflow ? 1.1 : 1)));
 					const height = Math.max(1, Math.round(visual.clientHeight * (isOverflow ? 1.52 : 1)));
@@ -257,7 +258,15 @@ import TypeScale from '../components/TypeScale.astro';
 							buffer.width = pixelWidth;
 							buffer.height = pixelHeight;
 							bufferContext.imageSmoothingEnabled = true;
-							bufferContext.drawImage(image, 0, 0, pixelWidth, pixelHeight);
+							if (isZoomed) {
+								bufferContext.drawImage(
+									image,
+									-pixelWidth * .1,
+									-pixelHeight * .1,
+									pixelWidth * 1.2,
+									pixelHeight * 1.2,
+								);
+							} else bufferContext.drawImage(image, 0, 0, pixelWidth, pixelHeight);
 							context.imageSmoothingEnabled = false;
 							context.clearRect(0, 0, width, height);
 							context.drawImage(buffer, 0, 0, pixelWidth, pixelHeight, 0, 0, width, height);
@@ -556,6 +565,10 @@ import TypeScale from '../components/TypeScale.astro';
 	.visual--long { width: var(--info-chip-long-width); }
 	.visual--square { width: var(--info-chip-height); }
 	.visual img { width: 100%; height: 100%; object-fit: cover; }
+	.visual--zoom img {
+		transform: scale(1.2);
+		transform-origin: center;
+	}
 	.info-pixel-canvas {
 		position: absolute;
 		z-index: 2;
