@@ -362,6 +362,11 @@ import { projects } from '../data/projects';
 	}
 
 	@media (max-width: 767px) {
+		html.mobile-menu-open,
+		html.mobile-menu-open body {
+			overflow: hidden;
+		}
+
 		html,
 		body {
 			min-width: 0;

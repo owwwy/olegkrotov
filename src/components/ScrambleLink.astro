@@ -90,6 +90,7 @@ const { href, label, active = false } = Astro.props;
 	};
 
 	const animate = (link: HTMLElement) => {
+		if (window.matchMedia('(max-width: 767px)').matches) return;
 		link.querySelectorAll<HTMLElement>('[data-scramble-text]').forEach(animateText);
 	};
 	const buildText = (text: HTMLElement, delay: number) => {
