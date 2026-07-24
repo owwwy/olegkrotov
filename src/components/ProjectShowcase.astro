@@ -297,7 +297,7 @@ const firstProject = projects[0];
 		}
 
 		const target = [...to];
-		const normalize = (value: string) => uppercase ? value.toUpperCase() : value.toLowerCase();
+		const normalize = (value: string) => uppercase ? value.toUpperCase() : value;
 		const pool = [...new Set(
 			[...normalize(from), ...normalize(to)].filter((character) => character !== ' '),
 		)];
@@ -658,7 +658,7 @@ const firstProject = projects[0];
 				uppercase: boolean,
 				revealProgress: number,
 			) => {
-				const normalize = (value: string) => uppercase ? value.toUpperCase() : value.toLowerCase();
+				const normalize = (value: string) => uppercase ? value.toUpperCase() : value;
 				const current = normalize(values[index] ?? '');
 				const next = normalize(values[nextIndex] ?? '');
 				const template = transition < 0.5 ? current : next;
