@@ -51,7 +51,8 @@ const animatedPngs = new Set([
 		<TypeScale />
 		{projects.map((item) => <link rel="preload" as="image" href={item.image} />)}
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
+		<meta name="viewport" content="width=device-width, viewport-fit=cover" />
+		<meta name="theme-color" content="#ffffff" />
 		<meta name="description" content={`${project.title} — ${project.category}. Проект Олега Кротова.`} />
 		<title>{project.title} — Олег Кротов</title>
 	</head>
@@ -106,27 +107,40 @@ const animatedPngs = new Set([
 			const viewport = document.querySelector<HTMLElement>('[data-case-viewport]');
 			const content = document.querySelector<HTMLElement>('[data-case-content]');
 			const casePage = document.querySelector<HTMLElement>('.case-page');
+			const mobileCase = window.matchMedia('(max-width: 767px)').matches;
 			if (viewport && content) {
-				const caseScroll = new Lenis({
-					wrapper: viewport,
-					content,
-					eventsTarget: viewport,
-					smoothWheel: true,
-					syncTouch: true,
-					lerp: 0.16,
-					autoResize: true,
-					autoRaf: true,
-					overscroll: false,
-				});
-				caseScroll.on('scroll', ({ scroll, direction, velocity }) => {
-					if (!casePage || document.documentElement.classList.contains('case-leaving')) return;
-					if (scroll <= 12) {
-						casePage.classList.remove('is-header-hidden');
-						return;
-					}
-					if (Math.abs(velocity) < 0.12) return;
-					casePage.classList.toggle('is-header-hidden', direction > 0);
-				});
+				if (mobileCase) {
+					let lastScroll = viewport.scrollTop;
+					viewport.addEventListener('scroll', () => {
+						if (!casePage) return;
+						const scroll = viewport.scrollTop;
+						const delta = scroll - lastScroll;
+						lastScroll = scroll;
+						if (scroll <= 12) casePage.classList.remove('is-header-hidden');
+						else if (Math.abs(delta) > 2) casePage.classList.toggle('is-header-hidden', delta > 0);
+					}, { passive: true });
+				} else {
+					const caseScroll = new Lenis({
+						wrapper: viewport,
+						content,
+						eventsTarget: viewport,
+						smoothWheel: true,
+						syncTouch: true,
+						lerp: 0.16,
+						autoResize: true,
+						autoRaf: true,
+						overscroll: false,
+					});
+					caseScroll.on('scroll', ({ scroll, direction, velocity }) => {
+						if (!casePage || document.documentElement.classList.contains('case-leaving')) return;
+						if (scroll <= 12) {
+							casePage.classList.remove('is-header-hidden');
+							return;
+						}
+						if (Math.abs(velocity) < 0.12) return;
+						casePage.classList.toggle('is-header-hidden', direction > 0);
+					});
+				}
 
 				const animatedImages = [...content.querySelectorAll<HTMLImageElement>('[data-apng-src]')];
 				const unloadTimers = new WeakMap<HTMLImageElement, number>();
@@ -385,6 +399,7 @@ const animatedPngs = new Set([
 				requestAnimationFrame(frame);
 			});
 			closeLink?.addEventListener('click', async (event) => {
+				if (mobileCase) return;
 				event.preventDefault();
 				await leaveCase();
 				window.location.assign(`/?case-return=${Date.now()}`);
@@ -399,6 +414,8 @@ const animatedPngs = new Set([
 				intercept?: (options: { handler: () => Promise<void> }) => void;
 			}) => {
 				if (
+					mobileCase
+					||
 					navigationEvent.navigationType !== 'traverse'
 					|| !navigationEvent.canIntercept
 					|| !navigationEvent.intercept
@@ -578,5 +595,72 @@ const animatedPngs = new Set([
 		display: block;
 		width: 100%;
 		height: auto;
+	}
+
+	@media (max-width: 767px) {
+		.case-page {
+			height: 100dvh;
+			padding: 0;
+			gap: 0;
+		}
+
+		.case-header {
+			position: relative;
+			z-index: 5;
+			min-height: calc(56px + env(safe-area-inset-top));
+			padding: calc(16px + env(safe-area-inset-top)) 16px 16px;
+			align-items: flex-start;
+			background: #fff;
+			font-size: 18px;
+			font-weight: 400;
+			line-height: 24px;
+			transition:
+				opacity 180ms ease,
+				transform 300ms cubic-bezier(.22, 1, .36, 1);
+		}
+
+		.case-header__meta {
+			order: 2;
+		}
+
+		.case-header__meta > :not(strong) {
+			display: none;
+		}
+
+		.case-header__close {
+			order: 1;
+			margin: 0;
+			padding: 0;
+		}
+
+		.case-header__close span {
+			display: none !important;
+		}
+
+		.case-header__close::before {
+			content: 'Назад';
+		}
+
+		.case-page.is-header-hidden .case-header {
+			opacity: 0;
+			transform: translate3d(0, -100%, 0);
+		}
+
+		.case-page__viewport {
+			width: 100%;
+			margin: 0;
+			border: 0;
+			border-radius: 0;
+			contain: none;
+			transition: margin-top 300ms cubic-bezier(.22, 1, .36, 1);
+		}
+
+		.case-page.is-header-hidden .case-page__viewport {
+			margin-top: calc((56px + env(safe-area-inset-top)) * -1);
+		}
+
+		.case-page__content {
+			width: 100%;
+		}
 	}
 </style>

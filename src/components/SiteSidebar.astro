@@ -99,6 +99,7 @@ const navigation = [
 		html.mobile-menu-open,
 		html.mobile-menu-open body {
 			overflow: hidden;
+			background: #19191c;
 		}
 
 		.sidebar {
@@ -109,7 +110,8 @@ const navigation = [
 			align-items: flex-start;
 			width: 100%;
 			height: auto;
-			padding: 16px;
+			min-height: calc(56px + env(safe-area-inset-top));
+			padding: calc(16px + env(safe-area-inset-top)) 16px 16px;
 			flex-direction: row;
 			justify-content: space-between;
 			background: #fff;
@@ -158,7 +160,7 @@ const navigation = [
 			left: 0;
 			display: block;
 			width: 100%;
-			padding: 16px;
+			padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
 			border-top: 1px solid rgb(255 255 255 / 12%);
 			color: rgb(255 255 255 / 60%);
 			font-size: 16px;
@@ -169,7 +171,7 @@ const navigation = [
 
 		.sidebar.is-mobile-open nav {
 			position: fixed;
-			inset: 56px 0 57px;
+			inset: calc(56px + env(safe-area-inset-top)) 0 calc(57px + env(safe-area-inset-bottom));
 			display: flex;
 			align-items: stretch;
 			padding: 16px;
@@ -276,6 +278,8 @@ const navigation = [
 			sidebar.classList.toggle('is-mobile-open', open);
 			document.documentElement.classList.toggle('mobile-menu-open', open);
 			document.querySelector('main')?.toggleAttribute('inert', open);
+			const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+			if (themeColor) themeColor.content = open ? '#19191c' : '#ffffff';
 			toggle.setAttribute('aria-expanded', open.toString());
 			toggle.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню');
 			scrambleLabel(from, to);
