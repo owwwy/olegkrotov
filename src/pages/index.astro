@@ -12,11 +12,13 @@ import { projects } from '../data/projects';
 <html lang="ru">
 	<head>
 		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, viewport-fit=cover" />
 		<ClientRouting />
 		<style is:inline>
 			html,body{margin:0;background:#fff}
 			html.info-return-home .site-preloader,
 			html.case-return-home .site-preloader{display:none!important}
+			@media(max-width:767px){[data-site-preloader]{display:none!important}}
 		</style>
 		<script is:inline data-astro-rerun>
 			document.documentElement.classList.remove(
@@ -49,7 +51,6 @@ import { projects } from '../data/projects';
 			});
 		</script>
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width, viewport-fit=cover" />
 		<meta name="theme-color" content="#ffffff" data-site-theme-color />
 		<meta name="generator" content={Astro.generator} />
 		<TypeScale />
