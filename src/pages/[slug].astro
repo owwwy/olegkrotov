@@ -21,6 +21,14 @@ const gallery = project.gallery ?? [];
 <html lang="ru">
 	<head>
 		<meta charset="utf-8" />
+		<script is:inline>
+			try {
+				if (sessionStorage.getItem('case-page-transition') === 'true') {
+					document.documentElement.classList.add('case-entering');
+					sessionStorage.removeItem('case-page-transition');
+				}
+			} catch {}
+		</script>
 		<TypeScale />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width" />
@@ -31,15 +39,19 @@ const gallery = project.gallery ?? [];
 		<main class="case-page">
 			<header class="case-header">
 				<div class="case-header__meta">
-					<strong>{project.title}</strong>
+					<strong data-case-reveal data-value={project.title}>
+						{[...project.title].map((character) => <span>{character === ' ' ? '\u00a0' : character}</span>)}
+					</strong>
 					<span class="case-header__separator" aria-hidden="true">·</span>
-					<span>{project.caseDescription}</span>
+					<span data-case-reveal data-value={project.caseDescription}>
+						{[...project.caseDescription].map((character) => <span>{character === ' ' ? '\u00a0' : character}</span>)}
+					</span>
 					<span class="case-header__separator" aria-hidden="true">·</span>
-					<a class="case-header__website" href={`https://${project.website}`} target="_blank" rel="noreferrer" data-case-scramble data-value={project.website}>
+					<a class="case-header__website" href={`https://${project.website}`} target="_blank" rel="noreferrer" data-case-scramble data-case-reveal data-value={project.website}>
 						{[...project.website].map((character) => <span>{character}</span>)}
 					</a>
 				</div>
-				<a class="case-header__close" href="/" data-case-scramble data-value="Закрыть">
+				<a class="case-header__close" href="/" data-case-scramble data-case-reveal data-value="Закрыть">
 					{[...'Закрыть'].map((character) => <span>{character}</span>)}
 				</a>
 			</header>
@@ -118,6 +130,52 @@ const gallery = project.gallery ?? [];
 				element.addEventListener('pointerenter', run);
 				element.addEventListener('focus', run);
 			});
+
+			if (document.documentElement.classList.contains('case-entering')) {
+				const revealElements = [...document.querySelectorAll<HTMLElement>('[data-case-reveal]')];
+				const separators = [...document.querySelectorAll<HTMLElement>('.case-header__separator')];
+				revealElements.forEach((element) => {
+					element.querySelectorAll<HTMLElement>('span').forEach((span) => { span.textContent = ''; });
+				});
+				const reveal = (element: HTMLElement) => new Promise<void>((resolve) => {
+					const original = [...(element.dataset.value ?? '')];
+					const spans = [...element.querySelectorAll<HTMLElement>('span')];
+					const pool = [...new Set(original.filter((character) => character !== ' '))];
+					const duration = Math.max(260, Math.min(520, original.length * 18));
+					const startedAt = performance.now();
+					let lastTick = 0;
+					const frame = (now: number) => {
+						const progress = Math.min(1, (now - startedAt) / duration);
+						if (now - lastTick >= 46 || progress === 1) {
+							lastTick = now;
+							const visible = Math.ceil(original.length * progress);
+							spans.forEach((span, index) => {
+								if (index >= visible) span.textContent = '';
+								else if (original[index] === ' ') span.textContent = '\u00a0';
+								else span.textContent = pool[Math.floor(Math.random() * pool.length)] ?? original[index];
+							});
+						}
+						if (progress < 1) requestAnimationFrame(frame);
+						else {
+							spans.forEach((span, index) => { span.textContent = original[index] === ' ' ? '\u00a0' : original[index]; });
+							resolve();
+						}
+					};
+					requestAnimationFrame(frame);
+				});
+				requestAnimationFrame(() => requestAnimationFrame(() => {
+					document.documentElement.classList.add('case-revealing');
+				}));
+				(async () => {
+					await reveal(revealElements[0]);
+					separators[0]?.classList.add('is-visible');
+					await reveal(revealElements[1]);
+					separators[1]?.classList.add('is-visible');
+					await reveal(revealElements[2]);
+					await reveal(revealElements[3]);
+					document.documentElement.classList.remove('case-entering', 'case-revealing');
+				})();
+			}
 		</script>
 	</body>
 </html>
@@ -176,7 +234,8 @@ const gallery = project.gallery ?? [];
 		font-weight: 400;
 	}
 
-	.case-header [data-case-scramble] span {
+	.case-header [data-case-scramble] span,
+	.case-header [data-case-reveal] span {
 		display: inline-block;
 	}
 
@@ -206,6 +265,24 @@ const gallery = project.gallery ?? [];
 		background: #fff;
 		overscroll-behavior: contain;
 		outline: none;
+		transform: translate3d(0, 0, 0);
+		transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	:global(.case-entering) .case-page__viewport {
+		transform: translate3d(0, calc(100% + 40px), 0);
+	}
+
+	:global(.case-entering.case-revealing) .case-page__viewport {
+		transform: translate3d(0, 0, 0);
+	}
+
+	:global(.case-entering) .case-header__separator {
+		opacity: 0;
+	}
+
+	:global(.case-entering) .case-header__separator.is-visible {
+		opacity: 1;
 	}
 
 	.case-page__content {

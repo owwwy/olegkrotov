@@ -583,6 +583,62 @@ const firstProject = projects[0];
 		};
 		requestAnimationFrame(renderScroll);
 
+		const runPageExit = (destination: string) => {
+			if (isTransitioning) return;
+			isTransitioning = true;
+			qualityRecoveryId += 1;
+			scrollInput?.stop();
+			showcase.style.pointerEvents = 'none';
+			try { sessionStorage.setItem('case-page-transition', 'true'); } catch {}
+			const exitTexts = [
+				...document.querySelectorAll<HTMLElement>('.identity [data-scramble-text], nav [data-scramble-text]'),
+				title,
+				category,
+			].map((element) => {
+				const value = element.dataset.original ?? element.getAttribute('aria-label') ?? element.textContent ?? '';
+				return {
+					element,
+					value,
+					characters: [...value],
+					pool: [...new Set([...value].filter((character) => character !== ' '))],
+				};
+			});
+			const startedAt = performance.now();
+			let lastTick = 0;
+			const exitDuration = 680;
+			const animateExit = (now: number) => {
+				const progress = Math.min(1, (now - startedAt) / exitDuration);
+				const eased = progress * progress * (3 - 2 * progress);
+				if (now - lastTick >= 42 || progress === 1) {
+					lastTick = now;
+					exitTexts.forEach(({ element, characters, pool }) => {
+						const visible = Math.max(0, Math.ceil(characters.length * (1 - progress)));
+						const output = characters.slice(0, visible).map((character) =>
+							character === ' ' ? character : randomCharacter(pool),
+						).join('');
+						renderTitle(element, output);
+					});
+				}
+				lens?.render(eased * 0.24, 1, 0, eased);
+				media.style.opacity = `${1 - eased}`;
+				if (progress < 1) {
+					requestAnimationFrame(animateExit);
+					return;
+				}
+				window.setTimeout(() => window.location.assign(destination), 70);
+			};
+			requestAnimationFrame(animateExit);
+		};
+
+		projectLink.addEventListener('click', (event) => {
+			event.preventDefault();
+			if (reducedMotion.matches) {
+				window.location.assign(projectLink.href);
+				return;
+			}
+			runPageExit(projectLink.href);
+		});
+
 		const startIntro = () => {
 		if (isIntroPlaying) {
 			const introTitles = panels.map((panel) => panel.dataset.title ?? '');
