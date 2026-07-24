@@ -54,7 +54,7 @@ const firstProject = projects[0];
 	const INTRO_QUALITY_FINISH_DURATION = 620;
 	const SCROLL_PIXELATION_MAX = 0.22;
 	const SCROLL_QUALITY_FINISH_DURATION = 680;
-	const WHEEL_THRESHOLD = 110;
+	const WHEEL_THRESHOLD = 90;
 	const SCROLL_CENTER = 50000;
 	const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -335,6 +335,7 @@ const firstProject = projects[0];
 		let isTransitioning = isIntroPlaying;
 		let resistanceFrame = 0;
 		let releaseTimer = 0;
+		let qualityRecoveryId = 0;
 		let lens: LensRenderer | null = null;
 		let introLensPair = -1;
 		let scrollInput: Lenis | null = null;
@@ -416,6 +417,7 @@ const firstProject = projects[0];
 			}
 
 			isTransitioning = true;
+			qualityRecoveryId += 1;
 			scrollInput?.stop();
 			window.clearTimeout(releaseTimer);
 			cancelAnimationFrame(resistanceFrame);
@@ -498,7 +500,10 @@ const firstProject = projects[0];
 				}
 				const recoveryStartedAt = performance.now();
 				const recoveryStart = SCROLL_PIXELATION_MAX * Math.SQRT1_2;
+				const recoveryId = ++qualityRecoveryId;
+				finishTransition();
 				const recoverQuality = (recoveryNow: number) => {
+					if (recoveryId !== qualityRecoveryId) return;
 					const recoveryProgress = Math.min(
 						1,
 						(recoveryNow - recoveryStartedAt) / SCROLL_QUALITY_FINISH_DURATION,
@@ -506,7 +511,6 @@ const firstProject = projects[0];
 					const smoothProgress = recoveryProgress * recoveryProgress * (3 - 2 * recoveryProgress);
 					lens?.render(0, direction, 0, recoveryStart * (1 - smoothProgress));
 					if (recoveryProgress < 1) requestAnimationFrame(recoverQuality);
-					else finishTransition();
 				};
 				requestAnimationFrame(recoverQuality);
 			};
@@ -521,6 +525,7 @@ const firstProject = projects[0];
 			if (document.documentElement.classList.contains('case-is-open') || isTransitioning) return;
 			const direction = Math.sign(delta);
 			if (direction === 0) return;
+			qualityRecoveryId += 1;
 
 			if (direction !== wheelDirection || performance.now() - lastWheelAt > 180) wheelAmount = 0;
 			wheelDirection = direction;
@@ -557,7 +562,7 @@ const firstProject = projects[0];
 			eventsTarget: window,
 			smoothWheel: true,
 			syncTouch: true,
-			lerp: 0.16,
+			lerp: 0.22,
 			syncTouchLerp: 0.12,
 			autoResize: false,
 			overscroll: false,
