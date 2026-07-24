@@ -281,59 +281,6 @@ import { projects } from '../data/projects';
 		padding-inline: var(--page-padding);
 	}
 
-	.sidebar {
-		position: sticky;
-		top: 0;
-		display: flex;
-		grid-column: 1 / span 3;
-		flex-direction: column;
-		justify-content: space-between;
-		height: 100svh;
-		padding-block: var(--page-padding);
-	}
-
-	.identity {
-		display: flex;
-		align-items: flex-start;
-		flex-direction: column;
-	}
-
-	.identity strong {
-		font-size: var(--ui-font-size);
-		font-weight: 400;
-		line-height: var(--ui-line-height);
-	}
-
-	.identity > span {
-		color: var(--color-muted);
-		font-size: var(--role-font-size);
-		font-weight: 300;
-		line-height: var(--ui-line-height);
-	}
-
-	.identity [data-scramble-text],
-	.identity .scramble-link__char {
-		display: inline-block;
-	}
-
-	nav {
-		display: flex;
-		align-items: center;
-		font-size: var(--ui-font-size);
-		font-weight: 400;
-		line-height: var(--ui-line-height);
-		white-space: nowrap;
-	}
-
-	.nav-separator {
-		width: 0.2em;
-		height: 0.2em;
-		margin-inline: 0.4em;
-		flex: none;
-		border-radius: 50%;
-		background: currentColor;
-	}
-
 	main {
 		grid-column: 4 / span 9;
 		min-width: 0;

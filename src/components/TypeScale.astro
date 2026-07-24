@@ -1,4 +1,4 @@
-<script is:inline>
+<script is:inline data-astro-rerun>
 	(() => {
 		const interpolate = (from, to, progress) => from + (to - from) * progress;
 		const roundToEven = (value) => Math.round(value / 2) * 2;
@@ -37,6 +37,9 @@
 		};
 
 		updateTypeScale();
-		window.addEventListener('resize', updateTypeScale, { passive: true });
+		if (!window.__olegTypeScaleBound) {
+			window.__olegTypeScaleBound = true;
+			window.addEventListener('resize', updateTypeScale, { passive: true });
+		}
 	})();
 </script>

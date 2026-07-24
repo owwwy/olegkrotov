@@ -37,6 +37,61 @@ const navigation = [
 	</nav>
 </aside>
 
+<style is:global>
+	.sidebar {
+		position: sticky;
+		top: 0;
+		display: flex;
+		grid-column: 1 / span 3;
+		flex-direction: column;
+		justify-content: space-between;
+		height: 100svh;
+		padding-block: var(--page-padding);
+	}
+
+	.sidebar .identity {
+		display: flex;
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.sidebar .identity strong {
+		font-size: var(--ui-font-size);
+		font-weight: 400;
+		line-height: var(--ui-line-height);
+	}
+
+	.sidebar .identity > span {
+		color: rgb(25 25 28 / 60%);
+		font-size: var(--role-font-size);
+		font-weight: 300;
+		line-height: var(--ui-line-height);
+	}
+
+	.sidebar .identity [data-scramble-text],
+	.sidebar .identity .scramble-link__char {
+		display: inline-block;
+	}
+
+	.sidebar nav {
+		display: flex;
+		align-items: center;
+		font-size: var(--ui-font-size);
+		font-weight: 400;
+		line-height: var(--ui-line-height);
+		white-space: nowrap;
+	}
+
+	.sidebar .nav-separator {
+		width: 0.2em;
+		height: 0.2em;
+		margin-inline: 0.4em;
+		flex: none;
+		border-radius: 50%;
+		background: currentColor;
+	}
+</style>
+
 <script>
 	const updateSidebarState = () => {
 		const pathname = window.location.pathname;
