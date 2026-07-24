@@ -22,10 +22,18 @@ const firstProject = projects[0];
 				data-category={project.category}
 				data-project-href={`/${project.slug}`}
 				data-project-first-image={project.gallery?.[0]}
-				aria-hidden={index === 0 ? 'false' : 'true'}
 				style={`transform: translate3d(0, ${index * 100}%, 0)`}
 			>
 				<img src={project.image} alt={project.imageAlt} loading="eager" decoding="async" />
+				<div class="showcase__mobile-copy">
+					<h2 class="showcase__mobile-title">{project.title}</h2>
+					<p class="showcase__mobile-description">{project.category}</p>
+				</div>
+				<a
+					class="showcase__mobile-link"
+					href={`/${project.slug}`}
+					aria-label={`Открыть проект ${project.title}`}
+				></a>
 			</div>
 		))}
 		<canvas class="showcase__lens" data-project-lens aria-hidden="true"></canvas>
@@ -336,6 +344,12 @@ const firstProject = projects[0];
 	let cleanupProjectShowcases = () => {};
 	const initializeProjectShowcases = () => {
 		cleanupProjectShowcases();
+		if (window.matchMedia('(max-width: 767px)').matches) {
+			document.querySelectorAll<HTMLElement>('[data-project-panel]').forEach((panel) => {
+				panel.setAttribute('aria-hidden', 'false');
+			});
+			return;
+		}
 		const cleanups: Array<() => void> = [];
 		document.querySelectorAll<HTMLElement>('[data-project-showcase]').forEach((showcase) => {
 		const media = showcase.querySelector<HTMLElement>('[data-project-media]');
@@ -1090,6 +1104,93 @@ const firstProject = projects[0];
 		line-height: var(--ui-line-height);
 		margin-left: 4px;
 		mix-blend-mode: difference;
+	}
+
+	.showcase__mobile-copy,
+	.showcase__mobile-link {
+		display: none;
+	}
+
+	@media (max-width: 767px) {
+		.showcase {
+			display: block;
+			height: auto;
+			padding: 0;
+			cursor: default;
+		}
+
+		.showcase__scroll-proxy,
+		.showcase__lens,
+		.showcase__heading,
+		.showcase__hit-area,
+		.showcase__media::after {
+			display: none;
+		}
+
+		.showcase__media,
+		.showcase__media.is-webgl {
+			display: flex;
+			flex-direction: column;
+			gap: 20px;
+			overflow: visible;
+			background: transparent;
+			border-radius: 0;
+			clip-path: none;
+			isolation: auto;
+		}
+
+		.showcase__panel,
+		.showcase__media.is-webgl .showcase__panel {
+			position: relative;
+			inset: auto;
+			display: flex;
+			visibility: visible !important;
+			flex-direction: column;
+			opacity: 1;
+			transform: none !important;
+			transition: none;
+			will-change: auto;
+		}
+
+		.showcase__panel img {
+			width: 100%;
+			height: auto;
+			aspect-ratio: 1;
+			object-fit: cover;
+		}
+
+		.showcase__mobile-copy {
+			display: flex;
+			align-items: flex-start;
+			flex-direction: column;
+		}
+
+		.showcase__mobile-title {
+			margin: 0;
+			color: #19191c;
+			font-size: 48px;
+			font-weight: 500;
+			line-height: 48px;
+			mix-blend-mode: normal;
+			white-space: normal;
+		}
+
+		.showcase__mobile-description {
+			margin: 0;
+			color: rgb(25 25 28 / 60%);
+			font-size: 18px;
+			font-weight: 400;
+			line-height: 24px;
+			mix-blend-mode: normal;
+		}
+
+		.showcase__mobile-link {
+			position: absolute;
+			z-index: 3;
+			inset: 0;
+			display: block;
+			cursor: pointer;
+		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {

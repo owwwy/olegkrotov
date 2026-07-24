@@ -29,8 +29,14 @@ import { projects } from '../data/projects';
 			if (caseReturnFromUrl || infoReturnFromUrl) {
 				window.history.replaceState(window.history.state, '', '/');
 			}
+			const mobileLayout = window.matchMedia('(max-width: 767px)').matches;
+			if (mobileLayout) document.documentElement.classList.add('mobile-layout');
+			else document.documentElement.classList.remove('mobile-layout');
 			try {
-				if (caseReturnFromUrl || sessionStorage.getItem('case-return-home') === 'true') {
+				if (mobileLayout) {
+					sessionStorage.removeItem('case-return-home');
+					sessionStorage.removeItem('info-return-home');
+				} else if (caseReturnFromUrl || sessionStorage.getItem('case-return-home') === 'true') {
 					document.documentElement.classList.add('case-return-home');
 					sessionStorage.removeItem('case-return-home');
 				} else if (infoReturnFromUrl || sessionStorage.getItem('info-return-home') === 'true') {
@@ -68,6 +74,10 @@ import { projects } from '../data/projects';
 		</div>
 		<script is:inline data-astro-rerun>
 			(() => {
+				if (document.documentElement.classList.contains('mobile-layout')) {
+					document.querySelector('[data-site-preloader]')?.remove();
+					return;
+				}
 				if (
 					document.documentElement.classList.contains('info-return-home')
 					|| document.documentElement.classList.contains('case-return-home')
@@ -349,5 +359,31 @@ import { projects } from '../data/projects';
 	main {
 		grid-column: 4 / span 9;
 		min-width: 0;
+	}
+
+	@media (max-width: 767px) {
+		html,
+		body {
+			min-width: 0;
+			height: auto;
+			overflow: auto;
+		}
+
+		.page-grid {
+			display: flex;
+			width: 100%;
+			padding: 0;
+			flex-direction: column;
+		}
+
+		main {
+			width: 100%;
+			padding: 16px;
+			border-top: 1px solid rgb(25 25 28 / 8%);
+		}
+
+		.mobile-layout .site-preloader {
+			display: none !important;
+		}
 	}
 </style>
