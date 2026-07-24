@@ -79,8 +79,9 @@ const gallery = project.gallery ?? [];
 
 			const viewport = document.querySelector<HTMLElement>('[data-case-viewport]');
 			const content = document.querySelector<HTMLElement>('[data-case-content]');
+			const casePage = document.querySelector<HTMLElement>('.case-page');
 			if (viewport && content) {
-				new Lenis({
+				const caseScroll = new Lenis({
 					wrapper: viewport,
 					content,
 					eventsTarget: viewport,
@@ -90,6 +91,15 @@ const gallery = project.gallery ?? [];
 					autoResize: true,
 					autoRaf: true,
 					overscroll: false,
+				});
+				caseScroll.on('scroll', ({ scroll, direction, velocity }) => {
+					if (!casePage || document.documentElement.classList.contains('case-leaving')) return;
+					if (scroll <= 12) {
+						casePage.classList.remove('is-header-hidden');
+						return;
+					}
+					if (Math.abs(velocity) < 0.12) return;
+					casePage.classList.toggle('is-header-hidden', direction > 0);
 				});
 			}
 
@@ -348,6 +358,7 @@ const gallery = project.gallery ?? [];
 		flex-direction: column;
 		gap: 24px;
 		background: #fff;
+		transition: gap 420ms cubic-bezier(0.22, 1, 0.36, 1);
 	}
 
 	.case-header {
@@ -360,6 +371,25 @@ const gallery = project.gallery ?? [];
 		font-size: var(--ui-font-size, 20px);
 		font-weight: 400;
 		line-height: var(--ui-line-height, 24px);
+		max-height: 64px;
+		overflow: visible;
+		transform: translate3d(0, 0, 0);
+		transform-origin: top;
+		transition:
+			max-height 420ms cubic-bezier(0.22, 1, 0.36, 1),
+			opacity 240ms ease,
+			transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.case-page.is-header-hidden {
+		gap: 0;
+	}
+
+	.case-page.is-header-hidden .case-header {
+		max-height: 0;
+		opacity: 0;
+		transform: translate3d(0, -20px, 0);
+		pointer-events: none;
 	}
 
 	.case-header__meta {
