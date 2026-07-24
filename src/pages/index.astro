@@ -1,15 +1,9 @@
 ---
 import '@fontsource-variable/onest';
 import ProjectShowcase from '../components/ProjectShowcase.astro';
-import ScrambleLink from '../components/ScrambleLink.astro';
+import SiteSidebar from '../components/SiteSidebar.astro';
 import TypeScale from '../components/TypeScale.astro';
 import { projects } from '../data/projects';
-
-const navigation = [
-	{ label: 'Проекты', href: '#works', active: true },
-	{ label: 'Инфо', href: '#about' },
-	{ label: 'Контакты', href: '#contacts' },
-];
 
 ---
 
@@ -42,29 +36,7 @@ const navigation = [
 			</div>
 		</div>
 		<div class="page-grid">
-			<aside class="sidebar">
-				<a class="identity" href="/" aria-label="Олег Кротов — на главную" data-scramble-link>
-					<strong data-scramble-text data-original="Олег Кротов">
-						{[...'Олег Кротов'].map((character) => (
-							<span class="scramble-link__char">{character === ' ' ? '\u00a0' : character}</span>
-						))}
-					</strong>
-					<span data-scramble-text data-original="Digital Designer">
-						{[...'Digital Designer'].map((character) => (
-							<span class="scramble-link__char">{character === ' ' ? '\u00a0' : character}</span>
-						))}
-					</span>
-				</a>
-
-				<nav aria-label="Основная навигация">
-					{navigation.map((item, index) => (
-						<>
-							<ScrambleLink href={item.href} label={item.label} active={item.active} />
-							{index < navigation.length - 1 && <span class="nav-separator" aria-hidden="true"></span>}
-						</>
-					))}
-				</nav>
-			</aside>
+			<SiteSidebar active="projects" />
 
 			<main id="works">
 				<ProjectShowcase projects={projects} />

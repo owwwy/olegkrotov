@@ -14,12 +14,15 @@
 			const width = window.innerWidth;
 			const ui = Math.round(scale(width, 16, 20, 28));
 			const title = Math.round(scale(width, 80, 120, 160));
+			const info = Math.round(scale(width, 34, 48, 56));
 			const root = document.documentElement;
 			root.style.setProperty('--ui-font-size', `${ui}px`);
 			root.style.setProperty('--ui-line-height', `${roundToEven(ui * 1.2)}px`);
 			root.style.setProperty('--role-font-size', `${Math.round(ui * 0.8)}px`);
 			root.style.setProperty('--project-title-size', `${title}px`);
 			root.style.setProperty('--project-title-line-height', `${roundToEven(title)}px`);
+			root.style.setProperty('--info-font-size', `${info}px`);
+			root.style.setProperty('--info-line-height', `${roundToEven(info * 1.2)}px`);
 		};
 
 		updateTypeScale();

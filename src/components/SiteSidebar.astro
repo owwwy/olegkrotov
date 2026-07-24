@@ -1,0 +1,38 @@
+---
+import ScrambleLink from './ScrambleLink.astro';
+
+interface Props {
+	active: 'projects' | 'info' | 'contacts';
+}
+
+const { active } = Astro.props;
+const navigation = [
+	{ id: 'projects', label: 'Проекты', href: '/' },
+	{ id: 'info', label: 'Инфо', href: '/info' },
+	{ id: 'contacts', label: 'Контакты', href: '/#contacts' },
+] as const;
+---
+
+<aside class="sidebar">
+	<a class="identity" href="/" aria-label="Олег Кротов — на главную" data-scramble-link>
+		<strong data-scramble-text data-original="Олег Кротов">
+			{[...'Олег Кротов'].map((character) => (
+				<span class="scramble-link__char">{character === ' ' ? '\u00a0' : character}</span>
+			))}
+		</strong>
+		<span data-scramble-text data-original="Digital Designer">
+			{[...'Digital Designer'].map((character) => (
+				<span class="scramble-link__char">{character === ' ' ? '\u00a0' : character}</span>
+			))}
+		</span>
+	</a>
+
+	<nav aria-label="Основная навигация">
+		{navigation.map((item, index) => (
+			<>
+				<ScrambleLink href={item.href} label={item.label} active={item.id === active} />
+				{index < navigation.length - 1 && <span class="nav-separator" aria-hidden="true"></span>}
+			</>
+		))}
+	</nav>
+</aside>
