@@ -427,6 +427,7 @@ const gallery = project.gallery ?? [];
 		width: 100%;
 		min-height: 0;
 		flex: 1;
+		margin-top: 0;
 		margin-inline: auto;
 		overflow: auto;
 		border-radius: 3px;
@@ -436,7 +437,13 @@ const gallery = project.gallery ?? [];
 		outline: none;
 		contain: paint;
 		transform: translate3d(0, 0, 0);
-		transition: transform 900ms cubic-bezier(0.16, 1, 0.3, 1);
+		transition:
+			margin-top 420ms cubic-bezier(0.22, 1, 0.36, 1),
+			transform 900ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	.case-page.is-header-hidden .case-page__viewport {
+		margin-top: calc((var(--ui-line-height, 24px) + 24px) * -1);
 	}
 
 	:global(.case-entering) .case-page__viewport {
