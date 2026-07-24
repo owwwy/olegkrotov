@@ -236,9 +236,9 @@ import TypeScale from '../components/TypeScale.astro';
 					const canvas = document.createElement('canvas');
 					const isOverflow = visual.classList.contains('visual--overflow');
 					const isZoomed = visual.classList.contains('visual--zoom');
-					canvas.className = `info-pixel-canvas${isOverflow ? ' info-pixel-canvas--overflow' : ''}`;
-					const width = Math.max(1, Math.round(visual.clientWidth * (isOverflow ? 1.1 : 1)));
-					const height = Math.max(1, Math.round(visual.clientHeight * (isOverflow ? 1.52 : 1)));
+					canvas.className = `info-pixel-canvas${isOverflow ? ' info-pixel-canvas--overflow' : ''}${isZoomed ? ' info-pixel-canvas--zoom' : ''}`;
+					const width = Math.max(1, Math.round(visual.clientWidth * (isOverflow ? 1.1 : isZoomed ? 1.5 : 1)));
+					const height = Math.max(1, Math.round(visual.clientHeight * (isOverflow ? 1.52 : isZoomed ? 1.5 : 1)));
 					canvas.width = width;
 					canvas.height = height;
 					visual.append(canvas);
@@ -259,15 +259,7 @@ import TypeScale from '../components/TypeScale.astro';
 							buffer.width = pixelWidth;
 							buffer.height = pixelHeight;
 							bufferContext.imageSmoothingEnabled = true;
-							if (isZoomed) {
-								bufferContext.drawImage(
-									image,
-									-pixelWidth * .25,
-									-pixelHeight * .25,
-									pixelWidth * 1.5,
-									pixelHeight * 1.5,
-								);
-							} else bufferContext.drawImage(image, 0, 0, pixelWidth, pixelHeight);
+							bufferContext.drawImage(image, 0, 0, pixelWidth, pixelHeight);
 							context.imageSmoothingEnabled = false;
 							context.clearRect(0, 0, width, height);
 							context.drawImage(buffer, 0, 0, pixelWidth, pixelHeight, 0, 0, width, height);
@@ -545,6 +537,10 @@ import TypeScale from '../components/TypeScale.astro';
 	}
 
 	.info-line:has(> :only-child) { gap: 0; }
+	.info-line > :not(.visual) {
+		position: relative;
+		z-index: 3;
+	}
 	.info-copy strong { color: var(--color-text); font-weight: inherit; }
 	.info-char { display: inline-block; }
 	.info-char--space { flex: none; }
@@ -552,6 +548,7 @@ import TypeScale from '../components/TypeScale.astro';
 
 	.visual {
 		position: relative;
+		z-index: 1;
 		display: inline-block;
 		width: var(--info-chip-width);
 		height: var(--info-chip-height);
@@ -570,6 +567,7 @@ import TypeScale from '../components/TypeScale.astro';
 		transform: scale(1.5);
 		transform-origin: center;
 	}
+	.visual--zoom { overflow: visible; }
 	.visual--zoom,
 	.visual--overflow {
 		margin-inline: calc(var(--info-inline-gap) * -0.5);
@@ -589,6 +587,11 @@ import TypeScale from '../components/TypeScale.astro';
 		top: -17%;
 		width: 110%;
 		height: 152%;
+	}
+	.info-pixel-canvas--zoom {
+		inset: -25%;
+		width: 150%;
+		height: 150%;
 	}
 	.visual--overflow { overflow: visible; }
 	.visual--overflow img {
