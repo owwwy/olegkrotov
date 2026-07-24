@@ -16,8 +16,12 @@ import { projects } from '../data/projects';
 		<style is:inline>html,body{margin:0;background:#fff}</style>
 		<script is:inline data-astro-rerun>
 			document.documentElement.classList.remove('info-entering', 'info-ready');
+			const caseReturnFromUrl = new URLSearchParams(window.location.search).has('case-return');
+			if (caseReturnFromUrl) {
+				window.history.replaceState(window.history.state, '', '/');
+			}
 			try {
-				if (sessionStorage.getItem('case-return-home') === 'true') {
+				if (caseReturnFromUrl || sessionStorage.getItem('case-return-home') === 'true') {
 					document.documentElement.classList.add('case-return-home');
 					sessionStorage.removeItem('case-return-home');
 				} else if (sessionStorage.getItem('info-return-home') === 'true') {

@@ -21,6 +21,7 @@ const firstProject = projects[0];
 				data-title={project.title}
 				data-category={project.category}
 				data-project-href={`/${project.slug}`}
+				data-project-first-image={project.gallery?.[0]}
 				aria-hidden={index === 0 ? 'false' : 'true'}
 				style={`transform: translate3d(0, ${index * 100}%, 0)`}
 			>
@@ -362,6 +363,21 @@ const firstProject = projects[0];
 		let introLensPair = -1;
 		let scrollInput: Lenis | null = null;
 		let lastScrollPosition = SCROLL_CENTER;
+		const prefetchedCaseImages = new Set<string>();
+		const prefetchActiveCase = () => {
+			const source = panels[activeIndex]?.dataset.projectFirstImage;
+			if (!source || prefetchedCaseImages.has(source)) return;
+			prefetchedCaseImages.add(source);
+			const image = new Image();
+			image.decoding = 'async';
+			image.src = source;
+		};
+		projectLink.addEventListener('pointerenter', prefetchActiveCase);
+		projectLink.addEventListener('focus', prefetchActiveCase);
+		cleanups.push(() => {
+			projectLink.removeEventListener('pointerenter', prefetchActiveCase);
+			projectLink.removeEventListener('focus', prefetchActiveCase);
+		});
 		panels.forEach((panel, index) => {
 			panel.style.visibility = isIntroPlaying || index === activeIndex ? 'visible' : 'hidden';
 		});
@@ -458,6 +474,7 @@ const firstProject = projects[0];
 			activeIndex = wrappedIndex;
 			projectLink.href = panels[activeIndex].dataset.projectHref ?? '/';
 			projectLink.setAttribute('aria-label', `Открыть проект ${nextTitle}`);
+			prefetchActiveCase();
 			lens?.setPair(previousIndex, activeIndex);
 			const finishPanelTransition = () => {
 				panels.forEach((panel, index) => {
@@ -666,11 +683,14 @@ const firstProject = projects[0];
 
 		projectLink.addEventListener('click', (event) => {
 			event.preventDefault();
+			prefetchActiveCase();
 			if (reducedMotion.matches) {
 				window.location.assign(projectLink.href);
 				return;
 			}
-			runPageExit(projectLink.href);
+			const destination = new URL(projectLink.href, window.location.href);
+			destination.searchParams.set('entry', Date.now().toString());
+			runPageExit(destination.href);
 		});
 
 		const infoLink = document.querySelector<HTMLAnchorElement>('nav a[href="/info"]');

@@ -38,6 +38,9 @@ const animatedPngs = new Set([
 	<head>
 		<meta charset="utf-8" />
 		<script is:inline>
+			if (new URLSearchParams(window.location.search).has('entry')) {
+				window.history.replaceState(window.history.state, '', window.location.pathname);
+			}
 			try {
 				if (sessionStorage.getItem('case-page-transition') === 'true') {
 					document.documentElement.classList.add('case-entering');
@@ -46,6 +49,7 @@ const animatedPngs = new Set([
 			} catch {}
 		</script>
 		<TypeScale />
+		{projects.map((item) => <link rel="preload" as="image" href={item.image} />)}
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="description" content={`${project.title} — ${project.category}. Проект Олега Кротова.`} />
@@ -383,7 +387,7 @@ const animatedPngs = new Set([
 			closeLink?.addEventListener('click', async (event) => {
 				event.preventDefault();
 				await leaveCase();
-				window.location.assign(closeLink.href);
+				window.location.assign(`/?case-return=${Date.now()}`);
 			});
 
 			const browserNavigation = (window as typeof window & {
