@@ -238,8 +238,8 @@ import TypeScale from '../components/TypeScale.astro';
 					const isOverflow = visual.classList.contains('visual--overflow');
 					const isZoomed = visual.classList.contains('visual--zoom');
 					canvas.className = `info-pixel-canvas${isOverflow ? ' info-pixel-canvas--overflow' : ''}${isZoomed ? ' info-pixel-canvas--zoom' : ''}`;
-					const width = Math.max(1, Math.round(visual.clientWidth * (isOverflow ? 1.1 : isZoomed ? 1.5 : 1)));
-					const height = Math.max(1, Math.round(visual.clientHeight * (isOverflow ? 1.52 : isZoomed ? 1.5 : 1)));
+					const width = Math.max(1, Math.round(visual.clientWidth * (isOverflow ? .99 : isZoomed ? 1.5 : 1)));
+					const height = Math.max(1, Math.round(visual.clientHeight * (isOverflow ? 1.368 : isZoomed ? 1.5 : 1)));
 					canvas.width = width;
 					canvas.height = height;
 					visual.append(canvas);
@@ -586,9 +586,9 @@ import TypeScale from '../components/TypeScale.astro';
 	}
 
 	.info-pixel-canvas--overflow {
-		top: -17%;
-		width: 110%;
-		height: 152%;
+		top: -18.4%;
+		width: 99%;
+		height: 136.8%;
 	}
 	.info-pixel-canvas--zoom {
 		inset: -25%;
@@ -596,14 +596,13 @@ import TypeScale from '../components/TypeScale.astro';
 		height: 150%;
 	}
 	.visual--overflow {
-		width: calc(var(--info-chip-width) * .9);
 		overflow: visible;
 	}
 	.visual--overflow img {
-		width: 110%;
-		height: 152%;
+		width: 99%;
+		height: 136.8%;
 		max-width: none;
-		transform: translateY(-17%);
+		transform: translateY(-13.45%);
 	}
 
 	.info-marker {
