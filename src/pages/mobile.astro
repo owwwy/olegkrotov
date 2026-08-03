@@ -58,7 +58,7 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 								aria-hidden={group === 1 ? undefined : 'true'}
 								tabindex={group === 1 ? undefined : -1}
 							>
-								<img src={project.image} alt={group === 1 ? project.imageAlt : ''} draggable="false" />
+								<img src={project.image} alt={group === 1 ? project.imageAlt : ''} loading="eager" decoding="async" draggable="false" />
 								<div class="project-card__copy">
 									<h2>{project.title}</h2>
 									<p>{project.category}</p>
@@ -83,7 +83,7 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 				root.setProperty('--visual-height', `${30 * ratio}px`);
 				root.setProperty('--info-size', `${24 * ratio}px`);
 				root.setProperty('--info-line', `${30 * ratio}px`);
-				root.setProperty('--card-width', `${Math.round(document.documentElement.clientWidth * .9)}px`);
+				root.setProperty('--card-width', `${document.documentElement.clientWidth * .9}px`);
 				root.setProperty('--card-media-gap', `${12 * ratio}px`);
 				root.setProperty('--card-copy-gap', `${4 * ratio}px`);
 				root.setProperty('--card-title-size', `${24 * ratio}px`);
@@ -103,6 +103,11 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 				let resumeAt = Number.NEGATIVE_INFINITY;
 				let previousFrame = performance.now();
 				let lastAutoScroll = 0;
+				let autoPosition = 0;
+				let marqueeVisible = false;
+				let gesture: null | { x: number; y: number; horizontal?: boolean } = null;
+				let manualHorizontalScroll = false;
+				let manualScrollEndTimer = 0;
 
 				const measure = () => {
 					const previousSegment = segmentWidth;
@@ -110,12 +115,18 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 					lastAutoScroll = performance.now();
 					if (!previousSegment) viewport.scrollLeft = segmentWidth;
 					else viewport.scrollLeft += segmentWidth - previousSegment;
+					autoPosition = viewport.scrollLeft;
 				};
 
 				const normalizePosition = () => {
 					if (!segmentWidth) return;
-					if (viewport.scrollLeft < segmentWidth * .5) viewport.scrollLeft += segmentWidth;
-					else if (viewport.scrollLeft > segmentWidth * 1.5) viewport.scrollLeft -= segmentWidth;
+					if (viewport.scrollLeft < segmentWidth * .1) {
+						viewport.scrollLeft += segmentWidth;
+						autoPosition += segmentWidth;
+					} else if (viewport.scrollLeft > segmentWidth * 1.9) {
+						viewport.scrollLeft -= segmentWidth;
+						autoPosition -= segmentWidth;
+					}
 				};
 
 				const pauseAutoplay = () => {
@@ -129,23 +140,56 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 					if (now < resumeAt) speed = 0;
 					else if (Number.isFinite(resumeAt)) {
 						const progress = Math.min(1, (now - resumeAt) / ACCELERATION_DURATION);
-						speed = BASE_SPEED * progress * progress * progress;
+						speed = BASE_SPEED * progress * progress;
 						if (progress === 1) resumeAt = Number.NEGATIVE_INFINITY;
 					}
-					if (speed > 0) {
+					if (speed > 0 && marqueeVisible && document.visibilityState === 'visible') {
 						lastAutoScroll = now;
-						viewport.scrollLeft += speed * elapsed / 1000;
+						autoPosition += speed * elapsed / 1000;
+						viewport.scrollLeft = autoPosition;
 						normalizePosition();
 					}
 					requestAnimationFrame(frame);
 				};
 
-				viewport.addEventListener('pointerdown', pauseAutoplay, { passive: true });
-				viewport.addEventListener('touchstart', pauseAutoplay, { passive: true });
-				viewport.addEventListener('wheel', pauseAutoplay, { passive: true });
+				const visibilityObserver = new IntersectionObserver((entries) => {
+					marqueeVisible = entries.some((entry) => entry.isIntersecting);
+					previousFrame = performance.now();
+				}, { rootMargin: '25% 0px', threshold: 0 });
+				visibilityObserver.observe(viewport);
+
+				viewport.addEventListener('pointerdown', (event) => {
+					gesture = { x: event.clientX, y: event.clientY };
+				}, { passive: true });
+				viewport.addEventListener('pointermove', (event) => {
+					if (!gesture || gesture.horizontal === false) return;
+					const horizontalDistance = Math.abs(event.clientX - gesture.x);
+					const verticalDistance = Math.abs(event.clientY - gesture.y);
+					if (gesture.horizontal === undefined && Math.max(horizontalDistance, verticalDistance) >= 8) {
+						gesture.horizontal = horizontalDistance > verticalDistance * 1.1;
+					}
+					if (gesture.horizontal) {
+						manualHorizontalScroll = true;
+						pauseAutoplay();
+					}
+				}, { passive: true });
+				const finishGesture = () => { gesture = null; };
+				viewport.addEventListener('pointerup', finishGesture, { passive: true });
+				viewport.addEventListener('pointercancel', finishGesture, { passive: true });
+				viewport.addEventListener('wheel', (event) => {
+					if (Math.abs(event.deltaX) > Math.abs(event.deltaY) || event.shiftKey) {
+						manualHorizontalScroll = true;
+						pauseAutoplay();
+					}
+				}, { passive: true });
 				viewport.addEventListener('scroll', () => {
 					normalizePosition();
-					if (performance.now() - lastAutoScroll > 80) pauseAutoplay();
+					if (performance.now() - lastAutoScroll > 80 && manualHorizontalScroll) {
+						autoPosition = viewport.scrollLeft;
+						pauseAutoplay();
+						window.clearTimeout(manualScrollEndTimer);
+						manualScrollEndTimer = window.setTimeout(() => { manualHorizontalScroll = false; }, 140);
+					}
 				}, { passive: true });
 				window.addEventListener('resize', () => { updateScale(); measure(); }, { passive: true });
 
@@ -254,6 +298,7 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 		flex: none;
 		flex-direction: column;
 		gap: var(--card-media-gap, 12px);
+		contain: layout paint;
 	}
 	.project-card > img {
 		display: block;
