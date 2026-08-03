@@ -150,8 +150,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 
 		<script>
 			import { navigate } from 'astro:transitions/client';
-			import { Body as MatterBody, Bodies, Common, Composite, Engine, Query } from 'matter-js';
-			import decomp from 'poly-decomp';
+			import { Body as MatterBody, Bodies, Composite, Engine, Query, Vertices } from 'matter-js';
 
 			let cleanupContacts = () => {};
 			const initializeContacts = () => {
@@ -161,7 +160,6 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 				const footer = document.querySelector<HTMLElement>('[data-contact-footer]');
 				if (!stage || !footer) return;
 				const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-				Common.setDecomp(decomp);
 				const links = [...footer.querySelectorAll<HTMLAnchorElement>('[data-contact-link]')];
 				const alphabet = [...new Set(links.flatMap((link) => [...(link.dataset.value ?? '')]).filter((char) => char !== ' '))];
 				links.forEach((link) => {
@@ -306,10 +304,11 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 						const rawMaxY = Math.max(...rawVertices.map((point) => point.y));
 						const rawWidth = Math.max(1, rawMaxX - rawMinX);
 						const rawHeight = Math.max(1, rawMaxY - rawMinY);
-						const shape = vertexSets.map((vertices) => vertices.map((point) => ({
+						const outline = rawVertices.map((point) => ({
 							x: (point.x - (rawMinX + rawMaxX) / 2) * rect.width / rawWidth,
 							y: (point.y - (rawMinY + rawMaxY) / 2) * rect.height / rawHeight,
-						})));
+						}));
+						const hull = outline.length >= 3 ? Vertices.hull(outline) : [];
 						const options = {
 							restitution: .42,
 							friction: .18,
@@ -319,8 +318,8 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 							angle: (Math.random() - .5) * 1.05,
 							collisionFilter: { category: 0x0001, mask: 0xFFFFFFFD },
 						};
-						const body = rawVertices.length >= 3
-							? Bodies.fromVertices(x, y, shape, options, true, .01, 4, .01)
+						const body = hull.length >= 3
+							? Bodies.fromVertices(x, y, hull, options, false)
 							: Bodies.rectangle(x, y, rect.width * .8, rect.height * .76, options);
 						MatterBody.setVelocity(body, { x: (Math.random() - .5) * 7, y: 1 + Math.random() * 3 });
 						MatterBody.setAngularVelocity(body, (Math.random() - .5) * .095);

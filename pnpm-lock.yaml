@@ -20,9 +20,6 @@ importers:
       matter-js:
         specifier: ^0.20.0
         version: 0.20.0
-      poly-decomp:
-        specifier: ^0.3.0
-        version: 0.3.0
     devDependencies:
       '@types/matter-js':
         specifier: ^0.20.2
@@ -1181,9 +1178,6 @@ packages:
   picomatch@4.0.5:
     resolution: {integrity: sha512-RvwwcruNjI1ncT5xRakeyS9Lf8lcItv34KD+aif+VH9kduAyfYBipGh12274xtenIPZ119/R9BdTBa8gAwSh0A==}
     engines: {node: '>=12'}
-
-  poly-decomp@0.3.0:
-    resolution: {integrity: sha512-hWeBxGzPYiybmI4548Fca7Up/0k1qS5+79cVHI9+H33dKya5YNb9hxl0ZnDaDgvrZSuYFBhkCK/HOnqN7gefkQ==}
 
   postcss@8.5.22:
     resolution: {integrity: sha512-KBDEIpLrvpv16pp3K0Fw+UCoZfopFjjgeB+0tA/aaThfEE74kKDLrgg603YvOWJyg3+WYtyq3xYsQWsIyZlPqQ==}
@@ -2522,8 +2516,6 @@ snapshots:
   picomatch@2.3.2: {}
 
   picomatch@4.0.5: {}
-
-  poly-decomp@0.3.0: {}
 
   postcss@8.5.22:
     dependencies:
