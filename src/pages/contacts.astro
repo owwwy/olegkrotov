@@ -265,7 +265,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 				}, { signal: controller.signal });
 				stage.addEventListener('focusout', () => setHighlightedGroup(), { signal: controller.signal });
 
-				type LetterBody = { el: HTMLElement; body: Matter.Body; w: number; h: number; entered: boolean };
+				type LetterBody = { el: HTMLElement; body: Matter.Body; w: number; h: number; offsetX: number; offsetY: number; entered: boolean };
 				const engine = Engine.create({ positionIterations: 10, velocityIterations: 8, constraintIterations: 4 });
 				engine.gravity.y = 1.15;
 				engine.gravity.scale = .001;
@@ -321,21 +321,27 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 							frictionStatic: .32,
 							frictionAir: .006,
 							density: .0018,
-							angle: (Math.random() - .5) * 1.05,
 							collisionFilter: { category: 0x0001, mask: 0xFFFFFFFD },
 						};
 						const body = hull.length >= 3
 							? Bodies.fromVertices(x, y, hull, options, false)
 							: Bodies.rectangle(x, y, rect.width * .8, rect.height * .76, options);
+						const offsetX = (body.bounds.min.x + body.bounds.max.x) / 2 - body.position.x;
+						const offsetY = (body.bounds.min.y + body.bounds.max.y) / 2 - body.position.y;
+						MatterBody.setAngle(body, (Math.random() - .5) * 1.05);
 						MatterBody.setVelocity(body, { x: (Math.random() - .5) * 7, y: 1 + Math.random() * 3 });
 						MatterBody.setAngularVelocity(body, (Math.random() - .5) * .095);
-						return { el, body, w: rect.width, h: rect.height, entered: false };
+						return { el, body, w: rect.width, h: rect.height, offsetX, offsetY, entered: false };
 					});
 					Composite.add(engine.world, [...walls, ...bodies.map((item) => item.body)]);
 				};
 
 				const renderBody = (item: LetterBody) => {
-					item.el.style.transform = `translate3d(${item.body.position.x - item.w / 2}px, ${item.body.position.y - item.h / 2}px, 0) rotate(${item.body.angle}rad)`;
+					const cosine = Math.cos(item.body.angle);
+					const sine = Math.sin(item.body.angle);
+					const centerX = item.body.position.x + item.offsetX * cosine - item.offsetY * sine;
+					const centerY = item.body.position.y + item.offsetX * sine + item.offsetY * cosine;
+					item.el.style.transform = `translate3d(${centerX - item.w / 2}px, ${centerY - item.h / 2}px, 0) rotate(${item.body.angle}rad)`;
 				};
 				const bodyAtPointer = (event: PointerEvent) => {
 					const rect = stage.getBoundingClientRect();
@@ -531,7 +537,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 	.contact-body path { stroke: currentColor; stroke-width: 14; stroke-linejoin: round; paint-order: stroke fill; }
 	.contact-body.is-dragging { z-index: 10; cursor: grabbing; }
 	.contact-body { transition: color 180ms ease; }
-	.contact-body.is-muted { color: #757577; }
+	.contact-body.is-muted { color: #bbbbbd; }
 	.contact-footer {
 		position: absolute;
 		right: 0;
