@@ -18,12 +18,12 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 	</head>
 	<body>
 		<main class="mobile-feed">
-			<section class="mobile-section mobile-info" data-mobile-section>
-				<header class="mobile-header" data-mobile-header>
-					<a href="/mobile" data-mobile-scramble>Олег Кротов</a>
-					<span data-mobile-reveal>Digital Designer</span>
+			<section class="mobile-section mobile-info">
+				<header class="mobile-header">
+					<span>Олег Кротов</span>
+					<span>Digital Designer</span>
 				</header>
-				<div class="mobile-info__copy" data-info-copy>
+				<div class="mobile-info__copy">
 					<p>
 						<span class="info-row"><strong>Проектирую интерфейсы</strong></span>
 						<span class="info-row"><span class="info-visual info-visual--01"><img src="/info/01.png" alt="" /></span><span>цифровых продуктов</span></span>
@@ -47,15 +47,8 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 			</section>
 
 			{mobileProjects.map((project) => project && (
-				<a
-					class="mobile-section mobile-project"
-					href={`/${project.slug}`}
-					data-mobile-section
-					data-mobile-project
-					data-mobile-scramble
-				>
+				<a class="mobile-section mobile-project" href={`/${project.slug}`}>
 					<img class="mobile-project__image" src={`/projects/m-${project.slug}.webp`} alt={project.imageAlt} />
-					<canvas class="mobile-project__pixels" aria-hidden="true"></canvas>
 					<div class="mobile-project__copy">
 						<h2>{project.title}</h2>
 						<p>{project.category}</p>
@@ -65,20 +58,11 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 		</main>
 
 		<script>
-			const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-			const randomFrom = (pool: string[]) => pool[Math.floor(Math.random() * pool.length)] ?? '';
-			const shuffle = (values: string[]) => {
-				const result = [...values];
-				for (let index = result.length - 1; index > 0; index -= 1) {
-					const target = Math.floor(Math.random() * (index + 1));
-					[result[index], result[target]] = [result[target], result[index]];
-				}
-				return result;
-			};
 			const fluidScale = (value: number) => Math.max(2, value);
 			const viewportProbe = document.createElement('div');
 			viewportProbe.style.cssText = 'position:fixed;inset:auto 0 0;visibility:hidden;pointer-events:none;height:100lvh';
 			document.body.append(viewportProbe);
+
 			const updateViewportMetrics = () => {
 				const portrait = window.innerHeight >= window.innerWidth;
 				const screenWidth = portrait ? window.screen.width : window.screen.height;
@@ -89,6 +73,7 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 				document.documentElement.style.setProperty('--mobile-screen-height', `${screenHeight}px`);
 				document.documentElement.style.setProperty('--mobile-browser-bottom', `${Math.max(0, screenHeight - visualBottom)}px`);
 			};
+
 			const updateTypeScale = () => {
 				const ratio = document.documentElement.clientWidth / 400;
 				document.documentElement.style.setProperty('--mobile-side', `${24 * ratio}px`);
@@ -108,289 +93,16 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 				titles.forEach((title) => { title.style.fontSize = `${titleSize}px`; });
 				document.documentElement.style.setProperty('--mobile-project-title', `${titleSize}px`);
 			};
-			updateTypeScale();
-			updateViewportMetrics();
-			window.addEventListener('resize', () => { updateTypeScale(); updateViewportMetrics(); }, { passive: true });
+
+			const updateLayout = () => {
+				updateTypeScale();
+				updateViewportMetrics();
+			};
+
+			updateLayout();
+			window.addEventListener('resize', updateLayout, { passive: true });
 			window.visualViewport?.addEventListener('resize', updateViewportMetrics, { passive: true });
 			window.visualViewport?.addEventListener('scroll', updateViewportMetrics, { passive: true });
-
-			const wrapCharacters = (root: HTMLElement) => {
-				const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-				const nodes: Text[] = [];
-				while (walker.nextNode()) {
-					const node = walker.currentNode as Text;
-					if (node.data.trim()) nodes.push(node);
-				}
-				nodes.forEach((node) => {
-					const fragment = document.createDocumentFragment();
-					[...node.data].forEach((character) => {
-						const span = document.createElement('span');
-						span.className = character === ' ' || character === '\u00a0' ? 'mobile-char mobile-char--space' : 'mobile-char';
-						span.dataset.character = character;
-						span.textContent = character === ' ' || character === '\u00a0' ? '\u00a0' : character;
-						fragment.append(span);
-					});
-					node.replaceWith(fragment);
-				});
-			};
-
-			const revealInfoText = (root: HTMLElement) => {
-				wrapCharacters(root);
-				const characters = [...root.querySelectorAll<HTMLElement>('.mobile-char:not(.mobile-char--space)')];
-				const spaces = [...root.querySelectorAll<HTMLElement>('.mobile-char--space')];
-				const characterPool = [...new Set(characters.map((character) => character.dataset.character ?? '').filter(Boolean))];
-				const canvas = document.createElement('canvas');
-				const context = canvas.getContext('2d');
-				const pools = new WeakMap<HTMLElement, string[]>();
-				const slots = [...characters, ...spaces];
-				slots.forEach((character) => {
-					character.dataset.slotWidth = character.getBoundingClientRect().width.toString();
-					character.dataset.slotFontSize = parseFloat(getComputedStyle(character).fontSize).toString();
-				});
-				characters.forEach((character, index) => {
-					const target = character.dataset.character ?? '';
-					const width = character.getBoundingClientRect().width;
-					const styles = getComputedStyle(character);
-					character.style.width = `${width}px`;
-					character.style.opacity = '0';
-					let pool = pools.get(character) ?? characterPool;
-					if (context) {
-						context.font = `${styles.fontStyle} ${styles.fontWeight} ${styles.fontSize} ${styles.fontFamily}`;
-						pool = characterPool.filter((candidate) => {
-							const candidateWidth = context.measureText(candidate).width;
-							return candidateWidth <= width + .5 && candidateWidth >= width * .42;
-						});
-						if (!pool.length) pool = [target];
-					}
-					pools.set(character, pool);
-					const delay = (index * 8 + Math.random() * 90) / 1.4;
-					window.setTimeout(() => {
-						character.style.opacity = '1';
-						if (reduceMotion.matches) { character.textContent = target; return; }
-						const started = performance.now();
-						const duration = (300 + Math.random() * 380) / 1.4;
-						let lastTick = 0;
-						const frame = (now: number) => {
-							const progress = Math.min(1, (now - started) / duration);
-							if (now - lastTick > 42 || progress === 1) {
-								lastTick = now;
-								character.textContent = progress === 1 ? target : randomFrom(pool);
-							}
-							if (progress < 1) requestAnimationFrame(frame);
-						};
-						requestAnimationFrame(frame);
-					}, delay);
-				});
-			};
-
-			const revealHeader = (root: HTMLElement) => {
-				wrapCharacters(root);
-				const elements = [...root.children] as HTMLElement[];
-				const states = elements.map((element) => {
-					const spans = [...element.querySelectorAll<HTMLElement>('.mobile-char')];
-					const value = spans.map((span) => span.dataset.character ?? '').join('');
-					const pool = [...new Set([...value].filter((character) => character !== ' ' && character !== '\u00a0'))];
-					spans.forEach((span) => { span.textContent = ''; });
-					return { value, spans, pool };
-				});
-				if (reduceMotion.matches) {
-					states.forEach(({ value, spans }) => spans.forEach((span, index) => { span.textContent = value[index] === ' ' ? '\u00a0' : value[index] ?? ''; }));
-					return;
-				}
-				const started = performance.now();
-				let lastTick = 0;
-				const frame = (now: number) => {
-					const elapsed = now - started;
-					if (now - lastTick >= 44 || elapsed >= 1050) {
-						lastTick = now;
-						states.forEach(({ value, spans, pool }, elementIndex) => {
-							const delay = elementIndex * 105;
-							const local = Math.max(0, Math.min(1, (elapsed - delay) / (1050 - delay)));
-							const visible = Math.ceil(Math.min(1, local * 1.7) * value.length);
-							const settled = Math.floor(Math.pow(local, 1.35) * value.length);
-							spans.forEach((span, index) => {
-								if (index >= visible) span.textContent = '';
-								else if (value[index] === ' ' || value[index] === '\u00a0') span.textContent = '\u00a0';
-								else if (index < settled || local === 1) span.textContent = value[index] ?? '';
-								else span.textContent = randomFrom(pool);
-							});
-						});
-					}
-					if (elapsed < 1050) requestAnimationFrame(frame);
-				};
-				requestAnimationFrame(frame);
-			};
-
-			const scrambleCurrentText = (root: HTMLElement) => {
-				if (!root.querySelector('.mobile-char')) wrapCharacters(root);
-				root.querySelectorAll<HTMLElement>('h2, p, a').forEach((element) => {
-					const spans = [...element.querySelectorAll<HTMLElement>('.mobile-char')];
-					if (!spans.length) return;
-					const original = spans.map((span) => span.dataset.character ?? '');
-					const mutableIndexes = original.flatMap((character, index) => [' ', '\u00a0', '+', '(', ')', '-', '–', '—'].includes(character) ? [] : [index]);
-					const mutableCharacters = mutableIndexes.map((index) => original[index]);
-					const started = performance.now();
-					let nextTick = started;
-					const frame = (now: number) => {
-						const progress = Math.min(1, (now - started) / 260);
-						const eased = 1 - Math.pow(1 - progress, 3);
-						if (now >= nextTick) {
-							nextTick = now + 38 + (76 - 38) * eased;
-							const scrambled = [...original];
-							const shuffled = shuffle(mutableCharacters);
-							mutableIndexes.forEach((characterIndex, index) => { scrambled[characterIndex] = shuffled[index]; });
-							spans.forEach((span, index) => { span.textContent = scrambled[index] === ' ' ? '\u00a0' : scrambled[index]; });
-						}
-						if (progress < 1) requestAnimationFrame(frame);
-						else spans.forEach((span, index) => { span.textContent = original[index] === ' ' ? '\u00a0' : original[index]; });
-					};
-					requestAnimationFrame(frame);
-				});
-			};
-
-			const pixelReveal = async (visual: HTMLElement, delay: number) => {
-				const image = visual.querySelector<HTMLImageElement>('img');
-				if (!image) return;
-				if (!image.complete) await new Promise<void>((resolve) => image.addEventListener('load', () => resolve(), { once: true }));
-				if (!image.naturalWidth) return;
-				window.setTimeout(() => {
-					const canvas = document.createElement('canvas');
-					canvas.className = 'info-pixel-canvas';
-					canvas.width = Math.max(1, visual.clientWidth);
-					canvas.height = Math.max(1, visual.clientHeight);
-					visual.append(canvas);
-					const context = canvas.getContext('2d');
-					const buffer = document.createElement('canvas');
-					const bufferContext = buffer.getContext('2d');
-					if (!context || !bufferContext) return;
-					image.style.opacity = '0';
-					const started = performance.now();
-					const frame = (now: number) => {
-						const progress = Math.min(1, (now - started) / 520);
-						const eased = progress * progress * (3 - 2 * progress);
-						const pixelWidth = Math.max(3, Math.round(3 + (canvas.width - 3) * eased));
-						buffer.width = pixelWidth;
-						buffer.height = Math.max(1, Math.round(pixelWidth * canvas.height / canvas.width));
-						bufferContext.drawImage(image, 0, 0, buffer.width, buffer.height);
-						context.imageSmoothingEnabled = false;
-						context.clearRect(0, 0, canvas.width, canvas.height);
-						context.drawImage(buffer, 0, 0, canvas.width, canvas.height);
-						if (progress < 1) requestAnimationFrame(frame);
-						else { image.style.opacity = '1'; canvas.remove(); }
-					};
-					requestAnimationFrame(frame);
-				}, delay);
-			};
-
-			const header = document.querySelector<HTMLElement>('[data-mobile-header]');
-			if (header) revealHeader(header);
-			const info = document.querySelector<HTMLElement>('[data-info-copy]');
-			if (info) {
-				revealInfoText(info);
-				info.querySelectorAll<HTMLElement>('.info-visual').forEach((visual, index) => void pixelReveal(visual, 180 + index * 260));
-			}
-
-			const projectSections = [...document.querySelectorAll<HTMLElement>('[data-mobile-project]')];
-			const visibleProjects = new Set<HTMLElement>();
-			const pixelBuffers = new WeakMap<HTMLElement, HTMLCanvasElement>();
-			const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-			const sections = [...document.querySelectorAll<HTMLElement>('[data-mobile-section]')];
-			const updateThemeColor = () => {
-				const center = (window.visualViewport?.height ?? window.innerHeight) / 2;
-				const active = sections.reduce<HTMLElement | null>((closest, section) => {
-					if (!closest) return section;
-					const sectionDistance = Math.abs(section.getBoundingClientRect().top + section.clientHeight / 2 - center);
-					const closestDistance = Math.abs(closest.getBoundingClientRect().top + closest.clientHeight / 2 - center);
-					return sectionDistance < closestDistance ? section : closest;
-				}, null);
-				if (themeColor && active) themeColor.content = active.classList.contains('mobile-info') ? '#ffffff' : 'transparent';
-			};
-			const themeObserver = new IntersectionObserver(() => {
-				updateThemeColor();
-			}, { threshold: [.35, .55, .75] });
-			sections.forEach((section) => themeObserver.observe(section));
-			updateThemeColor();
-			const projectObserver = new IntersectionObserver((entries) => {
-				entries.forEach((entry) => entry.isIntersecting
-					? visibleProjects.add(entry.target as HTMLElement)
-					: visibleProjects.delete(entry.target as HTMLElement));
-			}, { rootMargin: '30% 0px', threshold: 0 });
-			projectSections.forEach((section) => projectObserver.observe(section));
-
-			const drawPixels = (section: HTMLElement, intensity: number) => {
-				const image = section.querySelector<HTMLImageElement>('.mobile-project__image');
-				const canvas = section.querySelector<HTMLCanvasElement>('.mobile-project__pixels');
-				if (!image?.naturalWidth || !canvas) return;
-				const width = section.clientWidth;
-				const height = section.clientHeight;
-				const density = Math.min(devicePixelRatio, 1.25);
-				const outputWidth = Math.max(1, Math.round(width * density));
-				const outputHeight = Math.max(1, Math.round(height * density));
-				if (canvas.width !== outputWidth || canvas.height !== outputHeight) {
-					canvas.width = outputWidth;
-					canvas.height = outputHeight;
-				}
-				const context = canvas.getContext('2d', { alpha: false });
-				if (!context) return;
-				const cells = Math.max(7, Math.round(140 - intensity * 126));
-				let buffer = pixelBuffers.get(section);
-				if (!buffer) {
-					buffer = document.createElement('canvas');
-					pixelBuffers.set(section, buffer);
-				}
-				buffer.width = cells;
-				buffer.height = Math.max(1, Math.round(cells * height / width));
-				const bufferContext = buffer.getContext('2d');
-				if (!bufferContext) return;
-				const sourceRatio = image.naturalWidth / image.naturalHeight;
-				const targetRatio = width / height;
-				let sx = 0; let sy = 0; let sw = image.naturalWidth; let sh = image.naturalHeight;
-				if (sourceRatio > targetRatio) { sw = image.naturalHeight * targetRatio; sx = (image.naturalWidth - sw) / 2; }
-				else { sh = image.naturalWidth / targetRatio; sy = (image.naturalHeight - sh) / 2; }
-				bufferContext.drawImage(image, sx, sy, sw, sh, 0, 0, buffer.width, buffer.height);
-				context.imageSmoothingEnabled = false;
-				context.drawImage(buffer, 0, 0, buffer.width, buffer.height, 0, 0, outputWidth, outputHeight);
-				canvas.style.opacity = `${Math.min(1, intensity * 1.25)}`;
-			};
-
-			let scrollIntensity = 0;
-			let previousScroll = window.scrollY;
-			let lastScrollAt = performance.now();
-			let pixelFrame = 0;
-			const animatePixels = (now: number) => {
-				const elapsed = Math.max(1, now - lastScrollAt);
-				scrollIntensity *= Math.pow(.955, elapsed / 16.67);
-				visibleProjects.forEach((section) => drawPixels(section, scrollIntensity));
-				if (scrollIntensity > .015) pixelFrame = requestAnimationFrame(animatePixels);
-				else visibleProjects.forEach((section) => {
-					const canvas = section.querySelector<HTMLCanvasElement>('.mobile-project__pixels');
-					if (canvas) canvas.style.opacity = '0';
-				});
-			};
-			window.addEventListener('scroll', () => {
-				updateThemeColor();
-				const now = performance.now();
-				const distance = Math.abs(window.scrollY - previousScroll);
-				const elapsed = Math.max(8, now - lastScrollAt);
-				previousScroll = window.scrollY;
-				lastScrollAt = now;
-				scrollIntensity = Math.min(1, Math.max(scrollIntensity, distance / elapsed / 2.1));
-				cancelAnimationFrame(pixelFrame);
-				pixelFrame = requestAnimationFrame(animatePixels);
-			}, { passive: true });
-
-			document.querySelectorAll<HTMLAnchorElement>('[data-mobile-scramble]').forEach((link) => {
-				link.addEventListener('click', (event) => {
-					if (link.pathname === location.pathname) return;
-					event.preventDefault();
-					const copy = link.matches('[data-mobile-project]')
-						? link.querySelector<HTMLElement>('.mobile-project__copy')
-						: link;
-					if (copy) scrambleCurrentText(copy);
-					try { sessionStorage.setItem('case-page-transition', 'true'); } catch {}
-					window.setTimeout(() => { location.href = link.href; }, reduceMotion.matches ? 0 : 340);
-				});
-			});
 		</script>
 	</body>
 </html>
@@ -401,7 +113,6 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 		margin: 0;
 		background: #fff;
 		scroll-snap-type: y mandatory;
-		scroll-behavior: smooth;
 		scrollbar-width: none;
 	}
 	body {
@@ -417,7 +128,7 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 
 	.mobile-header {
 		position: absolute;
-		z-index: 20;
+		z-index: 2;
 		top: 0;
 		left: 0;
 		display: flex;
@@ -430,7 +141,7 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 		font-weight: 400;
 		line-height: 24px;
 	}
-	.mobile-header > span { color: rgb(25 25 28 / 60%); font-weight: 300; }
+	.mobile-header > span:last-child { color: rgb(25 25 28 / 60%); font-weight: 300; }
 
 	.mobile-section {
 		position: relative;
@@ -478,28 +189,20 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 		height: calc(var(--mobile-visual-height, 30px) * 4 / 3);
 		transform: translate(-12.5%, -12.5%);
 	}
-	.info-pixel-canvas { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-	.mobile-char { display: inline-block; flex: none; }
-	.mobile-char--space { width: .25em; }
 
-	.mobile-project {
-		padding: 0;
-		isolation: isolate;
-	}
-	.mobile-project__image,
-	.mobile-project__pixels {
+	.mobile-project { padding: 0; isolation: isolate; }
+	.mobile-project__image {
 		position: absolute;
-		z-index: -2;
+		z-index: -1;
 		inset: 0;
 		display: block;
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
 	}
-	.mobile-project__pixels { z-index: -1; opacity: 0; pointer-events: none; }
 	.mobile-project__copy {
 		position: absolute;
-		z-index: 2;
+		z-index: 1;
 		right: var(--mobile-side, 24px);
 		bottom: calc(var(--mobile-vertical, 32px) + env(safe-area-inset-bottom) + var(--mobile-browser-bottom, 0px));
 		left: var(--mobile-side, 24px);
@@ -523,8 +226,5 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 
 	@media (min-width: 768px) {
 		body { max-width: 767px; margin-inline: auto; }
-	}
-	@media (prefers-reduced-motion: reduce) {
-		html { scroll-behavior: auto; }
 	}
 </style>
