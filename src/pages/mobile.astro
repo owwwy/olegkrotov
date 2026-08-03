@@ -73,13 +73,13 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 				<div class="mobile-footer__divider" aria-hidden="true"></div>
 				<div class="mobile-footer__contacts">
 					<div class="mobile-footer__socials">
-						<a href="https://t.me/owdesy" target="_blank" rel="noreferrer">Telegram</a>
+						<a href="https://t.me/okrotov" target="_blank" rel="noreferrer">Telegram</a>
 						<span aria-hidden="true">·</span>
-						<a href="https://max.ru/owdesy" target="_blank" rel="noreferrer">Max</a>
+						<a href="https://max.ru/u/f9LHodD0cOILXFqd_giWUttuW0fJCK-4NuRFIyyzoKhCGxHFcx__MM_5_GU" target="_blank" rel="noreferrer">Max</a>
 						<span aria-hidden="true">·</span>
 						<a href="https://dprofile.ru/owdesy" target="_blank" rel="noreferrer">Dprofile</a>
 					</div>
-					<a href="tel:+79996930693">8 (999) 693-0-693</a>
+					<a href="tel:+79996930693" data-phone-link>8 (999) 693-0-693</a>
 				</div>
 			</footer>
 		</main>
@@ -125,6 +125,12 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 				}, { passive: true });
 			};
 			document.querySelectorAll<HTMLElement>('.project-card__copy h2, .project-card__copy p, .mobile-footer a').forEach(scrambleTapText);
+			const phoneLink = document.querySelector<HTMLAnchorElement>('[data-phone-link]');
+			phoneLink?.addEventListener('click', async (event) => {
+				event.preventDefault();
+				try { await navigator.clipboard?.writeText('8 (999) 693-0-693'); } catch {}
+				window.location.href = phoneLink.href;
+			});
 			document.querySelectorAll<HTMLAnchorElement>('.project-card').forEach((link) => {
 				link.addEventListener('click', (event) => {
 					event.preventDefault();

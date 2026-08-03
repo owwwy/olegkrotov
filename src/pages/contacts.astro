@@ -7,8 +7,8 @@ import SiteSidebar from '../components/SiteSidebar.astro';
 import TypeScale from '../components/TypeScale.astro';
 
 const contacts = [
-	{ label: 'Telegram', href: 'https://t.me/owdesy', group: 3 },
-	{ label: 'Max', href: 'https://max.ru/owdesy', group: 1 },
+	{ label: 'Telegram', href: 'https://t.me/okrotov', group: 3 },
+	{ label: 'Max', href: 'https://max.ru/u/f9LHodD0cOILXFqd_giWUttuW0fJCK-4NuRFIyyzoKhCGxHFcx__MM_5_GU', group: 1 },
 	{ label: 'Dprofile', href: 'https://dprofile.ru/owdesy', group: 2 },
 ];
 const phone = { label: '8 (999) 693-0-693', href: 'tel:+79996930693', group: 0 };
@@ -260,6 +260,13 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 					link.addEventListener('pointerleave', () => setHighlightedGroup(), { signal: controller.signal });
 					link.addEventListener('focus', () => setHighlightedGroup(link.dataset.contactGroup), { signal: controller.signal });
 					link.addEventListener('blur', () => setHighlightedGroup(), { signal: controller.signal });
+				});
+				document.querySelectorAll<HTMLAnchorElement>('a[href^="tel:"]').forEach((link) => {
+					link.addEventListener('click', async (event) => {
+						event.preventDefault();
+						try { await navigator.clipboard?.writeText('8 (999) 693-0-693'); } catch {}
+						window.location.href = link.href;
+					}, { signal: controller.signal });
 				});
 				stage.addEventListener('focusin', (event) => {
 					const letter = (event.target as HTMLElement).closest<HTMLElement>('.contact-body');
