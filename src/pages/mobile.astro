@@ -99,55 +99,72 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 				const BASE_SPEED = 60;
 				const IDLE_DELAY = 2400;
 				const ACCELERATION_DURATION = 2000;
+				const INERTIA_FRICTION = 2.35;
 				let segmentWidth = 0;
 				let resumeAt = Number.NEGATIVE_INFINITY;
 				let previousFrame = performance.now();
-				let lastAutoScroll = 0;
-				let autoPosition = 0;
+				let position = 0;
+				let inertiaVelocity = 0;
 				let marqueeVisible = false;
-				let gesture: null | { x: number; y: number; horizontal?: boolean } = null;
-				let manualHorizontalScroll = false;
-				let manualScrollEndTimer = 0;
+				let suppressClickUntil = 0;
+				let wheelEndTimer = 0;
+				let gesture: null | {
+					pointerId: number;
+					startX: number;
+					startY: number;
+					lastX: number;
+					lastAt: number;
+					horizontal?: boolean;
+					velocity: number;
+				} = null;
+
+				const render = () => {
+					track.style.transform = `translate3d(${-position}px, 0, 0)`;
+				};
 
 				const measure = () => {
 					const previousSegment = segmentWidth;
 					segmentWidth = track.scrollWidth / 3;
-					lastAutoScroll = performance.now();
-					if (!previousSegment) viewport.scrollLeft = segmentWidth;
-					else viewport.scrollLeft += segmentWidth - previousSegment;
-					autoPosition = viewport.scrollLeft;
+					if (!previousSegment) position = segmentWidth;
+					else position += segmentWidth - previousSegment;
+					render();
+					track.style.visibility = 'visible';
 				};
 
 				const normalizePosition = () => {
 					if (!segmentWidth) return;
-					if (viewport.scrollLeft < segmentWidth * .1) {
-						viewport.scrollLeft += segmentWidth;
-						autoPosition += segmentWidth;
-					} else if (viewport.scrollLeft > segmentWidth * 1.9) {
-						viewport.scrollLeft -= segmentWidth;
-						autoPosition -= segmentWidth;
-					}
+					while (position < segmentWidth * .5) position += segmentWidth;
+					while (position > segmentWidth * 1.5) position -= segmentWidth;
 				};
 
-				const pauseAutoplay = () => {
+				const scheduleAutoplay = () => {
 					resumeAt = performance.now() + IDLE_DELAY;
 				};
 
 				const frame = (now: number) => {
 					const elapsed = Math.min(50, now - previousFrame);
 					previousFrame = now;
-					let speed = BASE_SPEED;
-					if (now < resumeAt) speed = 0;
-					else if (Number.isFinite(resumeAt)) {
-						const progress = Math.min(1, (now - resumeAt) / ACCELERATION_DURATION);
-						speed = BASE_SPEED * progress * progress;
-						if (progress === 1) resumeAt = Number.NEGATIVE_INFINITY;
-					}
-					if (speed > 0 && marqueeVisible && document.visibilityState === 'visible') {
-						lastAutoScroll = now;
-						autoPosition += speed * elapsed / 1000;
-						viewport.scrollLeft = autoPosition;
+					if (marqueeVisible && document.visibilityState === 'visible' && !gesture?.horizontal) {
+						const seconds = elapsed / 1000;
+						if (Math.abs(inertiaVelocity) > 2) {
+							position += inertiaVelocity * seconds;
+							inertiaVelocity *= Math.exp(-INERTIA_FRICTION * seconds);
+							if (Math.abs(inertiaVelocity) <= 2) {
+								inertiaVelocity = 0;
+								scheduleAutoplay();
+							}
+						} else {
+							let speed = BASE_SPEED;
+							if (now < resumeAt) speed = 0;
+							else if (Number.isFinite(resumeAt)) {
+								const progress = Math.min(1, (now - resumeAt) / ACCELERATION_DURATION);
+								speed = BASE_SPEED * progress * progress;
+								if (progress === 1) resumeAt = Number.NEGATIVE_INFINITY;
+							}
+							position += speed * seconds;
+						}
 						normalizePosition();
+						render();
 					}
 					requestAnimationFrame(frame);
 				};
@@ -159,38 +176,74 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 				visibilityObserver.observe(viewport);
 
 				viewport.addEventListener('pointerdown', (event) => {
-					gesture = { x: event.clientX, y: event.clientY };
+					gesture = {
+						pointerId: event.pointerId,
+						startX: event.clientX,
+						startY: event.clientY,
+						lastX: event.clientX,
+						lastAt: performance.now(),
+						velocity: 0,
+					};
 				}, { passive: true });
 				viewport.addEventListener('pointermove', (event) => {
 					if (!gesture || gesture.horizontal === false) return;
-					const horizontalDistance = Math.abs(event.clientX - gesture.x);
-					const verticalDistance = Math.abs(event.clientY - gesture.y);
+					const horizontalDistance = Math.abs(event.clientX - gesture.startX);
+					const verticalDistance = Math.abs(event.clientY - gesture.startY);
 					if (gesture.horizontal === undefined && Math.max(horizontalDistance, verticalDistance) >= 8) {
 						gesture.horizontal = horizontalDistance > verticalDistance * 1.1;
+						if (gesture.horizontal) {
+							inertiaVelocity = 0;
+							resumeAt = Number.POSITIVE_INFINITY;
+							viewport.setPointerCapture(event.pointerId);
+						}
 					}
 					if (gesture.horizontal) {
-						manualHorizontalScroll = true;
-						pauseAutoplay();
+						event.preventDefault();
+						const now = performance.now();
+						const delta = event.clientX - gesture.lastX;
+						const elapsed = Math.max(1, now - gesture.lastAt);
+						position -= delta;
+						const instantVelocity = -delta / elapsed * 1000;
+						gesture.velocity = gesture.velocity * .55 + instantVelocity * .45;
+						gesture.lastX = event.clientX;
+						gesture.lastAt = now;
+						normalizePosition();
+						render();
 					}
-				}, { passive: true });
-				const finishGesture = () => { gesture = null; };
+				}, { passive: false });
+				const finishGesture = () => {
+					if (!gesture) return;
+					if (gesture.horizontal) {
+						inertiaVelocity = Math.max(-2400, Math.min(2400, gesture.velocity));
+						suppressClickUntil = performance.now() + 350;
+						if (viewport.hasPointerCapture(gesture.pointerId)) viewport.releasePointerCapture(gesture.pointerId);
+						if (Math.abs(inertiaVelocity) <= 2) scheduleAutoplay();
+					}
+					gesture = null;
+				};
 				viewport.addEventListener('pointerup', finishGesture, { passive: true });
 				viewport.addEventListener('pointercancel', finishGesture, { passive: true });
 				viewport.addEventListener('wheel', (event) => {
 					if (Math.abs(event.deltaX) > Math.abs(event.deltaY) || event.shiftKey) {
-						manualHorizontalScroll = true;
-						pauseAutoplay();
+						event.preventDefault();
+						const delta = event.shiftKey && Math.abs(event.deltaX) < Math.abs(event.deltaY) ? event.deltaY : event.deltaX;
+						position += delta;
+						inertiaVelocity = Math.max(-1800, Math.min(1800, delta * 18));
+						resumeAt = Number.POSITIVE_INFINITY;
+						normalizePosition();
+						render();
+						window.clearTimeout(wheelEndTimer);
+						wheelEndTimer = window.setTimeout(() => {
+							if (Math.abs(inertiaVelocity) <= 2) scheduleAutoplay();
+						}, 120);
 					}
-				}, { passive: true });
-				viewport.addEventListener('scroll', () => {
-					normalizePosition();
-					if (performance.now() - lastAutoScroll > 80 && manualHorizontalScroll) {
-						autoPosition = viewport.scrollLeft;
-						pauseAutoplay();
-						window.clearTimeout(manualScrollEndTimer);
-						manualScrollEndTimer = window.setTimeout(() => { manualHorizontalScroll = false; }, 140);
+				}, { passive: false });
+				viewport.addEventListener('click', (event) => {
+					if (performance.now() < suppressClickUntil) {
+						event.preventDefault();
+						event.stopPropagation();
 					}
-				}, { passive: true });
+				}, true);
 				window.addEventListener('resize', () => { updateScale(); measure(); }, { passive: true });
 
 				updateScale();
@@ -278,19 +331,16 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 	}
 	.project-marquee__viewport {
 		width: 100%;
-		overflow-x: auto;
-		overflow-y: hidden;
-		overscroll-behavior-x: contain;
-		scrollbar-width: none;
-		-webkit-overflow-scrolling: touch;
-		touch-action: pan-x pan-y;
+		overflow: hidden;
+		touch-action: pan-y;
 	}
-	.project-marquee__viewport::-webkit-scrollbar { display: none; }
 	.project-marquee__track {
 		display: flex;
 		width: max-content;
 		align-items: flex-end;
 		gap: var(--card-gap, 2px);
+		visibility: hidden;
+		will-change: transform;
 	}
 	.project-card {
 		display: flex;
