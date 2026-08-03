@@ -154,8 +154,10 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 			import { Body as MatterBody, Bodies, Composite, Engine, Query, Vertices } from 'matter-js';
 
 			let cleanupContacts = () => {};
+			let isReturningHome = false;
 			const initializeContacts = () => {
 				cleanupContacts();
+				isReturningHome = false;
 				const controller = new AbortController();
 				const stage = document.querySelector<HTMLElement>('[data-contact-physics]');
 				const footer = document.querySelector<HTMLElement>('[data-contact-footer]');
@@ -496,6 +498,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 						if (leaving) return;
 						leaving = true;
 						if (destination.pathname === '/') {
+							isReturningHome = true;
 							try { sessionStorage.setItem('info-return-home', 'true'); } catch {}
 							destination.searchParams.set('info-return', Date.now().toString());
 						} else if (destination.pathname === '/info') {
@@ -513,7 +516,18 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 				};
 			};
 			document.addEventListener('astro:page-load', initializeContacts);
-			document.addEventListener('astro:before-swap', cleanupContacts);
+			document.addEventListener('astro:before-swap', (event) => {
+				if (isReturningHome) {
+					const swapEvent = event as Event & { newDocument?: Document };
+					const incomingDocument = swapEvent.newDocument;
+					if (incomingDocument) {
+						incomingDocument.documentElement.classList.remove('is-preloading');
+						incomingDocument.documentElement.classList.add('info-return-home');
+						incomingDocument.querySelector('[data-site-preloader]')?.remove();
+					}
+				}
+				cleanupContacts();
+			});
 		</script>
 	</body>
 </html>
