@@ -1,5 +1,7 @@
 ---
 import '@fontsource-variable/onest';
+import * as fontkit from 'fontkit';
+import { fileURLToPath } from 'node:url';
 import ClientRouting from '../components/ClientRouting.astro';
 import SiteSidebar from '../components/SiteSidebar.astro';
 import TypeScale from '../components/TypeScale.astro';
@@ -11,6 +13,77 @@ const contacts = [
 ];
 const phone = { label: '8 (999) 693-0-693', href: 'tel:+79996930693', group: 0 };
 const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
+const fontPath = fileURLToPath(import.meta.resolve('@fontsource-variable/onest/files/onest-latin-wght-normal.woff2'));
+const baseFont = fontkit.openSync(fontPath);
+const contactFont = baseFont;
+const flattenGlyph = (commands: Array<{ command: string; args: number[] }>) => {
+	const contours: Array<Array<{ x: number; y: number }>> = [];
+	let contour: Array<{ x: number; y: number }> = [];
+	let current = { x: 0, y: 0 };
+	const finish = () => {
+		if (contour.length >= 3) contours.push(contour);
+		contour = [];
+	};
+	commands.forEach(({ command, args }) => {
+		if (command === 'moveTo') {
+			finish();
+			current = { x: args[0], y: args[1] };
+			contour.push({ ...current });
+		} else if (command === 'lineTo') {
+			current = { x: args[0], y: args[1] };
+			contour.push({ ...current });
+		} else if (command === 'quadraticCurveTo') {
+			const start = { ...current };
+			const control = { x: args[0], y: args[1] };
+			const end = { x: args[2], y: args[3] };
+			for (let step = 1; step <= 6; step += 1) {
+				const t = step / 6;
+				const inverse = 1 - t;
+				contour.push({
+					x: inverse * inverse * start.x + 2 * inverse * t * control.x + t * t * end.x,
+					y: inverse * inverse * start.y + 2 * inverse * t * control.y + t * t * end.y,
+				});
+			}
+			current = end;
+		} else if (command === 'bezierCurveTo') {
+			const start = { ...current };
+			const first = { x: args[0], y: args[1] };
+			const second = { x: args[2], y: args[3] };
+			const end = { x: args[4], y: args[5] };
+			for (let step = 1; step <= 8; step += 1) {
+				const t = step / 8;
+				const inverse = 1 - t;
+				contour.push({
+					x: inverse ** 3 * start.x + 3 * inverse ** 2 * t * first.x + 3 * inverse * t ** 2 * second.x + t ** 3 * end.x,
+					y: inverse ** 3 * start.y + 3 * inverse ** 2 * t * first.y + 3 * inverse * t ** 2 * second.y + t ** 3 * end.y,
+				});
+			}
+			current = end;
+		} else if (command === 'closePath') finish();
+	});
+	finish();
+	return contours;
+};
+const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.label].flatMap((character, index) => {
+	if (character === ' ') return [];
+	const glyph = contactFont.glyphForCodePoint(character.codePointAt(0) ?? 0);
+	const { minX, minY, maxX, maxY } = glyph.bbox;
+	return [{
+		contact,
+		group,
+		index,
+		character,
+		path: glyph.path.toSVG(),
+		vertices: flattenGlyph(glyph.path.commands),
+		minX,
+		minY,
+		maxX,
+		maxY,
+		width: Math.max(1, maxX - minX),
+		height: Math.max(1, maxY - minY),
+		unitsPerEm: contactFont.unitsPerEm,
+	}];
+}));
 ---
 
 <!doctype html>
@@ -43,19 +116,23 @@ const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
 			<SiteSidebar active="contacts" />
 			<main>
 				<div class="contact-physics" data-contact-physics>
-					{physicsContacts.flatMap((contact, group) => [...contact.label].map((character, index) => (
-						character === ' '
-							? null
-							: <a
+					{physicsLetters.map((letter) => (
+							<a
 								class="contact-body"
-								href={contact.href}
-								target={contact.href.startsWith('http') ? '_blank' : undefined}
-								rel={contact.href.startsWith('http') ? 'noreferrer' : undefined}
-								aria-label={contact.label}
-								data-group={group}
-								data-index={index}
-							>{character}</a>
-					)))}
+								href={letter.contact.href}
+								target={letter.contact.href.startsWith('http') ? '_blank' : undefined}
+								rel={letter.contact.href.startsWith('http') ? 'noreferrer' : undefined}
+								aria-label={letter.contact.label}
+								data-group={letter.group}
+								data-index={letter.index}
+								data-glyph-vertices={JSON.stringify(letter.vertices)}
+								style={`--glyph-width:${letter.width};--glyph-height:${letter.height};--glyph-units:${letter.unitsPerEm}`}
+							>
+								<svg viewBox={`${letter.minX} ${-letter.maxY} ${letter.width} ${letter.height}`} aria-hidden="true">
+									<g transform="scale(1 -1)"><path d={letter.path} /></g>
+								</svg>
+							</a>
+					))}
 				</div>
 				<div class="contact-footer" data-contact-footer>
 					<div class="contact-footer__socials">
@@ -73,7 +150,8 @@ const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
 
 		<script>
 			import { navigate } from 'astro:transitions/client';
-			import { Body as MatterBody, Bodies, Composite, Engine, Query } from 'matter-js';
+			import { Body as MatterBody, Bodies, Common, Composite, Engine, Query } from 'matter-js';
+			import decomp from 'poly-decomp';
 
 			let cleanupContacts = () => {};
 			const initializeContacts = () => {
@@ -83,6 +161,7 @@ const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
 				const footer = document.querySelector<HTMLElement>('[data-contact-footer]');
 				if (!stage || !footer) return;
 				const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+				Common.setDecomp(decomp);
 				const links = [...footer.querySelectorAll<HTMLAnchorElement>('[data-contact-link]')];
 				const alphabet = [...new Set(links.flatMap((link) => [...(link.dataset.value ?? '')]).filter((char) => char !== ' '))];
 				links.forEach((link) => {
@@ -195,6 +274,7 @@ const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
 				let walls: Matter.Body[] = [];
 				let frameId = 0;
 				let last = performance.now();
+				let physicsAccumulator = 0;
 				let dragging: { item: LetterBody; id: number; dx: number; dy: number; lx: number; ly: number; time: number; moved: boolean } | null = null;
 				let suppressBodyClickUntil = 0;
 
@@ -218,7 +298,19 @@ const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
 						const groupOffsets = [order * 2.2, order * 4.1, order * 3.5, order * 3.8];
 						const x = bounds.width * groupCenters[group] + groupOffsets[group] + (Math.random() - .5) * 110;
 						const y = -bounds.height * (.2 + Math.random() * 1.35) - order * 12;
-						const body = Bodies.rectangle(x, y, rect.width * .8, rect.height * .76, {
+						const vertexSets = JSON.parse(el.dataset.glyphVertices ?? '[]') as Array<Array<{ x: number; y: number }>>;
+						const rawVertices = vertexSets.flat();
+						const rawMinX = Math.min(...rawVertices.map((point) => point.x));
+						const rawMaxX = Math.max(...rawVertices.map((point) => point.x));
+						const rawMinY = Math.min(...rawVertices.map((point) => point.y));
+						const rawMaxY = Math.max(...rawVertices.map((point) => point.y));
+						const rawWidth = Math.max(1, rawMaxX - rawMinX);
+						const rawHeight = Math.max(1, rawMaxY - rawMinY);
+						const shape = vertexSets.map((vertices) => vertices.map((point) => ({
+							x: (point.x - (rawMinX + rawMaxX) / 2) * rect.width / rawWidth,
+							y: (point.y - (rawMinY + rawMaxY) / 2) * rect.height / rawHeight,
+						})));
+						const options = {
 							restitution: .42,
 							friction: .18,
 							frictionStatic: .32,
@@ -226,7 +318,10 @@ const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
 							density: .0018,
 							angle: (Math.random() - .5) * 1.05,
 							collisionFilter: { category: 0x0001, mask: 0xFFFFFFFD },
-						});
+						};
+						const body = rawVertices.length >= 3
+							? Bodies.fromVertices(x, y, shape, options, true, .01, 4, .01)
+							: Bodies.rectangle(x, y, rect.width * .8, rect.height * .76, options);
 						MatterBody.setVelocity(body, { x: (Math.random() - .5) * 7, y: 1 + Math.random() * 3 });
 						MatterBody.setAngularVelocity(body, (Math.random() - .5) * .095);
 						return { el, body, w: rect.width, h: rect.height, entered: false };
@@ -244,9 +339,13 @@ const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
 					return bodies.find((item) => item.body === hit);
 				};
 				const tick = (now: number) => {
-					const delta = Math.min(32, now - last);
+					const delta = Math.min(50, now - last);
 					last = now;
-					Engine.update(engine, delta);
+					physicsAccumulator += delta;
+					while (physicsAccumulator >= 1000 / 60) {
+						Engine.update(engine, 1000 / 60);
+						physicsAccumulator -= 1000 / 60;
+					}
 					bodies.forEach((item) => {
 						if (!item.entered && item.body.position.y >= item.h / 2) {
 							item.entered = true;
@@ -411,6 +510,8 @@ const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
 		top: 0;
 		left: 0;
 		display: block;
+		width: calc(var(--contact-letter-size, 160px) * var(--glyph-width) / var(--glyph-units));
+		height: calc(var(--contact-letter-size, 160px) * var(--glyph-height) / var(--glyph-units));
 		font-size: var(--contact-letter-size, 160px);
 		font-weight: 500;
 		line-height: 1.2;
@@ -421,6 +522,8 @@ const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
 		will-change: transform;
 		transform-origin: center;
 	}
+	.contact-body svg { display: block; width: 100%; height: 100%; overflow: visible; fill: currentColor; }
+	.contact-body path { stroke: currentColor; stroke-width: 14; stroke-linejoin: round; paint-order: stroke fill; }
 	.contact-body.is-dragging { z-index: 10; cursor: grabbing; }
 	.contact-body { transition: opacity 180ms ease; }
 	.contact-body.is-muted { opacity: .5; }
