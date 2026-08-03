@@ -269,7 +269,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 
 				type LetterBody = { el: HTMLElement; body: Matter.Body; w: number; h: number; offsetX: number; offsetY: number; entered: boolean };
 				const engine = Engine.create({ positionIterations: 16, velocityIterations: 10, constraintIterations: 4 });
-				engine.gravity.y = 1.4375;
+				engine.gravity.y = 1.5;
 				engine.gravity.scale = .001;
 				let bodies: LetterBody[] = [];
 				let walls: Matter.Body[] = [];
@@ -469,12 +469,12 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 						const dy = item.body.position.y - blast.y;
 						const distance = Math.max(40, Math.hypot(dx, dy));
 						const proximity = 1 - Math.min(1, distance / Math.max(bounds.width * .52, bounds.height * .8));
-						const impulse = 6.8 + proximity * 8.4;
+						const impulse = 10.2 + proximity * 12.6;
 						MatterBody.setVelocity(item.body, {
-							x: item.body.velocity.x * .25 + dx / distance * impulse + (Math.random() - .5) * 2.4,
-							y: Math.min(-7.6, dy / distance * impulse - 4.4 - Math.random() * 3.6),
+							x: item.body.velocity.x * .25 + dx / distance * impulse + (Math.random() - .5) * 3.6,
+							y: Math.min(-11.4, dy / distance * impulse - 6.6 - Math.random() * 5.4),
 						});
-						MatterBody.setAngularVelocity(item.body, item.body.angularVelocity * .35 + (Math.random() - .5) * .22);
+						MatterBody.setAngularVelocity(item.body, item.body.angularVelocity * .35 + (Math.random() - .5) * .33);
 					});
 					const waitUntilGone = () => {
 						if (bodies.every((item) => item.body.position.y - item.h / 2 > window.innerHeight)) resolve();
