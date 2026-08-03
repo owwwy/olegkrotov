@@ -193,7 +193,7 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 						const groupOffsets = [order * 2.2, order * 4.1, order * 3.5, order * 3.8];
 						const x = bounds.width * groupCenters[group] + groupOffsets[group] + (Math.random() - .5) * 110;
 						const y = -bounds.height * (.2 + Math.random() * 1.35) - order * 12;
-						const body = Bodies.rectangle(x, y, rect.width * .94, rect.height * .9, {
+						const body = Bodies.rectangle(x, y, rect.width * .8, rect.height * .76, {
 							restitution: .42,
 							friction: .18,
 							frictionStatic: .32,
