@@ -265,8 +265,9 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 
 				let leaving = false;
 				const dropBodies = () => new Promise<void>((resolve) => {
+					stage.classList.add('is-leaving');
 					if (reduced) {
-						bodies.forEach((body) => { body.y = stage.clientHeight + body.h; renderBody(body); });
+						bodies.forEach((body) => { body.y = window.innerHeight + body.h; renderBody(body); });
 						resolve();
 						return;
 					}
@@ -280,7 +281,7 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 						body.spin += (Math.random() - .5) * .8;
 					});
 					const waitUntilGone = () => {
-						if (bodies.every((body) => body.y > stage.clientHeight + body.h * .2)) resolve();
+						if (bodies.every((body) => body.y > window.innerHeight + body.h * .2)) resolve();
 						else requestAnimationFrame(waitUntilGone);
 					};
 					requestAnimationFrame(waitUntilGone);
@@ -329,6 +330,7 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 	.page-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--grid-gap); padding-inline: var(--page-padding); }
 	main { position: relative; grid-column: 4 / span 9; height: 100svh; min-width: 0; overflow: hidden; }
 	.contact-physics { position: absolute; inset: 0 0 calc(var(--page-padding) + var(--ui-line-height) + 24px); overflow: hidden; touch-action: none; }
+	.contact-physics.is-leaving { overflow: visible; }
 	.contact-body {
 		position: absolute;
 		top: 0;
