@@ -462,18 +462,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 					}
 					const bounds = stage.getBoundingClientRect();
 					const floor = walls[2];
-					const funnelGap = Math.max(150, Math.min(240, bounds.width * .12));
-					const funnelRun = (bounds.width - funnelGap) / 2;
-					const funnelAngle = Math.atan2(Math.min(78, bounds.height * .09), funnelRun);
-					const funnelLength = funnelRun / Math.cos(funnelAngle) + 20;
-					const funnelThickness = 90;
-					const funnelDrop = Math.tan(funnelAngle) * funnelRun;
-					const funnelOptions = { isStatic: true, friction: .12, frictionStatic: .18, restitution: .18 };
-					const funnel = [
-						Bodies.rectangle(funnelRun / 2, bounds.height + funnelDrop / 2 + funnelThickness / 2, funnelLength, funnelThickness, { ...funnelOptions, angle: funnelAngle }),
-						Bodies.rectangle(bounds.width - funnelRun / 2, bounds.height + funnelDrop / 2 + funnelThickness / 2, funnelLength, funnelThickness, { ...funnelOptions, angle: -funnelAngle }),
-					];
-					const blast = { x: bounds.width / 2, y: bounds.height + 30 };
+					const blast = { x: bounds.width / 2, y: bounds.height + Math.max(90, bounds.height * .12) };
 					engine.gravity.y = .92;
 					bodies.forEach((item) => {
 						const dx = item.body.position.x - blast.x;
@@ -489,14 +478,12 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 					});
 					setTimeout(() => {
 						if (floor) Composite.remove(engine.world, floor);
-						Composite.add(engine.world, funnel);
-						engine.gravity.y = 1.25;
+						engine.gravity.y = 1.45;
 					}, 480);
 					setTimeout(() => {
-						funnel.forEach((part) => Composite.remove(engine.world, part));
 						walls.filter((wall) => wall !== floor).forEach((wall) => Composite.remove(engine.world, wall));
-						engine.gravity.y = 1.65;
-					}, 1380);
+						engine.gravity.y = 1.7;
+					}, 980);
 					const waitUntilGone = () => {
 						if (bodies.every((item) => item.body.position.y - item.h / 2 > window.innerHeight)) resolve();
 						else requestAnimationFrame(waitUntilGone);
