@@ -5,12 +5,12 @@ import SiteSidebar from '../components/SiteSidebar.astro';
 import TypeScale from '../components/TypeScale.astro';
 
 const contacts = [
-	{ label: 'Telegram', href: 'https://t.me/owdesy' },
-	{ label: 'Max', href: 'https://max.ru/owdesy' },
-	{ label: 'Dprofile', href: 'https://dprofile.ru/owdesy' },
+	{ label: 'Telegram', href: 'https://t.me/owdesy', group: 3 },
+	{ label: 'Max', href: 'https://max.ru/owdesy', group: 1 },
+	{ label: 'Dprofile', href: 'https://dprofile.ru/owdesy', group: 2 },
 ];
-const phone = { label: '8 (999) 693-0-693', href: 'tel:+79996930693' };
-const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
+const phone = { label: '8 (999) 693-0-693', href: 'tel:+79996930693', group: 0 };
+const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
 ---
 
 <!doctype html>
@@ -43,22 +43,30 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 			<SiteSidebar active="contacts" />
 			<main>
 				<div class="contact-physics" data-contact-physics aria-hidden="true">
-					{physicsLabels.flatMap((label, group) => [...label].map((character, index) => (
+					{physicsContacts.flatMap((contact, group) => [...contact.label].map((character, index) => (
 						character === ' '
 							? null
-							: <span class="contact-body" data-group={group} data-index={index}>{character}</span>
+							: <a
+								class="contact-body"
+								href={contact.href}
+								target={contact.href.startsWith('http') ? '_blank' : undefined}
+								rel={contact.href.startsWith('http') ? 'noreferrer' : undefined}
+								aria-label={contact.label}
+								data-group={group}
+								data-index={index}
+							>{character}</a>
 					)))}
 				</div>
 				<div class="contact-footer" data-contact-footer>
 					<div class="contact-footer__socials">
 						{contacts.map((contact, index) => (
 							<>
-								<a href={contact.href} target="_blank" rel="noreferrer" data-contact-link data-value={contact.label}>{contact.label}</a>
+								<a href={contact.href} target="_blank" rel="noreferrer" data-contact-link data-contact-group={contact.group} data-value={contact.label}>{contact.label}</a>
 								{index < contacts.length - 1 && <span class="contact-dot" aria-hidden="true">·</span>}
 							</>
 						))}
 					</div>
-					<a href={phone.href} data-contact-link data-value={phone.label}>{phone.label}</a>
+					<a href={phone.href} data-contact-link data-contact-group={phone.group} data-value={phone.label}>{phone.label}</a>
 				</div>
 			</main>
 		</div>
@@ -162,6 +170,25 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 					link.addEventListener('pointerenter', () => scrambleHover(link), { signal: controller.signal });
 					link.addEventListener('focus', () => scrambleHover(link), { signal: controller.signal });
 				});
+				const setHighlightedGroup = (group?: string) => {
+					stage.querySelectorAll<HTMLElement>('.contact-body').forEach((letter) => {
+						letter.classList.toggle('is-muted', group !== undefined && letter.dataset.group !== group);
+					});
+				};
+				links.forEach((link) => {
+					link.addEventListener('pointerenter', () => setHighlightedGroup(link.dataset.contactGroup), { signal: controller.signal });
+					link.addEventListener('pointerleave', () => setHighlightedGroup(), { signal: controller.signal });
+					link.addEventListener('focus', () => setHighlightedGroup(link.dataset.contactGroup), { signal: controller.signal });
+					link.addEventListener('blur', () => setHighlightedGroup(), { signal: controller.signal });
+				});
+				stage.addEventListener('pointerover', (event) => {
+					const letter = (event.target as HTMLElement).closest<HTMLElement>('.contact-body');
+					if (letter) setHighlightedGroup(letter.dataset.group);
+				}, { signal: controller.signal });
+				stage.addEventListener('pointerout', (event) => {
+					const nextLetter = (event.relatedTarget as HTMLElement | null)?.closest?.<HTMLElement>('.contact-body');
+					setHighlightedGroup(nextLetter?.dataset.group);
+				}, { signal: controller.signal });
 
 				type LetterBody = { el: HTMLElement; body: Matter.Body; w: number; h: number; entered: boolean };
 				const engine = Engine.create({ positionIterations: 10, velocityIterations: 8, constraintIterations: 4 });
@@ -171,7 +198,8 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 				let walls: Matter.Body[] = [];
 				let frameId = 0;
 				let last = performance.now();
-				let dragging: { item: LetterBody; id: number; dx: number; dy: number; lx: number; ly: number; time: number } | null = null;
+				let dragging: { item: LetterBody; id: number; dx: number; dy: number; lx: number; ly: number; time: number; moved: boolean } | null = null;
+				let suppressBodyClickUntil = 0;
 
 				const buildPhysics = () => {
 					const bounds = stage.getBoundingClientRect();
@@ -231,7 +259,7 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 					const item = bodies.find((body) => body.el === element);
 					if (!item || leaving) return;
 					const rect = stage.getBoundingClientRect();
-					dragging = { item, id: event.pointerId, dx: event.clientX - rect.left - item.body.position.x, dy: event.clientY - rect.top - item.body.position.y, lx: event.clientX, ly: event.clientY, time: performance.now() };
+					dragging = { item, id: event.pointerId, dx: event.clientX - rect.left - item.body.position.x, dy: event.clientY - rect.top - item.body.position.y, lx: event.clientX, ly: event.clientY, time: performance.now(), moved: false };
 					MatterBody.setStatic(item.body, true);
 					item.el.setPointerCapture(event.pointerId);
 					item.el.classList.add('is-dragging');
@@ -242,6 +270,7 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 					const now = performance.now();
 					const elapsed = Math.max(1, now - dragging.time);
 					const item = dragging.item;
+					if (Math.abs(event.clientX - dragging.lx) + Math.abs(event.clientY - dragging.ly) > 3) dragging.moved = true;
 					const x = Math.max(item.w / 2, Math.min(stage.clientWidth - item.w / 2, event.clientX - rect.left - dragging.dx));
 					const y = Math.max(item.h / 2, Math.min(stage.clientHeight - item.h / 2, event.clientY - rect.top - dragging.dy));
 					MatterBody.setPosition(item.body, { x, y });
@@ -254,10 +283,17 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 					const { item } = dragging;
 					item.el.classList.remove('is-dragging');
 					MatterBody.setStatic(item.body, false);
+					if (dragging.moved) suppressBodyClickUntil = performance.now() + 350;
 					dragging = null;
 				};
 				stage.addEventListener('pointerup', drop, { signal: controller.signal });
 				stage.addEventListener('pointercancel', drop, { signal: controller.signal });
+				stage.addEventListener('click', (event) => {
+					if (performance.now() < suppressBodyClickUntil) {
+						event.preventDefault();
+						event.stopPropagation();
+					}
+				}, { capture: true, signal: controller.signal });
 
 				const enter = () => {
 					footer.classList.add('is-visible');
@@ -370,6 +406,8 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 		transform-origin: center;
 	}
 	.contact-body.is-dragging { z-index: 10; cursor: grabbing; }
+	.contact-body { transition: opacity 180ms ease; }
+	.contact-body.is-muted { opacity: .5; }
 	.contact-footer {
 		position: absolute;
 		right: 0;
