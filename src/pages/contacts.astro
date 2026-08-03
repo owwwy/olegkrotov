@@ -42,7 +42,7 @@ const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
 		<div class="page-grid">
 			<SiteSidebar active="contacts" />
 			<main>
-				<div class="contact-physics" data-contact-physics aria-hidden="true">
+				<div class="contact-physics" data-contact-physics>
 					{physicsContacts.flatMap((contact, group) => [...contact.label].map((character, index) => (
 						character === ' '
 							? null
@@ -73,7 +73,7 @@ const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
 
 		<script>
 			import { navigate } from 'astro:transitions/client';
-			import { Body as MatterBody, Bodies, Composite, Engine } from 'matter-js';
+			import { Body as MatterBody, Bodies, Composite, Engine, Query } from 'matter-js';
 
 			let cleanupContacts = () => {};
 			const initializeContacts = () => {
@@ -181,14 +181,11 @@ const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
 					link.addEventListener('focus', () => setHighlightedGroup(link.dataset.contactGroup), { signal: controller.signal });
 					link.addEventListener('blur', () => setHighlightedGroup(), { signal: controller.signal });
 				});
-				stage.addEventListener('pointerover', (event) => {
+				stage.addEventListener('focusin', (event) => {
 					const letter = (event.target as HTMLElement).closest<HTMLElement>('.contact-body');
 					if (letter) setHighlightedGroup(letter.dataset.group);
 				}, { signal: controller.signal });
-				stage.addEventListener('pointerout', (event) => {
-					const nextLetter = (event.relatedTarget as HTMLElement | null)?.closest?.<HTMLElement>('.contact-body');
-					setHighlightedGroup(nextLetter?.dataset.group);
-				}, { signal: controller.signal });
+				stage.addEventListener('focusout', () => setHighlightedGroup(), { signal: controller.signal });
 
 				type LetterBody = { el: HTMLElement; body: Matter.Body; w: number; h: number; entered: boolean };
 				const engine = Engine.create({ positionIterations: 10, velocityIterations: 8, constraintIterations: 4 });
@@ -240,6 +237,12 @@ const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
 				const renderBody = (item: LetterBody) => {
 					item.el.style.transform = `translate3d(${item.body.position.x - item.w / 2}px, ${item.body.position.y - item.h / 2}px, 0) rotate(${item.body.angle}rad)`;
 				};
+				const bodyAtPointer = (event: PointerEvent) => {
+					const rect = stage.getBoundingClientRect();
+					const point = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+					const hit = Query.point(bodies.map((item) => item.body), point).at(-1);
+					return bodies.find((item) => item.body === hit);
+				};
 				const tick = (now: number) => {
 					const delta = Math.min(32, now - last);
 					last = now;
@@ -255,17 +258,21 @@ const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
 				};
 
 				stage.addEventListener('pointerdown', (event) => {
-					const element = (event.target as HTMLElement).closest<HTMLElement>('.contact-body');
-					const item = bodies.find((body) => body.el === element);
+					const item = bodyAtPointer(event);
 					if (!item || leaving) return;
 					const rect = stage.getBoundingClientRect();
 					dragging = { item, id: event.pointerId, dx: event.clientX - rect.left - item.body.position.x, dy: event.clientY - rect.top - item.body.position.y, lx: event.clientX, ly: event.clientY, time: performance.now(), moved: false };
 					MatterBody.setStatic(item.body, true);
-					item.el.setPointerCapture(event.pointerId);
+					stage.setPointerCapture(event.pointerId);
 					item.el.classList.add('is-dragging');
 				}, { signal: controller.signal });
 				stage.addEventListener('pointermove', (event) => {
-					if (!dragging || dragging.id !== event.pointerId) return;
+					if (!dragging || dragging.id !== event.pointerId) {
+						const hovered = bodyAtPointer(event);
+						stage.classList.toggle('has-letter-hover', Boolean(hovered));
+						setHighlightedGroup(hovered?.el.dataset.group);
+						return;
+					}
 					const rect = stage.getBoundingClientRect();
 					const now = performance.now();
 					const elapsed = Math.max(1, now - dragging.time);
@@ -278,16 +285,23 @@ const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
 					dragging.lx = event.clientX; dragging.ly = event.clientY; dragging.time = now;
 					renderBody(item);
 				}, { signal: controller.signal });
-				const drop = (event: PointerEvent) => {
+				const drop = (event: PointerEvent, activate = false) => {
 					if (!dragging || dragging.id !== event.pointerId) return;
 					const { item } = dragging;
+					const shouldActivate = activate && !dragging.moved;
 					item.el.classList.remove('is-dragging');
 					MatterBody.setStatic(item.body, false);
 					if (dragging.moved) suppressBodyClickUntil = performance.now() + 350;
 					dragging = null;
+					if (shouldActivate) item.el.click();
 				};
-				stage.addEventListener('pointerup', drop, { signal: controller.signal });
-				stage.addEventListener('pointercancel', drop, { signal: controller.signal });
+				stage.addEventListener('pointerup', (event) => drop(event, true), { signal: controller.signal });
+				stage.addEventListener('pointercancel', (event) => drop(event), { signal: controller.signal });
+				stage.addEventListener('pointerleave', () => {
+					if (dragging) return;
+					stage.classList.remove('has-letter-hover');
+					setHighlightedGroup();
+				}, { signal: controller.signal });
 				stage.addEventListener('click', (event) => {
 					if (performance.now() < suppressBodyClickUntil) {
 						event.preventDefault();
@@ -389,7 +403,8 @@ const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
 	a { color: inherit; text-decoration: none; }
 	.page-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--grid-gap); padding-inline: var(--page-padding); }
 	main { position: relative; grid-column: 4 / span 9; height: 100svh; min-width: 0; overflow: hidden; }
-	.contact-physics { position: absolute; inset: 0 0 calc(var(--page-padding) + var(--ui-line-height) + 24px); overflow: hidden; touch-action: none; }
+	.contact-physics { position: absolute; inset: 0 0 calc(var(--page-padding) + var(--ui-line-height) + 24px); overflow: hidden; cursor: default; touch-action: none; }
+	.contact-physics.has-letter-hover { cursor: grab; }
 	.contact-physics.is-leaving { overflow: visible; }
 	.contact-body {
 		position: absolute;
@@ -401,6 +416,7 @@ const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
 		line-height: 1.2;
 		letter-spacing: 0;
 		cursor: grab;
+		pointer-events: none;
 		user-select: none;
 		will-change: transform;
 		transform-origin: center;
