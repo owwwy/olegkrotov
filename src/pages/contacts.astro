@@ -454,15 +454,34 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 						MatterBody.setStatic(dragging.item.body, false);
 						dragging = null;
 					}
-					walls.forEach((wall) => Composite.remove(engine.world, wall));
-					engine.gravity.y = 1.35;
+					const bounds = stage.getBoundingClientRect();
+					const floor = walls[2];
+					if (floor) Composite.remove(engine.world, floor);
+					const funnelGap = Math.max(150, Math.min(240, bounds.width * .12));
+					const funnelRun = (bounds.width - funnelGap) / 2;
+					const funnelAngle = Math.atan2(Math.min(78, bounds.height * .09), funnelRun);
+					const funnelLength = funnelRun / Math.cos(funnelAngle) + 20;
+					const funnelThickness = 90;
+					const funnelDrop = Math.tan(funnelAngle) * funnelRun;
+					const funnelOptions = { isStatic: true, friction: .12, frictionStatic: .18, restitution: .18 };
+					const funnel = [
+						Bodies.rectangle(funnelRun / 2, bounds.height + funnelDrop / 2 + funnelThickness / 2, funnelLength, funnelThickness, { ...funnelOptions, angle: funnelAngle }),
+						Bodies.rectangle(bounds.width - funnelRun / 2, bounds.height + funnelDrop / 2 + funnelThickness / 2, funnelLength, funnelThickness, { ...funnelOptions, angle: -funnelAngle }),
+					];
+					Composite.add(engine.world, funnel);
+					engine.gravity.y = 1.18;
 					bodies.forEach((item) => {
 						MatterBody.setVelocity(item.body, {
-							x: item.body.velocity.x + (Math.random() - .5) * 2.4,
-							y: Math.max(1.5, item.body.velocity.y * .2 + Math.random() * 2.5),
+							x: item.body.velocity.x * .45 + (Math.random() - .5) * 1.4,
+							y: Math.max(.8, item.body.velocity.y * .15 + Math.random() * 1.2),
 						});
 						MatterBody.setAngularVelocity(item.body, item.body.angularVelocity + (Math.random() - .5) * .035);
 					});
+					setTimeout(() => {
+						funnel.forEach((part) => Composite.remove(engine.world, part));
+						walls.filter((wall) => wall !== floor).forEach((wall) => Composite.remove(engine.world, wall));
+						engine.gravity.y = 1.55;
+					}, 820);
 					const waitUntilGone = () => {
 						if (bodies.every((item) => item.body.position.y - item.h / 2 > window.innerHeight)) resolve();
 						else requestAnimationFrame(waitUntilGone);
