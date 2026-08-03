@@ -318,7 +318,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 						const collisionHeight = rect.height + collisionExpansion;
 						const outline = rawVertices.map((point) => ({
 							x: (point.x - (rawMinX + rawMaxX) / 2) * collisionWidth / rawWidth,
-							y: (point.y - (rawMinY + rawMaxY) / 2) * collisionHeight / rawHeight,
+							y: -(point.y - (rawMinY + rawMaxY) / 2) * collisionHeight / rawHeight,
 						}));
 						const hull = outline.length >= 3 ? Vertices.hull(outline) : [];
 						const options = {
