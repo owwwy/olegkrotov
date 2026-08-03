@@ -129,8 +129,41 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 						}, linkIndex * 42 + reverseIndex * 18);
 					}))).then(() => undefined);
 				})).then(() => footer.classList.remove('is-visible'));
+				const lockedCharacters = new Set([' ', '+', '(', ')', '-', '–', '—']);
+				const scrambleHover = (link: HTMLAnchorElement) => {
+					if (reduced || leaving || link.dataset.hoverAnimating === 'true') return;
+					const original = [...(link.dataset.value ?? '')];
+					const spans = [...link.querySelectorAll<HTMLElement>('.contact-link-char')];
+					const indexes = original.flatMap((character, index) => lockedCharacters.has(character) ? [] : [index]);
+					const characters = indexes.map((index) => original[index]);
+					link.dataset.hoverAnimating = 'true';
+					const started = performance.now();
+					let nextTick = started;
+					const frame = (now: number) => {
+						const progress = Math.min(1, (now - started) / 260);
+						if (now >= nextTick) {
+							nextTick = now + 38 + 38 * (1 - Math.pow(1 - progress, 3));
+							const shuffled = [...characters];
+							for (let index = shuffled.length - 1; index > 0; index -= 1) {
+								const target = Math.floor(Math.random() * (index + 1));
+								[shuffled[index], shuffled[target]] = [shuffled[target], shuffled[index]];
+							}
+							indexes.forEach((characterIndex, index) => { spans[characterIndex].textContent = shuffled[index] ?? ''; });
+						}
+						if (progress < 1) requestAnimationFrame(frame);
+						else {
+							spans.forEach((span, index) => { span.textContent = original[index] === ' ' ? '\u00a0' : original[index] ?? ''; });
+							link.dataset.hoverAnimating = 'false';
+						}
+					};
+					requestAnimationFrame(frame);
+				};
+				links.forEach((link) => {
+					link.addEventListener('pointerenter', () => scrambleHover(link), { signal: controller.signal });
+					link.addEventListener('focus', () => scrambleHover(link), { signal: controller.signal });
+				});
 
-				type LetterBody = { el: HTMLElement; body: Matter.Body; w: number; h: number };
+				type LetterBody = { el: HTMLElement; body: Matter.Body; w: number; h: number; entered: boolean };
 				const engine = Engine.create({ positionIterations: 10, velocityIterations: 8, constraintIterations: 4 });
 				engine.gravity.y = 1.15;
 				engine.gravity.scale = .001;
@@ -148,6 +181,10 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 						Bodies.rectangle(-wallSize / 2, bounds.height / 2, wallSize, bounds.height * 4, { isStatic: true }),
 						Bodies.rectangle(bounds.width + wallSize / 2, bounds.height / 2, wallSize, bounds.height * 4, { isStatic: true }),
 						Bodies.rectangle(bounds.width / 2, bounds.height + wallSize / 2, bounds.width + wallSize * 2, wallSize, { isStatic: true }),
+						Bodies.rectangle(bounds.width / 2, -wallSize / 2, bounds.width + wallSize * 2, wallSize, {
+							isStatic: true,
+							collisionFilter: { category: 0x0002, mask: 0x0001 },
+						}),
 					];
 					bodies = elements.map((el, order) => {
 						const rect = el.getBoundingClientRect();
@@ -156,17 +193,18 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 						const groupOffsets = [order * 2.2, order * 4.1, order * 3.5, order * 3.8];
 						const x = bounds.width * groupCenters[group] + groupOffsets[group] + (Math.random() - .5) * 110;
 						const y = -bounds.height * (.2 + Math.random() * 1.35) - order * 12;
-						const body = Bodies.rectangle(x, y, rect.width * .86, rect.height * .82, {
+						const body = Bodies.rectangle(x, y, rect.width * .94, rect.height * .9, {
 							restitution: .42,
 							friction: .18,
 							frictionStatic: .32,
 							frictionAir: .006,
 							density: .0018,
 							angle: (Math.random() - .5) * 1.05,
+							collisionFilter: { category: 0x0001, mask: 0xFFFFFFFD },
 						});
 						MatterBody.setVelocity(body, { x: (Math.random() - .5) * 7, y: 1 + Math.random() * 3 });
 						MatterBody.setAngularVelocity(body, (Math.random() - .5) * .095);
-						return { el, body, w: rect.width, h: rect.height };
+						return { el, body, w: rect.width, h: rect.height, entered: false };
 					});
 					Composite.add(engine.world, [...walls, ...bodies.map((item) => item.body)]);
 				};
@@ -178,6 +216,12 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 					const delta = Math.min(32, now - last);
 					last = now;
 					Engine.update(engine, delta);
+					bodies.forEach((item) => {
+						if (!item.entered && item.body.position.y >= item.h / 2) {
+							item.entered = true;
+							item.body.collisionFilter.mask = 0xFFFFFFFF;
+						}
+					});
 					bodies.forEach(renderBody);
 					frameId = requestAnimationFrame(tick);
 				};
@@ -316,8 +360,8 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 		top: 0;
 		left: 0;
 		display: block;
-		font-size: clamp(92px, 8.35vw, 171px);
-		font-weight: 400;
+		font-size: var(--contact-letter-size, 160px);
+		font-weight: 500;
 		line-height: 1.2;
 		letter-spacing: 0;
 		cursor: grab;
