@@ -784,6 +784,20 @@ const firstProject = projects[0];
 		infoLink?.addEventListener('click', onInfoClick);
 		if (infoLink) cleanups.push(() => infoLink.removeEventListener('click', onInfoClick));
 
+		const contactsLink = document.querySelector<HTMLAnchorElement>('nav a[href="/contacts"]');
+		const onContactsClick = (event: MouseEvent) => {
+			if (!contactsLink) return;
+			event.preventDefault();
+			try { sessionStorage.setItem('contacts-page-transition', 'true'); } catch {}
+			if (reducedMotion.matches) {
+				window.location.assign(contactsLink.href);
+				return;
+			}
+			runPageExit(contactsLink.href, true, false, true);
+		};
+		contactsLink?.addEventListener('click', onContactsClick);
+		if (contactsLink) cleanups.push(() => contactsLink.removeEventListener('click', onContactsClick));
+
 		const revealSidebar = () => {
 			const elements = [...document.querySelectorAll<HTMLElement>(
 				'.identity [data-scramble-text], nav [data-scramble-text]',

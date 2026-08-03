@@ -1,0 +1,324 @@
+---
+import '@fontsource-variable/onest';
+import ClientRouting from '../components/ClientRouting.astro';
+import SiteSidebar from '../components/SiteSidebar.astro';
+import TypeScale from '../components/TypeScale.astro';
+
+const contacts = [
+	{ label: 'Telegram', href: 'https://t.me/owdesy' },
+	{ label: 'Max', href: 'https://max.ru/owdesy' },
+	{ label: 'Dprofile', href: 'https://dprofile.ru/owdesy' },
+];
+const phone = { label: '8 (999) 693-0-693', href: 'tel:+79996930693' };
+const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
+---
+
+<!doctype html>
+<html lang="ru">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, viewport-fit=cover" />
+		<ClientRouting />
+		<style is:inline>html,body{margin:0;background:#fff}</style>
+		<script is:inline>
+			if (window.matchMedia('(max-width: 767px)').matches) window.location.replace('/mobile');
+		</script>
+		<script is:inline data-astro-rerun>
+			var internalContactsTransition = false;
+			try {
+				internalContactsTransition = sessionStorage.getItem('contacts-page-transition') === 'true';
+				sessionStorage.removeItem('contacts-page-transition');
+			} catch {}
+			document.documentElement.classList.toggle('contacts-direct', !internalContactsTransition);
+			document.documentElement.classList.add('contacts-entering');
+		</script>
+		<TypeScale />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="theme-color" content="#ffffff" />
+		<meta name="description" content="Контакты Олега Кротова — digital designer." />
+		<title>Контакты — Олег Кротов</title>
+	</head>
+	<body>
+		<div class="page-grid">
+			<SiteSidebar active="contacts" />
+			<main>
+				<div class="contact-physics" data-contact-physics aria-hidden="true">
+					{physicsLabels.flatMap((label, group) => [...label].map((character, index) => (
+						character === ' '
+							? null
+							: <span class="contact-body" data-group={group} data-index={index}>{character}</span>
+					)))}
+				</div>
+				<div class="contact-footer" data-contact-footer>
+					<div class="contact-footer__socials">
+						{contacts.map((contact, index) => (
+							<>
+								<a href={contact.href} target="_blank" rel="noreferrer" data-contact-link data-value={contact.label}>{contact.label}</a>
+								{index < contacts.length - 1 && <span class="contact-dot" aria-hidden="true">·</span>}
+							</>
+						))}
+					</div>
+					<a href={phone.href} data-contact-link data-value={phone.label}>{phone.label}</a>
+				</div>
+			</main>
+		</div>
+
+		<script>
+			import { navigate } from 'astro:transitions/client';
+
+			let cleanupContacts = () => {};
+			const initializeContacts = () => {
+				cleanupContacts();
+				const controller = new AbortController();
+				const stage = document.querySelector<HTMLElement>('[data-contact-physics]');
+				const footer = document.querySelector<HTMLElement>('[data-contact-footer]');
+				if (!stage || !footer) return;
+				const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+				const links = [...footer.querySelectorAll<HTMLAnchorElement>('[data-contact-link]')];
+				const alphabet = [...new Set(links.flatMap((link) => [...(link.dataset.value ?? '')]).filter((char) => char !== ' '))];
+				links.forEach((link) => {
+					const value = link.dataset.value ?? '';
+					link.textContent = '';
+					[...value].forEach((character) => {
+						const span = document.createElement('span');
+						span.className = 'contact-link-char';
+						span.dataset.character = character;
+						span.textContent = '';
+						link.append(span);
+					});
+				});
+
+				const scrambleIn = () => links.forEach((link, linkIndex) => {
+					const spans = [...link.querySelectorAll<HTMLElement>('.contact-link-char')];
+					spans.forEach((span, index) => window.setTimeout(() => {
+						const target = span.dataset.character ?? '';
+						const started = performance.now();
+						const duration = 260 + Math.random() * 280;
+						const frame = (now: number) => {
+							const progress = Math.min(1, (now - started) / duration);
+							span.textContent = target === ' ' ? '\u00a0' : progress === 1
+								? target
+								: alphabet[Math.floor(Math.random() * alphabet.length)] ?? target;
+							if (progress < 1) window.setTimeout(() => requestAnimationFrame(frame), 36);
+						};
+						requestAnimationFrame(frame);
+					}, linkIndex * 100 + index * 34));
+				});
+
+				type Body = { el: HTMLElement; x: number; y: number; vx: number; vy: number; angle: number; spin: number; w: number; h: number; entered: boolean };
+				let bodies: Body[] = [];
+				let frameId = 0;
+				let last = performance.now();
+				let dragging: { body: Body; id: number; dx: number; dy: number; lx: number; ly: number; time: number } | null = null;
+
+				const buildPhysics = () => {
+					const bounds = stage.getBoundingClientRect();
+					const elements = [...stage.querySelectorAll<HTMLElement>('.contact-body')];
+					bodies = elements.map((el, order) => {
+						const rect = el.getBoundingClientRect();
+						const group = Number(el.dataset.group) || 0;
+						const groupCenters = [.48, .24, .63, .3];
+						const groupOffsets = [order * 2.2, order * 4.1, order * 3.5, order * 3.8];
+						return {
+							el,
+							x: bounds.width * groupCenters[group] + groupOffsets[group] - rect.width / 2 + (Math.random() - .5) * 90,
+							y: -bounds.height * (.2 + Math.random() * 1.25) - order * 10,
+							vx: (Math.random() - .5) * 260,
+							vy: 40 + Math.random() * 100,
+							angle: (Math.random() - .5) * .8,
+							spin: (Math.random() - .5) * 2.4,
+							w: rect.width,
+							h: rect.height,
+							entered: false,
+						};
+					});
+				};
+
+				const renderBody = (body: Body) => {
+					body.el.style.transform = `translate3d(${body.x}px, ${body.y}px, 0) rotate(${body.angle}rad)`;
+				};
+				const tick = (now: number) => {
+					const dt = Math.min(.025, (now - last) / 1000);
+					last = now;
+					const width = stage.clientWidth;
+					const height = stage.clientHeight;
+					bodies.forEach((body) => {
+						if (dragging?.body === body) return;
+						body.vy += 1080 * dt;
+						body.x += body.vx * dt;
+						body.y += body.vy * dt;
+						if (body.y >= 0) body.entered = true;
+						body.angle += body.spin * dt;
+						if (body.x < 0) { body.x = 0; body.vx = Math.abs(body.vx) * .55; body.spin *= .8; }
+						if (body.x + body.w > width) { body.x = width - body.w; body.vx = -Math.abs(body.vx) * .55; body.spin *= .8; }
+						if (body.y + body.h > height) {
+							body.y = height - body.h;
+							body.vy = -Math.abs(body.vy) * .34;
+							body.vx *= .965;
+							body.spin *= .92;
+							if (Math.abs(body.vy) < 8) body.vy = 0;
+						}
+					});
+					for (let pass = 0; pass < 2; pass += 1) {
+						for (let firstIndex = 0; firstIndex < bodies.length; firstIndex += 1) {
+							const first = bodies[firstIndex];
+							for (let secondIndex = firstIndex + 1; secondIndex < bodies.length; secondIndex += 1) {
+								const second = bodies[secondIndex];
+								const overlapX = Math.min(first.x + first.w, second.x + second.w) - Math.max(first.x, second.x);
+								const overlapY = Math.min(first.y + first.h, second.y + second.h) - Math.max(first.y, second.y);
+								if (overlapX <= 0 || overlapY <= 0) continue;
+								if (overlapX < overlapY) {
+									const direction = first.x + first.w / 2 < second.x + second.w / 2 ? -1 : 1;
+									const correction = overlapX * .51;
+									if (dragging?.body !== first) first.x += direction * correction;
+									if (dragging?.body !== second) second.x -= direction * correction;
+									const firstVelocity = first.vx;
+									first.vx = second.vx * .38;
+									second.vx = firstVelocity * .38;
+								} else {
+									const firstAbove = first.y + first.h / 2 < second.y + second.h / 2;
+									const correction = overlapY * .51;
+									if (dragging?.body !== first) first.y += firstAbove ? -correction : correction;
+									if (dragging?.body !== second) second.y += firstAbove ? correction : -correction;
+									if (firstAbove) first.vy = Math.min(first.vy, 0);
+									else second.vy = Math.min(second.vy, 0);
+								}
+							}
+						}
+					}
+					bodies.forEach((body) => {
+						body.x = Math.max(0, Math.min(width - body.w, body.x));
+						if (body.entered && !leaving) body.y = Math.max(0, body.y);
+						body.y = Math.min(height - body.h, body.y);
+						renderBody(body);
+					});
+					frameId = requestAnimationFrame(tick);
+				};
+
+				stage.addEventListener('pointerdown', (event) => {
+					const element = (event.target as HTMLElement).closest<HTMLElement>('.contact-body');
+					const body = bodies.find((item) => item.el === element);
+					if (!body) return;
+					const rect = stage.getBoundingClientRect();
+					dragging = { body, id: event.pointerId, dx: event.clientX - rect.left - body.x, dy: event.clientY - rect.top - body.y, lx: event.clientX, ly: event.clientY, time: performance.now() };
+					body.el.setPointerCapture(event.pointerId);
+					body.el.classList.add('is-dragging');
+				}, { signal: controller.signal });
+				stage.addEventListener('pointermove', (event) => {
+					if (!dragging || dragging.id !== event.pointerId) return;
+					const rect = stage.getBoundingClientRect();
+					const now = performance.now();
+					const elapsed = Math.max(1, now - dragging.time);
+					const body = dragging.body;
+					body.x = Math.max(0, Math.min(stage.clientWidth - body.w, event.clientX - rect.left - dragging.dx));
+					body.y = Math.max(0, Math.min(stage.clientHeight - body.h, event.clientY - rect.top - dragging.dy));
+					body.vx = (event.clientX - dragging.lx) / elapsed * 1000;
+					body.vy = (event.clientY - dragging.ly) / elapsed * 1000;
+					dragging.lx = event.clientX; dragging.ly = event.clientY; dragging.time = now;
+					renderBody(body);
+				}, { signal: controller.signal });
+				const drop = (event: PointerEvent) => {
+					if (!dragging || dragging.id !== event.pointerId) return;
+					dragging.body.el.classList.remove('is-dragging');
+					dragging = null;
+				};
+				stage.addEventListener('pointerup', drop, { signal: controller.signal });
+				stage.addEventListener('pointercancel', drop, { signal: controller.signal });
+
+				const enter = () => {
+					footer.classList.add('is-visible');
+					if (reduced) {
+						links.forEach((link) => [...link.querySelectorAll<HTMLElement>('.contact-link-char')].forEach((span) => { span.textContent = span.dataset.character === ' ' ? '\u00a0' : span.dataset.character ?? ''; }));
+					}
+					else scrambleIn();
+					buildPhysics();
+					if (reduced) bodies.forEach((body) => { body.y = stage.clientHeight - body.h; renderBody(body); });
+					else frameId = requestAnimationFrame(tick);
+				};
+				requestAnimationFrame(enter);
+
+				let leaving = false;
+				document.querySelectorAll<HTMLAnchorElement>('.sidebar a[href]').forEach((link) => {
+					const destination = new URL(link.href, location.href);
+					if (destination.origin !== location.origin || destination.pathname === '/contacts') return;
+					link.addEventListener('click', async (event) => {
+						event.preventDefault();
+						if (leaving) return;
+						leaving = true;
+						if (destination.pathname === '/') {
+							try { sessionStorage.setItem('info-return-home', 'true'); } catch {}
+							destination.searchParams.set('info-return', Date.now().toString());
+						} else if (destination.pathname === '/info') {
+							try { sessionStorage.setItem('info-page-transition', 'true'); } catch {}
+						}
+						footer.classList.remove('is-visible');
+						bodies.forEach((body, index) => {
+							body.vy = -(700 + Math.random() * 600 + index * 8);
+							body.vx += (Math.random() - .5) * 400;
+						});
+						await new Promise((resolve) => setTimeout(resolve, reduced ? 0 : 520));
+						void navigate(destination.href);
+					}, { signal: controller.signal });
+				});
+				cleanupContacts = () => {
+					controller.abort();
+					cancelAnimationFrame(frameId);
+				};
+			};
+			document.addEventListener('astro:page-load', initializeContacts);
+			document.addEventListener('astro:before-swap', cleanupContacts);
+		</script>
+	</body>
+</html>
+
+<style is:global>
+	:root {
+		--page-padding: 40px;
+		--grid-gap: 20px;
+		--color-text: #19191c;
+		--ui-font-size: 20px;
+		--ui-line-height: 24px;
+		--role-font-size: 16px;
+	}
+	*, *::before, *::after { box-sizing: border-box; }
+	html { min-width: 1140px; height: 100%; overflow: hidden; background: #fff; }
+	body { height: 100%; margin: 0; overflow: hidden; color: var(--color-text); background: #fff; font-family: 'Onest Variable', Onest, sans-serif; font-synthesis: none; }
+	a { color: inherit; text-decoration: none; }
+	.page-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--grid-gap); padding-inline: var(--page-padding); }
+	main { position: relative; grid-column: 4 / span 9; height: 100svh; min-width: 0; overflow: hidden; }
+	.contact-physics { position: absolute; inset: 0 0 calc(var(--page-padding) + var(--ui-line-height) + 24px); overflow: hidden; touch-action: none; }
+	.contact-body {
+		position: absolute;
+		top: 0;
+		left: 0;
+		display: block;
+		font-size: clamp(92px, 8.35vw, 171px);
+		font-weight: 400;
+		line-height: 1.2;
+		letter-spacing: 0;
+		cursor: grab;
+		user-select: none;
+		will-change: transform;
+		transform-origin: center;
+	}
+	.contact-body.is-dragging { z-index: 10; cursor: grabbing; }
+	.contact-footer {
+		position: absolute;
+		right: 0;
+		bottom: var(--page-padding);
+		left: 0;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		font-size: var(--ui-font-size);
+		font-weight: 400;
+		line-height: var(--ui-line-height);
+		opacity: 0;
+		transition: opacity 160ms ease;
+	}
+	.contact-footer.is-visible { opacity: 1; }
+	.contact-footer__socials { display: flex; align-items: center; }
+	.contact-footer a { display: inline-flex; padding-block: 12px; white-space: nowrap; }
+	.contact-dot { margin-inline: .4em; }
+	.contact-link-char { display: inline-block; }
+</style>

@@ -380,6 +380,9 @@ import TypeScale from '../components/TypeScale.astro';
 					if (destination.origin !== window.location.origin || destination.pathname === '/info') return;
 					link.addEventListener('click', async (event) => {
 						event.preventDefault();
+						if (destination.pathname === '/contacts') {
+							try { sessionStorage.setItem('contacts-page-transition', 'true'); } catch {}
+						}
 						if (reducedMotion.matches) {
 							if (destination.pathname === '/') {
 								isReturningHome = true;
