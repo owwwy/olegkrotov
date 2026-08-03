@@ -104,6 +104,30 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 						requestAnimationFrame(frame);
 					}, linkIndex * 100 + index * 34));
 				});
+				const scrambleOut = () => Promise.all(links.map((link, linkIndex) => {
+					const spans = [...link.querySelectorAll<HTMLElement>('.contact-link-char')];
+					return Promise.all([...spans].reverse().map((span, reverseIndex) => new Promise<void>((resolve) => {
+						window.setTimeout(() => {
+							const target = span.dataset.character ?? '';
+							if (target === ' ') {
+								span.textContent = '';
+								resolve();
+								return;
+							}
+							const started = performance.now();
+							const duration = 150 + Math.random() * 150;
+							const frame = (now: number) => {
+								const progress = Math.min(1, (now - started) / duration);
+								span.textContent = progress === 1
+									? ''
+									: alphabet[Math.floor(Math.random() * alphabet.length)] ?? target;
+								if (progress < 1) window.setTimeout(() => requestAnimationFrame(frame), 32);
+								else resolve();
+							};
+							requestAnimationFrame(frame);
+						}, linkIndex * 42 + reverseIndex * 18);
+					}))).then(() => undefined);
+				})).then(() => footer.classList.remove('is-visible'));
 
 				type Body = { el: HTMLElement; x: number; y: number; vx: number; vy: number; angle: number; spin: number; w: number; h: number; entered: boolean };
 				let bodies: Body[] = [];
@@ -151,7 +175,7 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 						body.angle += body.spin * dt;
 						if (body.x < 0) { body.x = 0; body.vx = Math.abs(body.vx) * .55; body.spin *= .8; }
 						if (body.x + body.w > width) { body.x = width - body.w; body.vx = -Math.abs(body.vx) * .55; body.spin *= .8; }
-						if (body.y + body.h > height) {
+						if (!leaving && body.y + body.h > height) {
 							body.y = height - body.h;
 							body.vy = -Math.abs(body.vy) * .34;
 							body.vx *= .965;
@@ -159,7 +183,7 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 							if (Math.abs(body.vy) < 8) body.vy = 0;
 						}
 					});
-					for (let pass = 0; pass < 2; pass += 1) {
+					if (!leaving) for (let pass = 0; pass < 2; pass += 1) {
 						for (let firstIndex = 0; firstIndex < bodies.length; firstIndex += 1) {
 							const first = bodies[firstIndex];
 							for (let secondIndex = firstIndex + 1; secondIndex < bodies.length; secondIndex += 1) {
@@ -187,9 +211,11 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 						}
 					}
 					bodies.forEach((body) => {
-						body.x = Math.max(0, Math.min(width - body.w, body.x));
-						if (body.entered && !leaving) body.y = Math.max(0, body.y);
-						body.y = Math.min(height - body.h, body.y);
+						if (!leaving) {
+							body.x = Math.max(0, Math.min(width - body.w, body.x));
+							if (body.entered) body.y = Math.max(0, body.y);
+							body.y = Math.min(height - body.h, body.y);
+						}
 						renderBody(body);
 					});
 					frameId = requestAnimationFrame(tick);
@@ -238,6 +264,27 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 				requestAnimationFrame(enter);
 
 				let leaving = false;
+				const dropBodies = () => new Promise<void>((resolve) => {
+					if (reduced) {
+						bodies.forEach((body) => { body.y = stage.clientHeight + body.h; renderBody(body); });
+						resolve();
+						return;
+					}
+					if (dragging) {
+						dragging.body.el.classList.remove('is-dragging');
+						dragging = null;
+					}
+					bodies.forEach((body) => {
+						body.vy = Math.max(40, body.vy * .15 + Math.random() * 120);
+						body.vx += (Math.random() - .5) * 100;
+						body.spin += (Math.random() - .5) * .8;
+					});
+					const waitUntilGone = () => {
+						if (bodies.every((body) => body.y > stage.clientHeight + body.h * .2)) resolve();
+						else requestAnimationFrame(waitUntilGone);
+					};
+					requestAnimationFrame(waitUntilGone);
+				});
 				document.querySelectorAll<HTMLAnchorElement>('.sidebar a[href]').forEach((link) => {
 					const destination = new URL(link.href, location.href);
 					if (destination.origin !== location.origin || destination.pathname === '/contacts') return;
@@ -251,12 +298,7 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 						} else if (destination.pathname === '/info') {
 							try { sessionStorage.setItem('info-page-transition', 'true'); } catch {}
 						}
-						footer.classList.remove('is-visible');
-						bodies.forEach((body, index) => {
-							body.vy = -(700 + Math.random() * 600 + index * 8);
-							body.vx += (Math.random() - .5) * 400;
-						});
-						await new Promise((resolve) => setTimeout(resolve, reduced ? 0 : 520));
+						await Promise.all([scrambleOut(), dropBodies()]);
 						void navigate(destination.href);
 					}, { signal: controller.signal });
 				});
