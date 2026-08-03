@@ -65,6 +65,7 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 
 		<script>
 			import { navigate } from 'astro:transitions/client';
+			import { Body as MatterBody, Bodies, Composite, Engine } from 'matter-js';
 
 			let cleanupContacts = () => {};
 			const initializeContacts = () => {
@@ -129,123 +130,86 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 					}))).then(() => undefined);
 				})).then(() => footer.classList.remove('is-visible'));
 
-				type Body = { el: HTMLElement; x: number; y: number; vx: number; vy: number; angle: number; spin: number; w: number; h: number; entered: boolean };
-				let bodies: Body[] = [];
+				type LetterBody = { el: HTMLElement; body: Matter.Body; w: number; h: number };
+				const engine = Engine.create({ positionIterations: 10, velocityIterations: 8, constraintIterations: 4 });
+				engine.gravity.y = 1.15;
+				engine.gravity.scale = .001;
+				let bodies: LetterBody[] = [];
+				let walls: Matter.Body[] = [];
 				let frameId = 0;
 				let last = performance.now();
-				let dragging: { body: Body; id: number; dx: number; dy: number; lx: number; ly: number; time: number } | null = null;
+				let dragging: { item: LetterBody; id: number; dx: number; dy: number; lx: number; ly: number; time: number } | null = null;
 
 				const buildPhysics = () => {
 					const bounds = stage.getBoundingClientRect();
 					const elements = [...stage.querySelectorAll<HTMLElement>('.contact-body')];
+					const wallSize = 120;
+					walls = [
+						Bodies.rectangle(-wallSize / 2, bounds.height / 2, wallSize, bounds.height * 4, { isStatic: true }),
+						Bodies.rectangle(bounds.width + wallSize / 2, bounds.height / 2, wallSize, bounds.height * 4, { isStatic: true }),
+						Bodies.rectangle(bounds.width / 2, bounds.height + wallSize / 2, bounds.width + wallSize * 2, wallSize, { isStatic: true }),
+					];
 					bodies = elements.map((el, order) => {
 						const rect = el.getBoundingClientRect();
 						const group = Number(el.dataset.group) || 0;
 						const groupCenters = [.48, .24, .63, .3];
 						const groupOffsets = [order * 2.2, order * 4.1, order * 3.5, order * 3.8];
-						return {
-							el,
-							x: bounds.width * groupCenters[group] + groupOffsets[group] - rect.width / 2 + (Math.random() - .5) * 90,
-							y: -bounds.height * (.2 + Math.random() * 1.25) - order * 10,
-							vx: (Math.random() - .5) * 260,
-							vy: 40 + Math.random() * 100,
-							angle: (Math.random() - .5) * .8,
-							spin: (Math.random() - .5) * 2.4,
-							w: rect.width,
-							h: rect.height,
-							entered: false,
-						};
+						const x = bounds.width * groupCenters[group] + groupOffsets[group] + (Math.random() - .5) * 110;
+						const y = -bounds.height * (.2 + Math.random() * 1.35) - order * 12;
+						const body = Bodies.rectangle(x, y, rect.width * .86, rect.height * .82, {
+							restitution: .42,
+							friction: .18,
+							frictionStatic: .32,
+							frictionAir: .006,
+							density: .0018,
+							angle: (Math.random() - .5) * 1.05,
+						});
+						MatterBody.setVelocity(body, { x: (Math.random() - .5) * 7, y: 1 + Math.random() * 3 });
+						MatterBody.setAngularVelocity(body, (Math.random() - .5) * .095);
+						return { el, body, w: rect.width, h: rect.height };
 					});
+					Composite.add(engine.world, [...walls, ...bodies.map((item) => item.body)]);
 				};
 
-				const renderBody = (body: Body) => {
-					body.el.style.transform = `translate3d(${body.x}px, ${body.y}px, 0) rotate(${body.angle}rad)`;
+				const renderBody = (item: LetterBody) => {
+					item.el.style.transform = `translate3d(${item.body.position.x - item.w / 2}px, ${item.body.position.y - item.h / 2}px, 0) rotate(${item.body.angle}rad)`;
 				};
 				const tick = (now: number) => {
-					const dt = Math.min(.025, (now - last) / 1000);
+					const delta = Math.min(32, now - last);
 					last = now;
-					const width = stage.clientWidth;
-					const height = stage.clientHeight;
-					bodies.forEach((body) => {
-						if (dragging?.body === body) return;
-						body.vy += 1080 * dt;
-						body.x += body.vx * dt;
-						body.y += body.vy * dt;
-						if (body.y >= 0) body.entered = true;
-						body.angle += body.spin * dt;
-						if (body.x < 0) { body.x = 0; body.vx = Math.abs(body.vx) * .55; body.spin *= .8; }
-						if (body.x + body.w > width) { body.x = width - body.w; body.vx = -Math.abs(body.vx) * .55; body.spin *= .8; }
-						if (!leaving && body.y + body.h > height) {
-							body.y = height - body.h;
-							body.vy = -Math.abs(body.vy) * .34;
-							body.vx *= .965;
-							body.spin *= .92;
-							if (Math.abs(body.vy) < 8) body.vy = 0;
-						}
-					});
-					if (!leaving) for (let pass = 0; pass < 2; pass += 1) {
-						for (let firstIndex = 0; firstIndex < bodies.length; firstIndex += 1) {
-							const first = bodies[firstIndex];
-							for (let secondIndex = firstIndex + 1; secondIndex < bodies.length; secondIndex += 1) {
-								const second = bodies[secondIndex];
-								const overlapX = Math.min(first.x + first.w, second.x + second.w) - Math.max(first.x, second.x);
-								const overlapY = Math.min(first.y + first.h, second.y + second.h) - Math.max(first.y, second.y);
-								if (overlapX <= 0 || overlapY <= 0) continue;
-								if (overlapX < overlapY) {
-									const direction = first.x + first.w / 2 < second.x + second.w / 2 ? -1 : 1;
-									const correction = overlapX * .51;
-									if (dragging?.body !== first) first.x += direction * correction;
-									if (dragging?.body !== second) second.x -= direction * correction;
-									const firstVelocity = first.vx;
-									first.vx = second.vx * .38;
-									second.vx = firstVelocity * .38;
-								} else {
-									const firstAbove = first.y + first.h / 2 < second.y + second.h / 2;
-									const correction = overlapY * .51;
-									if (dragging?.body !== first) first.y += firstAbove ? -correction : correction;
-									if (dragging?.body !== second) second.y += firstAbove ? correction : -correction;
-									if (firstAbove) first.vy = Math.min(first.vy, 0);
-									else second.vy = Math.min(second.vy, 0);
-								}
-							}
-						}
-					}
-					bodies.forEach((body) => {
-						if (!leaving) {
-							body.x = Math.max(0, Math.min(width - body.w, body.x));
-							if (body.entered) body.y = Math.max(0, body.y);
-							body.y = Math.min(height - body.h, body.y);
-						}
-						renderBody(body);
-					});
+					Engine.update(engine, delta);
+					bodies.forEach(renderBody);
 					frameId = requestAnimationFrame(tick);
 				};
 
 				stage.addEventListener('pointerdown', (event) => {
 					const element = (event.target as HTMLElement).closest<HTMLElement>('.contact-body');
-					const body = bodies.find((item) => item.el === element);
-					if (!body) return;
+					const item = bodies.find((body) => body.el === element);
+					if (!item || leaving) return;
 					const rect = stage.getBoundingClientRect();
-					dragging = { body, id: event.pointerId, dx: event.clientX - rect.left - body.x, dy: event.clientY - rect.top - body.y, lx: event.clientX, ly: event.clientY, time: performance.now() };
-					body.el.setPointerCapture(event.pointerId);
-					body.el.classList.add('is-dragging');
+					dragging = { item, id: event.pointerId, dx: event.clientX - rect.left - item.body.position.x, dy: event.clientY - rect.top - item.body.position.y, lx: event.clientX, ly: event.clientY, time: performance.now() };
+					MatterBody.setStatic(item.body, true);
+					item.el.setPointerCapture(event.pointerId);
+					item.el.classList.add('is-dragging');
 				}, { signal: controller.signal });
 				stage.addEventListener('pointermove', (event) => {
 					if (!dragging || dragging.id !== event.pointerId) return;
 					const rect = stage.getBoundingClientRect();
 					const now = performance.now();
 					const elapsed = Math.max(1, now - dragging.time);
-					const body = dragging.body;
-					body.x = Math.max(0, Math.min(stage.clientWidth - body.w, event.clientX - rect.left - dragging.dx));
-					body.y = Math.max(0, Math.min(stage.clientHeight - body.h, event.clientY - rect.top - dragging.dy));
-					body.vx = (event.clientX - dragging.lx) / elapsed * 1000;
-					body.vy = (event.clientY - dragging.ly) / elapsed * 1000;
+					const item = dragging.item;
+					const x = Math.max(item.w / 2, Math.min(stage.clientWidth - item.w / 2, event.clientX - rect.left - dragging.dx));
+					const y = Math.max(item.h / 2, Math.min(stage.clientHeight - item.h / 2, event.clientY - rect.top - dragging.dy));
+					MatterBody.setPosition(item.body, { x, y });
+					MatterBody.setVelocity(item.body, { x: (event.clientX - dragging.lx) / elapsed * 16.67, y: (event.clientY - dragging.ly) / elapsed * 16.67 });
 					dragging.lx = event.clientX; dragging.ly = event.clientY; dragging.time = now;
-					renderBody(body);
+					renderBody(item);
 				}, { signal: controller.signal });
 				const drop = (event: PointerEvent) => {
 					if (!dragging || dragging.id !== event.pointerId) return;
-					dragging.body.el.classList.remove('is-dragging');
+					const { item } = dragging;
+					item.el.classList.remove('is-dragging');
+					MatterBody.setStatic(item.body, false);
 					dragging = null;
 				};
 				stage.addEventListener('pointerup', drop, { signal: controller.signal });
@@ -258,7 +222,13 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 					}
 					else scrambleIn();
 					buildPhysics();
-					if (reduced) bodies.forEach((body) => { body.y = stage.clientHeight - body.h; renderBody(body); });
+					if (reduced) bodies.forEach((item, index) => {
+						MatterBody.setPosition(item.body, {
+							x: item.w / 2 + (index * item.w * .72) % Math.max(item.w, stage.clientWidth - item.w),
+							y: stage.clientHeight - item.h / 2,
+						});
+						renderBody(item);
+					});
 					else frameId = requestAnimationFrame(tick);
 				};
 				requestAnimationFrame(enter);
@@ -267,21 +237,29 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 				const dropBodies = () => new Promise<void>((resolve) => {
 					stage.classList.add('is-leaving');
 					if (reduced) {
-						bodies.forEach((body) => { body.y = window.innerHeight + body.h; renderBody(body); });
+						bodies.forEach((item) => {
+							MatterBody.setPosition(item.body, { x: item.body.position.x, y: window.innerHeight + item.h });
+							renderBody(item);
+						});
 						resolve();
 						return;
 					}
 					if (dragging) {
-						dragging.body.el.classList.remove('is-dragging');
+						dragging.item.el.classList.remove('is-dragging');
+						MatterBody.setStatic(dragging.item.body, false);
 						dragging = null;
 					}
-					bodies.forEach((body) => {
-						body.vy = Math.max(40, body.vy * .15 + Math.random() * 120);
-						body.vx += (Math.random() - .5) * 100;
-						body.spin += (Math.random() - .5) * .8;
+					walls.forEach((wall) => Composite.remove(engine.world, wall));
+					engine.gravity.y = 1.35;
+					bodies.forEach((item) => {
+						MatterBody.setVelocity(item.body, {
+							x: item.body.velocity.x + (Math.random() - .5) * 2.4,
+							y: Math.max(1.5, item.body.velocity.y * .2 + Math.random() * 2.5),
+						});
+						MatterBody.setAngularVelocity(item.body, item.body.angularVelocity + (Math.random() - .5) * .035);
 					});
 					const waitUntilGone = () => {
-						if (bodies.every((body) => body.y > window.innerHeight + body.h * .2)) resolve();
+						if (bodies.every((item) => item.body.position.y - item.h / 2 > window.innerHeight)) resolve();
 						else requestAnimationFrame(waitUntilGone);
 					};
 					requestAnimationFrame(waitUntilGone);
@@ -306,6 +284,8 @@ const physicsLabels = [phone.label, 'Max', 'Dprofile', 'Telegram'];
 				cleanupContacts = () => {
 					controller.abort();
 					cancelAnimationFrame(frameId);
+					Composite.clear(engine.world, false, true);
+					Engine.clear(engine);
 				};
 			};
 			document.addEventListener('astro:page-load', initializeContacts);
