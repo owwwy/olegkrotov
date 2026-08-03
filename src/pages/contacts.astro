@@ -126,6 +126,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 								data-group={letter.group}
 								data-index={letter.index}
 								data-glyph-vertices={JSON.stringify(letter.vertices)}
+								data-glyph-units={letter.unitsPerEm}
 								style={`--glyph-width:${letter.width};--glyph-height:${letter.height};--glyph-units:${letter.unitsPerEm}`}
 							>
 								<svg viewBox={`${letter.minX} ${-letter.maxY} ${letter.width} ${letter.height}`} aria-hidden="true">
@@ -304,9 +305,14 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 						const rawMaxY = Math.max(...rawVertices.map((point) => point.y));
 						const rawWidth = Math.max(1, rawMaxX - rawMinX);
 						const rawHeight = Math.max(1, rawMaxY - rawMinY);
+						const fontSize = parseFloat(getComputedStyle(el).fontSize);
+						const glyphUnits = Number(el.dataset.glyphUnits) || 1000;
+						const collisionExpansion = 1 + 14 * fontSize / glyphUnits;
+						const collisionWidth = rect.width + collisionExpansion;
+						const collisionHeight = rect.height + collisionExpansion;
 						const outline = rawVertices.map((point) => ({
-							x: (point.x - (rawMinX + rawMaxX) / 2) * rect.width / rawWidth,
-							y: (point.y - (rawMinY + rawMaxY) / 2) * rect.height / rawHeight,
+							x: (point.x - (rawMinX + rawMaxX) / 2) * collisionWidth / rawWidth,
+							y: (point.y - (rawMinY + rawMaxY) / 2) * collisionHeight / rawHeight,
 						}));
 						const hull = outline.length >= 3 ? Vertices.hull(outline) : [];
 						const options = {
