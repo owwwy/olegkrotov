@@ -92,7 +92,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, viewport-fit=cover" />
 		<ClientRouting />
-		<style is:inline>html,body{margin:0;background:#fff}</style>
+		<style is:inline>html,body{margin:0;background:#fff}html:not(.contacts-physics-ready) .contact-body{visibility:hidden}</style>
 		<script is:inline>
 			if (window.matchMedia('(max-width: 767px)').matches) window.location.replace('/mobile');
 		</script>
@@ -436,7 +436,11 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 						});
 						renderBody(item);
 					});
-					else frameId = requestAnimationFrame(tick);
+					else {
+						bodies.forEach(renderBody);
+						frameId = requestAnimationFrame(tick);
+					}
+					document.documentElement.classList.add('contacts-physics-ready');
 				};
 				requestAnimationFrame(enter);
 
@@ -458,7 +462,6 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 					}
 					const bounds = stage.getBoundingClientRect();
 					const floor = walls[2];
-					if (floor) Composite.remove(engine.world, floor);
 					const funnelGap = Math.max(150, Math.min(240, bounds.width * .12));
 					const funnelRun = (bounds.width - funnelGap) / 2;
 					const funnelAngle = Math.atan2(Math.min(78, bounds.height * .09), funnelRun);
@@ -470,20 +473,30 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 						Bodies.rectangle(funnelRun / 2, bounds.height + funnelDrop / 2 + funnelThickness / 2, funnelLength, funnelThickness, { ...funnelOptions, angle: funnelAngle }),
 						Bodies.rectangle(bounds.width - funnelRun / 2, bounds.height + funnelDrop / 2 + funnelThickness / 2, funnelLength, funnelThickness, { ...funnelOptions, angle: -funnelAngle }),
 					];
-					Composite.add(engine.world, funnel);
-					engine.gravity.y = 1.18;
+					const blast = { x: bounds.width / 2, y: bounds.height + 30 };
+					engine.gravity.y = .92;
 					bodies.forEach((item) => {
+						const dx = item.body.position.x - blast.x;
+						const dy = item.body.position.y - blast.y;
+						const distance = Math.max(40, Math.hypot(dx, dy));
+						const proximity = 1 - Math.min(1, distance / Math.max(bounds.width * .52, bounds.height * .8));
+						const impulse = 3.4 + proximity * 4.2;
 						MatterBody.setVelocity(item.body, {
-							x: item.body.velocity.x * .45 + (Math.random() - .5) * 1.4,
-							y: Math.max(.8, item.body.velocity.y * .15 + Math.random() * 1.2),
+							x: item.body.velocity.x * .25 + dx / distance * impulse + (Math.random() - .5) * 1.2,
+							y: Math.min(-3.8, dy / distance * impulse - 2.2 - Math.random() * 1.8),
 						});
-						MatterBody.setAngularVelocity(item.body, item.body.angularVelocity + (Math.random() - .5) * .035);
+						MatterBody.setAngularVelocity(item.body, item.body.angularVelocity * .35 + (Math.random() - .5) * .11);
 					});
+					setTimeout(() => {
+						if (floor) Composite.remove(engine.world, floor);
+						Composite.add(engine.world, funnel);
+						engine.gravity.y = 1.25;
+					}, 480);
 					setTimeout(() => {
 						funnel.forEach((part) => Composite.remove(engine.world, part));
 						walls.filter((wall) => wall !== floor).forEach((wall) => Composite.remove(engine.world, wall));
-						engine.gravity.y = 1.55;
-					}, 820);
+						engine.gravity.y = 1.65;
+					}, 1380);
 					const waitUntilGone = () => {
 						if (bodies.every((item) => item.body.position.y - item.h / 2 > window.innerHeight)) resolve();
 						else requestAnimationFrame(waitUntilGone);
@@ -511,6 +524,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 				cleanupContacts = () => {
 					controller.abort();
 					cancelAnimationFrame(frameId);
+					document.documentElement.classList.remove('contacts-physics-ready');
 					Composite.clear(engine.world, false, true);
 					Engine.clear(engine);
 				};
