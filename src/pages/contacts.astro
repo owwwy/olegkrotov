@@ -266,7 +266,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 				stage.addEventListener('focusout', () => setHighlightedGroup(), { signal: controller.signal });
 
 				type LetterBody = { el: HTMLElement; body: Matter.Body; w: number; h: number; offsetX: number; offsetY: number; entered: boolean };
-				const engine = Engine.create({ positionIterations: 10, velocityIterations: 8, constraintIterations: 4 });
+				const engine = Engine.create({ positionIterations: 16, velocityIterations: 10, constraintIterations: 4 });
 				engine.gravity.y = 1.15;
 				engine.gravity.scale = .001;
 				let bodies: LetterBody[] = [];
@@ -307,7 +307,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 						const rawHeight = Math.max(1, rawMaxY - rawMinY);
 						const fontSize = parseFloat(getComputedStyle(el).fontSize);
 						const glyphUnits = Number(el.dataset.glyphUnits) || 1000;
-						const collisionExpansion = 1 + 14 * fontSize / glyphUnits;
+						const collisionExpansion = 6 + 14 * fontSize / glyphUnits;
 						const collisionWidth = rect.width + collisionExpansion;
 						const collisionHeight = rect.height + collisionExpansion;
 						const outline = rawVertices.map((point) => ({
@@ -321,6 +321,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 							frictionStatic: .32,
 							frictionAir: .006,
 							density: .0018,
+							slop: .001,
 							collisionFilter: { category: 0x0001, mask: 0xFFFFFFFD },
 						};
 						const body = hull.length >= 3
