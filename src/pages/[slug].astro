@@ -109,21 +109,20 @@ const animatedPngs = new Set([
 			const casePage = document.querySelector<HTMLElement>('.case-page');
 			const caseThemeColor = document.querySelector<HTMLMetaElement>('[data-case-theme-color]');
 			const mobileCase = window.matchMedia('(max-width: 767px)').matches;
+			const mobileCloseLink = document.querySelector<HTMLAnchorElement>('.case-header__close');
+			if (mobileCase && mobileCloseLink) {
+				mobileCloseLink.href = '/mobile';
+				mobileCloseLink.dataset.value = 'Назад';
+				mobileCloseLink.replaceChildren(...[...'Назад'].map((character) => {
+					const span = document.createElement('span');
+					span.textContent = character;
+					return span;
+				}));
+			}
 			if (viewport && content) {
 				if (mobileCase) {
-					let lastScroll = window.scrollY;
-					const setMobileHeaderHidden = (hidden: boolean) => {
-						casePage?.classList.toggle('is-header-hidden', hidden);
-						if (caseThemeColor) caseThemeColor.content = hidden ? 'transparent' : '#ffffff';
-					};
-					window.addEventListener('scroll', () => {
-						if (!casePage) return;
-						const scroll = window.scrollY;
-						const delta = scroll - lastScroll;
-						lastScroll = scroll;
-						if (scroll <= 12) setMobileHeaderHidden(false);
-						else if (Math.abs(delta) > 2) setMobileHeaderHidden(delta > 0);
-					}, { passive: true });
+					casePage?.classList.remove('is-header-hidden');
+					if (caseThemeColor) caseThemeColor.content = '#ffffff';
 				} else {
 					const caseScroll = new Lenis({
 						wrapper: viewport,
@@ -206,6 +205,7 @@ const animatedPngs = new Set([
 				};
 				element.addEventListener('pointerenter', run);
 				element.addEventListener('focus', run);
+				if (mobileCase) element.addEventListener('pointerdown', run, { passive: true });
 			});
 
 			if (document.documentElement.classList.contains('case-entering')) {
@@ -405,7 +405,11 @@ const animatedPngs = new Set([
 				requestAnimationFrame(frame);
 			});
 			closeLink?.addEventListener('click', async (event) => {
-				if (mobileCase) return;
+				if (mobileCase) {
+					event.preventDefault();
+					window.setTimeout(() => window.location.assign('/mobile'), 260);
+					return;
+				}
 				event.preventDefault();
 				await leaveCase();
 				window.location.assign(`/?case-return=${Date.now()}`);
@@ -650,17 +654,10 @@ const animatedPngs = new Set([
 			padding: 0;
 		}
 
-		.case-header__close span {
-			display: none !important;
-		}
-
-		.case-header__close::before {
-			content: 'Назад';
-		}
-
 		.case-page.is-header-hidden .case-header {
-			opacity: 0;
-			transform: translate3d(0, -100%, 0);
+			opacity: 1;
+			transform: translate3d(0, 0, 0);
+			pointer-events: auto;
 		}
 
 		.case-page__viewport {

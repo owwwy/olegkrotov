@@ -85,6 +85,53 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 		</main>
 
 		<script>
+			const scrambleTapText = (element: HTMLElement) => {
+				if (element.dataset.tapScrambleReady === 'true') return;
+				const original = [...(element.textContent ?? '')];
+				const mutable = original.flatMap((character, index) => character === ' ' ? [] : [index]);
+				const characters = mutable.map((index) => original[index]);
+				element.textContent = '';
+				const spans = original.map((character) => {
+					const span = document.createElement('span');
+					span.className = 'tap-scramble-char';
+					span.textContent = character === ' ' ? '\u00a0' : character;
+					element.append(span);
+					return span;
+				});
+				element.dataset.tapScrambleReady = 'true';
+				element.addEventListener('pointerdown', () => {
+					if (element.dataset.tapScrambling === 'true') return;
+					element.dataset.tapScrambling = 'true';
+					const startedAt = performance.now();
+					let lastTick = 0;
+					const frame = (now: number) => {
+						const progress = Math.min(1, (now - startedAt) / 260);
+						if (now - lastTick >= 46 || progress === 1) {
+							lastTick = now;
+							const shuffled = [...characters];
+							for (let index = shuffled.length - 1; index > 0; index -= 1) {
+								const target = Math.floor(Math.random() * (index + 1));
+								[shuffled[index], shuffled[target]] = [shuffled[target], shuffled[index]];
+							}
+							mutable.forEach((characterIndex, index) => { spans[characterIndex].textContent = shuffled[index]; });
+						}
+						if (progress < 1) requestAnimationFrame(frame);
+						else {
+							spans.forEach((span, index) => { span.textContent = original[index] === ' ' ? '\u00a0' : original[index]; });
+							element.dataset.tapScrambling = 'false';
+						}
+					};
+					requestAnimationFrame(frame);
+				}, { passive: true });
+			};
+			document.querySelectorAll<HTMLElement>('.project-card__copy h2, .project-card__copy p, .mobile-footer a').forEach(scrambleTapText);
+			document.querySelectorAll<HTMLAnchorElement>('.project-card').forEach((link) => {
+				link.addEventListener('click', (event) => {
+					event.preventDefault();
+					window.setTimeout(() => window.location.assign(link.href), 260);
+				});
+			});
+
 			const updateScale = () => {
 				const ratio = document.documentElement.clientWidth / 400;
 				const root = document.documentElement.style;
@@ -420,6 +467,7 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 		line-height: 24px;
 	}
 	.mobile-footer__socials { display: flex; align-items: flex-start; gap: 6px; }
+	.tap-scramble-char { display: inline-block; }
 
 	@media (min-width: 768px) {
 		body { max-width: 767px; margin-inline: auto; }
