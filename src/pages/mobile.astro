@@ -4,6 +4,7 @@ import { projects } from '../data/projects';
 
 const order = ['jetsite', 'addinol', 's-industrial', 'upravlead', 'podryado'];
 const mobileProjects = order.map((slug) => projects.find((project) => project.slug === slug)).filter(Boolean);
+const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map((project) => ({ project, group }))).flat();
 ---
 
 <!doctype html>
@@ -17,12 +18,13 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 		<title>Олег Кротов — Digital Designer</title>
 	</head>
 	<body>
-		<main class="mobile-feed">
-			<section class="mobile-section mobile-info">
-				<header class="mobile-header">
-					<span>Олег Кротов</span>
-					<span>Digital Designer</span>
-				</header>
+		<header class="mobile-header">
+			<span>Олег Кротов</span>
+			<span>Digital Designer</span>
+		</header>
+
+		<main>
+			<section class="mobile-info">
 				<div class="mobile-info__copy">
 					<p>
 						<span class="info-row"><strong>Проектирую интерфейсы</strong></span>
@@ -46,91 +48,132 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 				</div>
 			</section>
 
-			{mobileProjects.map((project) => project && (
-				<a class="mobile-section mobile-project" href={`/${project.slug}`}>
-					<img class="mobile-project__image" src={`/projects/m-${project.slug}.webp`} alt={project.imageAlt} />
-					<div class="mobile-project__copy">
-						<h2>{project.title}</h2>
-						<p>{project.category}</p>
+			<section class="project-marquee" aria-label="Проекты">
+				<div class="project-marquee__viewport" data-project-marquee>
+					<div class="project-marquee__track" data-project-track>
+						{loopProjects.map(({ project, group }) => project && (
+							<a
+								class="project-card"
+								href={`/${project.slug}`}
+								aria-hidden={group === 1 ? undefined : 'true'}
+								tabindex={group === 1 ? undefined : -1}
+							>
+								<img src={project.image} alt={group === 1 ? project.imageAlt : ''} draggable="false" />
+								<div class="project-card__copy">
+									<h2>{project.title}</h2>
+									<p>{project.category}</p>
+								</div>
+							</a>
+						))}
 					</div>
-				</a>
-			))}
+				</div>
+			</section>
 		</main>
 
 		<script>
-			const fluidScale = (value: number) => Math.max(2, value);
-			const viewportProbe = document.createElement('div');
-			viewportProbe.style.cssText = 'position:fixed;inset:auto 0 0;visibility:hidden;pointer-events:none;height:100lvh';
-			document.body.append(viewportProbe);
-
-			const updateViewportMetrics = () => {
-				const portrait = window.innerHeight >= window.innerWidth;
-				const screenWidth = portrait ? window.screen.width : window.screen.height;
-				const physicalHeight = portrait ? window.screen.height : window.screen.width;
-				const isDeviceViewport = Math.abs(screenWidth - window.innerWidth) <= Math.max(4, window.innerWidth * .1);
-				const screenHeight = isDeviceViewport ? physicalHeight : viewportProbe.getBoundingClientRect().height;
-				const visualBottom = (window.visualViewport?.offsetTop ?? 0) + (window.visualViewport?.height ?? window.innerHeight);
-				document.documentElement.style.setProperty('--mobile-screen-height', `${screenHeight}px`);
-				document.documentElement.style.setProperty('--mobile-browser-bottom', `${Math.max(0, screenHeight - visualBottom)}px`);
-			};
-
-			const updateTypeScale = () => {
+			const updateScale = () => {
 				const ratio = document.documentElement.clientWidth / 400;
-				document.documentElement.style.setProperty('--mobile-side', `${24 * ratio}px`);
-				document.documentElement.style.setProperty('--mobile-vertical', `${32 * ratio}px`);
-				document.documentElement.style.setProperty('--mobile-inline-gap', `${6 * ratio}px`);
-				document.documentElement.style.setProperty('--mobile-copy-gap', `${20 * ratio}px`);
-				document.documentElement.style.setProperty('--mobile-visual-height', `${30 * ratio}px`);
-				document.documentElement.style.setProperty('--mobile-info-size', `${fluidScale(24 * ratio)}px`);
-				document.documentElement.style.setProperty('--mobile-info-line', `${fluidScale(30 * ratio)}px`);
-				document.documentElement.style.setProperty('--mobile-project-description', `${fluidScale(18 * ratio)}px`);
-				const titles = [...document.querySelectorAll<HTMLElement>('.mobile-project h2')];
-				const baseTitleSize = fluidScale(48 * ratio);
-				titles.forEach((title) => { title.style.fontSize = `${baseTitleSize}px`; });
-				const available = Math.max(1, document.documentElement.clientWidth - 48 * ratio);
-				const widestTitle = Math.max(1, ...titles.map((title) => title.scrollWidth));
-				const titleSize = baseTitleSize * Math.min(1, available / widestTitle);
-				titles.forEach((title) => { title.style.fontSize = `${titleSize}px`; });
-				document.documentElement.style.setProperty('--mobile-project-title', `${titleSize}px`);
+				const root = document.documentElement.style;
+				root.setProperty('--mobile-ratio', ratio.toString());
+				root.setProperty('--info-top', `${120 * ratio}px`);
+				root.setProperty('--side', `${24 * ratio}px`);
+				root.setProperty('--bottom', `${32 * ratio}px`);
+				root.setProperty('--inline-gap', `${6 * ratio}px`);
+				root.setProperty('--copy-gap', `${20 * ratio}px`);
+				root.setProperty('--visual-height', `${30 * ratio}px`);
+				root.setProperty('--info-size', `${24 * ratio}px`);
+				root.setProperty('--info-line', `${30 * ratio}px`);
+				root.setProperty('--card-width', `${Math.round(document.documentElement.clientWidth * .9)}px`);
+				root.setProperty('--card-media-gap', `${12 * ratio}px`);
+				root.setProperty('--card-copy-gap', `${4 * ratio}px`);
+				root.setProperty('--card-title-size', `${24 * ratio}px`);
+				root.setProperty('--card-title-line', `${30 * ratio}px`);
+				root.setProperty('--card-description-size', `${18 * ratio}px`);
+				root.setProperty('--card-description-line', `${24 * ratio}px`);
+				root.setProperty('--card-gap', `${2 * ratio}px`);
 			};
 
-			const updateLayout = () => {
-				updateTypeScale();
-				updateViewportMetrics();
-			};
+			const viewport = document.querySelector<HTMLElement>('[data-project-marquee]');
+			const track = document.querySelector<HTMLElement>('[data-project-track]');
+			if (viewport && track) {
+				const BASE_SPEED = 60;
+				const IDLE_DELAY = 2400;
+				const ACCELERATION_DURATION = 2000;
+				let segmentWidth = 0;
+				let resumeAt = Number.NEGATIVE_INFINITY;
+				let previousFrame = performance.now();
+				let lastAutoScroll = 0;
 
-			updateLayout();
-			window.addEventListener('resize', updateLayout, { passive: true });
-			window.visualViewport?.addEventListener('resize', updateViewportMetrics, { passive: true });
-			window.visualViewport?.addEventListener('scroll', updateViewportMetrics, { passive: true });
+				const measure = () => {
+					const previousSegment = segmentWidth;
+					segmentWidth = track.scrollWidth / 3;
+					lastAutoScroll = performance.now();
+					if (!previousSegment) viewport.scrollLeft = segmentWidth;
+					else viewport.scrollLeft += segmentWidth - previousSegment;
+				};
+
+				const normalizePosition = () => {
+					if (!segmentWidth) return;
+					if (viewport.scrollLeft < segmentWidth * .5) viewport.scrollLeft += segmentWidth;
+					else if (viewport.scrollLeft > segmentWidth * 1.5) viewport.scrollLeft -= segmentWidth;
+				};
+
+				const pauseAutoplay = () => {
+					resumeAt = performance.now() + IDLE_DELAY;
+				};
+
+				const frame = (now: number) => {
+					const elapsed = Math.min(50, now - previousFrame);
+					previousFrame = now;
+					let speed = BASE_SPEED;
+					if (now < resumeAt) speed = 0;
+					else if (Number.isFinite(resumeAt)) {
+						const progress = Math.min(1, (now - resumeAt) / ACCELERATION_DURATION);
+						speed = BASE_SPEED * progress * progress * progress;
+						if (progress === 1) resumeAt = Number.NEGATIVE_INFINITY;
+					}
+					if (speed > 0) {
+						lastAutoScroll = now;
+						viewport.scrollLeft += speed * elapsed / 1000;
+						normalizePosition();
+					}
+					requestAnimationFrame(frame);
+				};
+
+				viewport.addEventListener('pointerdown', pauseAutoplay, { passive: true });
+				viewport.addEventListener('touchstart', pauseAutoplay, { passive: true });
+				viewport.addEventListener('wheel', pauseAutoplay, { passive: true });
+				viewport.addEventListener('scroll', () => {
+					normalizePosition();
+					if (performance.now() - lastAutoScroll > 80) pauseAutoplay();
+				}, { passive: true });
+				window.addEventListener('resize', () => { updateScale(); measure(); }, { passive: true });
+
+				updateScale();
+				requestAnimationFrame(() => {
+					measure();
+					requestAnimationFrame(frame);
+				});
+			} else {
+				updateScale();
+				window.addEventListener('resize', updateScale, { passive: true });
+			}
 		</script>
 	</body>
 </html>
 
 <style is:global>
 	* { box-sizing: border-box; }
-	html {
-		margin: 0;
-		background: #fff;
-		scroll-snap-type: y mandatory;
-		scrollbar-width: none;
-	}
+	html, body { margin: 0; background: #fff; }
 	body {
-		margin: 0;
-		background: #fff;
+		min-width: 0;
 		color: #19191c;
 		font-family: 'Onest Variable', Onest, sans-serif;
 		-webkit-font-smoothing: antialiased;
 	}
-	html::-webkit-scrollbar,
-	body::-webkit-scrollbar { display: none; }
 	a { color: inherit; text-decoration: none; }
 
 	.mobile-header {
-		position: absolute;
-		z-index: 2;
-		top: 0;
-		left: 0;
 		display: flex;
 		width: 100%;
 		padding: calc(16px + env(safe-area-inset-top)) 16px 16px;
@@ -143,85 +186,104 @@ const mobileProjects = order.map((slug) => projects.find((project) => project.sl
 	}
 	.mobile-header > span:last-child { color: rgb(25 25 28 / 60%); font-weight: 300; }
 
-	.mobile-section {
-		position: relative;
+	.mobile-info {
 		display: flex;
 		width: 100%;
-		height: var(--mobile-screen-height, 100lvh);
-		overflow: hidden;
-		scroll-snap-align: start;
-		scroll-snap-stop: always;
-	}
-
-	.mobile-info {
-		padding: calc(var(--mobile-vertical, 32px) + env(safe-area-inset-top)) var(--mobile-side, 24px) calc(var(--mobile-vertical, 32px) + env(safe-area-inset-bottom) + var(--mobile-browser-bottom, 0px));
+		padding: var(--info-top, 120px) var(--side, 24px) var(--bottom, 32px);
 		align-items: flex-end;
+		overflow: hidden;
 		background: #fff;
 	}
 	.mobile-info__copy {
 		display: flex;
 		width: 100%;
 		flex-direction: column;
-		gap: var(--mobile-copy-gap, 20px);
+		gap: var(--copy-gap, 20px);
 		color: rgb(25 25 28 / 56%);
-		font-size: var(--mobile-info-size, 24px);
+		font-size: var(--info-size, 24px);
 		font-weight: 400;
-		line-height: var(--mobile-info-line, 30px);
+		line-height: var(--info-line, 30px);
 		letter-spacing: 0;
 	}
 	.mobile-info__copy p { display: flex; margin: 0; flex-direction: column; }
-	.info-row { display: flex; align-items: center; gap: var(--mobile-inline-gap, 6px); white-space: nowrap; }
+	.info-row { display: flex; align-items: center; gap: var(--inline-gap, 6px); white-space: nowrap; }
 	.info-row strong { color: #19191c; font-weight: inherit; }
 	.info-visual {
 		position: relative;
 		display: inline-block;
-		width: calc(var(--mobile-visual-height, 30px) * 52 / 30);
-		height: var(--mobile-visual-height, 30px);
+		width: calc(var(--visual-height, 30px) * 52 / 30);
+		height: var(--visual-height, 30px);
 		flex: none;
 		overflow: hidden;
-		border-radius: 3px;
+		border-radius: calc(3px * var(--mobile-ratio, 1));
 	}
-	.info-visual--long { width: calc(var(--mobile-visual-height, 30px) * 81 / 30); }
-	.info-visual--hand { width: var(--mobile-visual-height, 30px); overflow: visible; }
+	.info-visual--long { width: calc(var(--visual-height, 30px) * 81 / 30); }
+	.info-visual--hand { width: var(--visual-height, 30px); overflow: visible; }
 	.info-visual img { width: 100%; height: 100%; object-fit: cover; }
 	.info-visual--hand img {
-		width: calc(var(--mobile-visual-height, 30px) * 4 / 3);
-		height: calc(var(--mobile-visual-height, 30px) * 4 / 3);
+		width: calc(var(--visual-height, 30px) * 4 / 3);
+		height: calc(var(--visual-height, 30px) * 4 / 3);
 		transform: translate(-12.5%, -12.5%);
 	}
 
-	.mobile-project { padding: 0; isolation: isolate; }
-	.mobile-project__image {
-		position: absolute;
-		z-index: -1;
-		inset: 0;
+	.project-marquee {
+		width: 100%;
+		padding-bottom: calc(32px * var(--mobile-ratio, 1) + env(safe-area-inset-bottom));
+		overflow: hidden;
+		background: #fff;
+	}
+	.project-marquee__viewport {
+		width: 100%;
+		overflow-x: auto;
+		overflow-y: hidden;
+		overscroll-behavior-x: contain;
+		scrollbar-width: none;
+		-webkit-overflow-scrolling: touch;
+		touch-action: pan-x pan-y;
+	}
+	.project-marquee__viewport::-webkit-scrollbar { display: none; }
+	.project-marquee__track {
+		display: flex;
+		width: max-content;
+		align-items: flex-end;
+		gap: var(--card-gap, 2px);
+	}
+	.project-card {
+		display: flex;
+		width: var(--card-width, 360px);
+		flex: none;
+		flex-direction: column;
+		gap: var(--card-media-gap, 12px);
+	}
+	.project-card > img {
 		display: block;
 		width: 100%;
-		height: 100%;
+		aspect-ratio: 1;
 		object-fit: cover;
+		user-select: none;
+		-webkit-user-drag: none;
 	}
-	.mobile-project__copy {
-		position: absolute;
-		z-index: 1;
-		right: var(--mobile-side, 24px);
-		bottom: calc(var(--mobile-vertical, 32px) + env(safe-area-inset-bottom) + var(--mobile-browser-bottom, 0px));
-		left: var(--mobile-side, 24px);
+	.project-card__copy {
 		display: flex;
+		width: 100%;
+		padding-inline: var(--side, 24px);
 		flex-direction: column;
+		gap: var(--card-copy-gap, 4px);
+		text-align: center;
 	}
-	.mobile-project h2 {
-		margin: 0;
-		font-size: var(--mobile-project-title, 48px);
+	.project-card h2,
+	.project-card p { margin: 0; }
+	.project-card h2 {
+		font-size: var(--card-title-size, 24px);
 		font-weight: 500;
-		line-height: 1;
-		white-space: nowrap;
+		line-height: var(--card-title-line, 30px);
+		text-transform: uppercase;
 	}
-	.mobile-project p {
-		margin: 0;
+	.project-card p {
 		color: rgb(25 25 28 / 60%);
-		font-size: var(--mobile-project-description, 18px);
+		font-size: var(--card-description-size, 18px);
 		font-weight: 400;
-		line-height: 24px;
+		line-height: var(--card-description-line, 24px);
 	}
 
 	@media (min-width: 768px) {
