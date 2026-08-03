@@ -12,6 +12,7 @@
 
 		const updateTypeScale = () => {
 			const width = window.innerWidth;
+			const height = window.innerHeight;
 			const ui = Math.round(scale(width, 16, 20, 28));
 			const title = Math.round(scale(width, 80, 120, 160));
 			const info = roundToEven(scale(width, 34, 48, 56));
@@ -21,7 +22,9 @@
 			const infoChip = roundToEven(scale(width, 84, 120, 140));
 			const infoChipLong = roundToEven(scale(width, 110, 156, 182));
 			const infoChipHeight = roundToEven(scale(width, 40, 58, 68));
-			const contactLetter = roundToEven(360 * Math.pow(width / 2048, 1.2));
+			const contactWidthScale = Math.pow(width / 2048, 1.2);
+			const contactHeightScale = height / 1152;
+			const contactLetter = roundToEven(360 * Math.min(contactWidthScale, contactHeightScale));
 			const root = document.documentElement;
 			root.style.setProperty('--ui-font-size', `${ui}px`);
 			root.style.setProperty('--ui-line-height', `${roundToEven(ui * 1.2)}px`);
