@@ -11,9 +11,10 @@ const contacts = [
 	{ label: 'Telegram', href: 'https://t.me/okrotov', group: 3 },
 	{ label: 'Max', href: 'https://max.ru/u/f9LHodD0cOILXFqd_giWUttuW0fJCK-4NuRFIyyzoKhCGxHFcx__MM_5_GU', group: 1 },
 	{ label: 'Dprofile', href: 'https://dprofile.ru/owdesy', group: 2 },
+	{ label: 'Vk', href: 'https://vk.ru/krotov.oleg', group: 4 },
 ];
 const phone = { label: '8 (999) 693-0-693', href: 'tel:+79996930693', group: 0 };
-const physicsContacts = [phone, contacts[1], contacts[2], contacts[0]];
+const physicsContacts = [phone, contacts[1], contacts[2], contacts[0], contacts[3]];
 const fontPath = fileURLToPath(import.meta.resolve('@fontsource-variable/onest/files/onest-latin-wght-normal.woff2'));
 const baseFont = fontkit.openSync(fontPath);
 const contactFont = baseFont;
@@ -111,7 +112,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 		<meta name="theme-color" content="#ffffff" />
 		<SeoHead
 			title="Контакты Олега Кротова — Digital Designer"
-			description="Связаться с Олегом Кротовым — digital designer: Telegram, Max, Dprofile и телефон."
+			description="Связаться с Олегом Кротовым — digital designer: Telegram, Max, Dprofile, VK и телефон."
 			path="/contacts"
 		/>
 	</head>
@@ -306,8 +307,8 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 					bodies = elements.map((el, order) => {
 						const rect = el.getBoundingClientRect();
 						const group = Number(el.dataset.group) || 0;
-						const groupCenters = [.48, .24, .63, .3];
-						const groupOffsets = [order * 2.2, order * 4.1, order * 3.5, order * 3.8];
+						const groupCenters = [.48, .24, .63, .3, .76];
+						const groupOffsets = [order * 2.2, order * 4.1, order * 3.5, order * 3.8, order * 3.2];
 						const x = bounds.width * groupCenters[group] + groupOffsets[group] + (Math.random() - .5) * 110;
 						const y = -bounds.height * (.2 + Math.random() * 1.35) - order * 12;
 						const vertexSets = JSON.parse(el.dataset.glyphVertices ?? '[]') as Array<Array<{ x: number; y: number }>>;
