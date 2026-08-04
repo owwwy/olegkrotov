@@ -89,6 +89,6 @@ export const projects: Project[] = [
 		category: 'Дизайн бизнес-портала для строителей и клиентов',
 		image: '/projects/podryado.webp',
 		imageAlt: 'Проект PODRYADO',
-		gallery: numberedGallery('podryado', 32),
+		gallery: numberedGallery('podryado', 32, { 15: 'webm' }),
 	},
 ];

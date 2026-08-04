@@ -28,10 +28,12 @@ const animatedImages = new Set([
 	'/projects/jetsite/19.webp',
 	'/projects/jetsite/24.webp',
 	'/projects/podryado/02.webp',
-	'/projects/podryado/15.webp',
 	'/projects/podryado/28.webp',
 	'/projects/s-industrial-case/10.webp',
 	'/projects/s-industrial-case/12.webp',
+]);
+const animatedVideos = new Set([
+	'/projects/podryado/15.webm',
 ]);
 ---
 
@@ -90,7 +92,10 @@ const animatedImages = new Set([
 						<div class="case-minimap__strip" data-case-minimap-strip>
 							{gallery.map((image) => {
 								const isAnimated = animatedImages.has(image);
-								const poster = isAnimated ? image.replace(/\.webp$/, '.poster.webp') : image;
+								const isVideo = animatedVideos.has(image);
+								const poster = isVideo
+									? image.replace(/\.webm$/, '.poster.webp')
+									: isAnimated ? image.replace(/\.webp$/, '.poster.webp') : image;
 								const thumbnail = poster.endsWith('.webp')
 									? poster.replace('/projects/', '/projects-mobile/')
 									: poster;
@@ -112,9 +117,23 @@ const animatedImages = new Set([
 					<div class="case-page__content" data-case-content>
 						{gallery.map((image, index) => {
 							const isAnimated = animatedImages.has(image);
-							const poster = isAnimated ? image.replace(/\.webp$/, '.poster.webp') : image;
+							const isVideo = animatedVideos.has(image);
+							const poster = isVideo
+								? image.replace(/\.webm$/, '.poster.webp')
+								: isAnimated ? image.replace(/\.webp$/, '.poster.webp') : image;
 							const mobileImage = image.replace('/projects/', '/projects-mobile/');
-							return isAnimated ? (
+							return isVideo ? (
+								<video
+									poster={poster}
+									muted
+									autoplay
+									loop
+									playsinline
+									preload="none"
+									aria-label={`${project.title} — видео ${index + 1}`}
+									data-animated-video-src={image}
+								/>
+							) : isAnimated ? (
 								<img
 									src={poster}
 									alt={`${project.title} — изображение ${index + 1}`}
@@ -188,13 +207,13 @@ const animatedImages = new Set([
 					minimapBefore.style.height = `${top}px`;
 					minimapAfter.style.top = `${top + windowHeight}px`;
 				};
-				const contentImages = [...content.querySelectorAll<HTMLImageElement>('img')];
+				const contentMedia = [...content.querySelectorAll<HTMLElement>('img, video')];
 				document.querySelectorAll<HTMLImageElement>('.case-minimap__strip img').forEach((image, index) => {
 					const updateWeight = () => {
 						if (image.naturalWidth) {
 							image.style.flexGrow = `${image.naturalHeight / image.naturalWidth}`;
-							const contentImage = contentImages[index];
-							if (contentImage) contentImage.style.aspectRatio = `${image.naturalWidth} / ${image.naturalHeight}`;
+							const contentItem = contentMedia[index];
+							if (contentItem) contentItem.style.aspectRatio = `${image.naturalWidth} / ${image.naturalHeight}`;
 						}
 						updateMinimap(viewport.scrollTop);
 					};
@@ -241,26 +260,41 @@ const animatedImages = new Set([
 					requestAnimationFrame(() => updateMinimap(0));
 				}
 
-				const animatedImages = [...content.querySelectorAll<HTMLImageElement>('[data-animated-src]')];
-				const unloadTimers = new WeakMap<HTMLImageElement, number>();
+				const animatedMedia = [...content.querySelectorAll<HTMLImageElement | HTMLVideoElement>('[data-animated-src], [data-animated-video-src]')];
+				const unloadTimers = new WeakMap<HTMLImageElement | HTMLVideoElement, number>();
 				const animationObserver = new IntersectionObserver((entries) => {
 					entries.forEach((entry) => {
-						const image = entry.target as HTMLImageElement;
-						const pendingUnload = unloadTimers.get(image);
+						const media = entry.target as HTMLImageElement | HTMLVideoElement;
+						const pendingUnload = unloadTimers.get(media);
 						if (pendingUnload) window.clearTimeout(pendingUnload);
 						if (entry.isIntersecting) {
-							const animatedSource = image.dataset.animatedSrc;
-							if (animatedSource && image.getAttribute('src') !== animatedSource) image.src = animatedSource;
+							if (media instanceof HTMLVideoElement) {
+								const videoSource = media.dataset.animatedVideoSrc;
+								if (videoSource && media.getAttribute('src') !== videoSource) {
+									media.src = videoSource;
+									media.load();
+								}
+								void media.play().catch(() => {});
+							} else {
+								const animatedSource = media.dataset.animatedSrc;
+								if (animatedSource && media.getAttribute('src') !== animatedSource) media.src = animatedSource;
+							}
 							return;
 						}
 						const timer = window.setTimeout(() => {
-							const poster = image.dataset.animatedPoster;
-							if (poster && image.getAttribute('src') !== poster) image.src = poster;
+							if (media instanceof HTMLVideoElement) {
+								media.pause();
+								media.removeAttribute('src');
+								media.load();
+							} else {
+								const poster = media.dataset.animatedPoster;
+								if (poster && media.getAttribute('src') !== poster) media.src = poster;
+							}
 						}, 320);
-						unloadTimers.set(image, timer);
+						unloadTimers.set(media, timer);
 					});
 				}, { root: mobileCase ? null : viewport, rootMargin: '60% 0px', threshold: 0 });
-				animatedImages.forEach((image) => animationObserver.observe(image));
+				animatedMedia.forEach((media) => animationObserver.observe(media));
 			}
 
 			const shuffle = (values: string[]) => {
@@ -436,7 +470,7 @@ const animatedImages = new Set([
 					exitContext.fillRect(0, 0, width, height);
 				}
 				let exitCanvasAttached = false;
-				const visibleImages = [...(content?.querySelectorAll<HTMLImageElement>('img') ?? [])];
+				const visibleMedia = [...(content?.querySelectorAll<HTMLImageElement | HTMLVideoElement>('img, video') ?? [])];
 				const texts = [...document.querySelectorAll<HTMLElement>('[data-case-reveal]')].map((element) => ({
 					element,
 					characters: [...(element.dataset.value ?? '')],
@@ -468,16 +502,19 @@ const animatedImages = new Set([
 						bufferContext.fillStyle = '#fff';
 						bufferContext.fillRect(0, 0, pixelWidth, pixelHeight);
 						const viewportRect = viewport.getBoundingClientRect();
-						visibleImages.forEach((image) => {
-							if (!image.complete || !image.naturalWidth) return;
-							const rect = image.getBoundingClientRect();
+						visibleMedia.forEach((media) => {
+							const sourceWidth = media instanceof HTMLVideoElement ? media.videoWidth : media.naturalWidth;
+							const sourceHeight = media instanceof HTMLVideoElement ? media.videoHeight : media.naturalHeight;
+							const ready = media instanceof HTMLVideoElement ? media.readyState >= 2 : media.complete;
+							if (!ready || !sourceWidth || !sourceHeight) return;
+							const rect = media.getBoundingClientRect();
 							const top = Math.max(rect.top, viewportRect.top);
 							const bottom = Math.min(rect.bottom, viewportRect.bottom);
 							if (bottom <= top) return;
-							const sourceY = (top - rect.top) / rect.height * image.naturalHeight;
-							const sourceHeight = (bottom - top) / rect.height * image.naturalHeight;
+							const sourceY = (top - rect.top) / rect.height * sourceHeight;
+							const visibleSourceHeight = (bottom - top) / rect.height * sourceHeight;
 							bufferContext.drawImage(
-								image, 0, sourceY, image.naturalWidth, sourceHeight,
+								media, 0, sourceY, sourceWidth, visibleSourceHeight,
 								0, (top - viewportRect.top) / height * pixelHeight,
 								pixelWidth, (bottom - top) / height * pixelHeight,
 							);
@@ -800,13 +837,15 @@ const animatedImages = new Set([
 		content: '';
 	}
 
-	img {
+	img,
+	video {
 		display: block;
 		width: 100%;
 		height: auto;
 	}
 
-	.case-page__content picture { display: block; width: 100%; }
+	.case-page__content picture,
+	.case-page__content video { display: block; width: 100%; }
 
 	@media (min-width: 768px) and (max-width: 1879px) {
 		.case-page__layout {
