@@ -1,5 +1,7 @@
 ---
 import '@fontsource-variable/onest';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import type { GetStaticPaths } from 'astro';
 import TypeScale from '../components/TypeScale.astro';
 import SeoHead from '../components/SeoHead.astro';
@@ -16,6 +18,7 @@ interface Props {
 
 const { project } = Astro.props;
 const gallery = project.gallery ?? [];
+const publicAssetExists = (assetPath: string) => existsSync(join(process.cwd(), 'public', assetPath.replace(/^\//, '')));
 const animatedImages = new Set([
 	'/projects/busa/03.webp',
 	'/projects/jetsite/2.webp',
@@ -99,7 +102,7 @@ const animatedVideos = new Set([
 								const thumbnail = poster.endsWith('.webp')
 									? poster.replace('/projects/', '/projects-mobile/')
 									: poster;
-								return <img src={thumbnail} alt="" loading="lazy" decoding="async" />;
+								return <img src={publicAssetExists(thumbnail) ? thumbnail : poster} alt="" loading="lazy" decoding="async" />;
 							})}
 						</div>
 						<div class="case-minimap__shade case-minimap__shade--before" data-case-minimap-before></div>
@@ -122,6 +125,7 @@ const animatedVideos = new Set([
 								? image.replace(/\.webm$/, '.poster.webp')
 								: isAnimated ? image.replace(/\.webp$/, '.poster.webp') : image;
 							const mobileImage = image.replace('/projects/', '/projects-mobile/');
+							const hasMobileImage = publicAssetExists(mobileImage);
 							return isVideo ? (
 								<video
 									poster={poster}
@@ -144,10 +148,10 @@ const animatedVideos = new Set([
 								/>
 							) : (
 								<picture>
-									{image.endsWith('.webp') && <source media="(max-width: 767px)" srcset={mobileImage} />}
+									{hasMobileImage && <source media="(max-width: 767px)" srcset={mobileImage} />}
 									<img
 										src={image}
-										srcset={`${mobileImage} 1x, ${image} 2x`}
+										srcset={hasMobileImage ? `${mobileImage} 1x, ${image} 2x` : undefined}
 										alt={`${project.title} — изображение ${index + 1}`}
 										loading={index < 2 ? 'eager' : 'lazy'}
 										decoding="async"
