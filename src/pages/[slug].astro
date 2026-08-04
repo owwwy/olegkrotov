@@ -16,22 +16,22 @@ interface Props {
 
 const { project } = Astro.props;
 const gallery = project.gallery ?? [];
-const animatedPngs = new Set([
-	'/projects/busa/03.png',
-	'/projects/jetsite/2.png',
-	'/projects/jetsite/4.png',
-	'/projects/jetsite/7.png',
-	'/projects/jetsite/10.png',
-	'/projects/jetsite/12.png',
-	'/projects/jetsite/15.png',
-	'/projects/jetsite/17.png',
-	'/projects/jetsite/19.png',
-	'/projects/jetsite/24.png',
-	'/projects/podryado/02.png',
-	'/projects/podryado/15.png',
-	'/projects/podryado/28.png',
-	'/projects/s-industrial-case/10.png',
-	'/projects/s-industrial-case/12.png',
+const animatedImages = new Set([
+	'/projects/busa/03.webp',
+	'/projects/jetsite/2.webp',
+	'/projects/jetsite/4.webp',
+	'/projects/jetsite/7.webp',
+	'/projects/jetsite/10.webp',
+	'/projects/jetsite/12.webp',
+	'/projects/jetsite/15.webp',
+	'/projects/jetsite/17.webp',
+	'/projects/jetsite/19.webp',
+	'/projects/jetsite/24.webp',
+	'/projects/podryado/02.webp',
+	'/projects/podryado/15.webp',
+	'/projects/podryado/28.webp',
+	'/projects/s-industrial-case/10.webp',
+	'/projects/s-industrial-case/12.webp',
 ]);
 ---
 
@@ -89,8 +89,8 @@ const animatedPngs = new Set([
 					<div class="case-minimap__track" data-case-minimap-track>
 						<div class="case-minimap__strip" data-case-minimap-strip>
 							{gallery.map((image) => {
-								const isAnimated = animatedPngs.has(image);
-								const poster = isAnimated ? image.replace(/\.png$/, '.poster.png') : image;
+								const isAnimated = animatedImages.has(image);
+								const poster = isAnimated ? image.replace(/\.webp$/, '.poster.webp') : image;
 								const thumbnail = poster.endsWith('.webp')
 									? poster.replace('/projects/', '/projects-mobile/')
 									: poster;
@@ -111,8 +111,8 @@ const animatedPngs = new Set([
 					<canvas class="case-page__pixel-reveal" data-case-pixel-reveal aria-hidden="true"></canvas>
 					<div class="case-page__content" data-case-content>
 						{gallery.map((image, index) => {
-							const isAnimated = animatedPngs.has(image);
-							const poster = isAnimated ? image.replace(/\.png$/, '.poster.png') : image;
+							const isAnimated = animatedImages.has(image);
+							const poster = isAnimated ? image.replace(/\.webp$/, '.poster.webp') : image;
 							const mobileImage = image.replace('/projects/', '/projects-mobile/');
 							return isAnimated ? (
 								<img
@@ -120,8 +120,8 @@ const animatedPngs = new Set([
 									alt={`${project.title} — изображение ${index + 1}`}
 									loading={index < 2 ? 'eager' : 'lazy'}
 									decoding="async"
-									data-apng-src={isAnimated ? image : undefined}
-									data-apng-poster={isAnimated ? poster : undefined}
+									data-animated-src={isAnimated ? image : undefined}
+									data-animated-poster={isAnimated ? poster : undefined}
 								/>
 							) : (
 								<picture>
@@ -241,7 +241,7 @@ const animatedPngs = new Set([
 					requestAnimationFrame(() => updateMinimap(0));
 				}
 
-				const animatedImages = [...content.querySelectorAll<HTMLImageElement>('[data-apng-src]')];
+				const animatedImages = [...content.querySelectorAll<HTMLImageElement>('[data-animated-src]')];
 				const unloadTimers = new WeakMap<HTMLImageElement, number>();
 				const animationObserver = new IntersectionObserver((entries) => {
 					entries.forEach((entry) => {
@@ -249,12 +249,12 @@ const animatedPngs = new Set([
 						const pendingUnload = unloadTimers.get(image);
 						if (pendingUnload) window.clearTimeout(pendingUnload);
 						if (entry.isIntersecting) {
-							const animatedSource = image.dataset.apngSrc;
+							const animatedSource = image.dataset.animatedSrc;
 							if (animatedSource && image.getAttribute('src') !== animatedSource) image.src = animatedSource;
 							return;
 						}
 						const timer = window.setTimeout(() => {
-							const poster = image.dataset.apngPoster;
+							const poster = image.dataset.animatedPoster;
 							if (poster && image.getAttribute('src') !== poster) image.src = poster;
 						}, 320);
 						unloadTimers.set(image, timer);
