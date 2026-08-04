@@ -23,70 +23,20 @@ const { href, label, active = false } = Astro.props;
 </a>
 
 <script>
-	const DURATION = 260;
-	const MIN_TICK = 38;
-	const MAX_TICK = 76;
-	const LOCKED_CHARACTERS = new Set([' ', '+', '(', ')', '-', '–', '—']);
+	import { animatePermutation, DEFAULT_LOCKED_CHARACTERS, randomCharacter, renderCharacterSpans } from '../scripts/scramble';
 	const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-
-	const shuffle = (values: string[]) => {
-		const result = [...values];
-
-		for (let index = result.length - 1; index > 0; index -= 1) {
-			const target = Math.floor(Math.random() * (index + 1));
-			[result[index], result[target]] = [result[target], result[index]];
-		}
-
-		return result;
-	};
-
-	const render = (spans: HTMLElement[], characters: string[]) => {
-		spans.forEach((span, index) => {
-			span.textContent = characters[index] === ' ' ? '\u00a0' : characters[index];
-		});
-	};
 
 	const animateText = (text: HTMLElement) => {
 		if (text.dataset.animating === 'true' || reduceMotion.matches) return;
 
 		const original = [...(text.dataset.original ?? '')];
 		const spans = [...text.querySelectorAll<HTMLElement>('.scramble-link__char')];
-		const mutableIndexes = original.flatMap((character, index) =>
-			LOCKED_CHARACTERS.has(character) ? [] : [index],
-		);
-		const mutableCharacters = mutableIndexes.map((index) => original[index]);
-
 		text.style.width = `${text.getBoundingClientRect().width}px`;
 		text.dataset.animating = 'true';
-
-		const startedAt = performance.now();
-		let nextTick = startedAt;
-
-		const frame = (now: number) => {
-			const progress = Math.min(1, (now - startedAt) / DURATION);
-			const eased = 1 - Math.pow(1 - progress, 3);
-
-			if (now >= nextTick) {
-				nextTick = now + MIN_TICK + (MAX_TICK - MIN_TICK) * eased;
-				const scrambled = [...original];
-				const shuffled = shuffle(mutableCharacters);
-				mutableIndexes.forEach((characterIndex, index) => {
-					scrambled[characterIndex] = shuffled[index];
-				});
-				render(spans, scrambled);
-			}
-
-			if (progress < 1) {
-				requestAnimationFrame(frame);
-				return;
-			}
-
-			render(spans, original);
+		void animatePermutation({ spans, value: original }).then(() => {
 			text.dataset.animating = 'false';
 			text.style.removeProperty('width');
-		};
-
-		requestAnimationFrame(frame);
+		});
 	};
 
 	const animate = (link: HTMLElement) => {
@@ -96,7 +46,7 @@ const { href, label, active = false } = Astro.props;
 	const buildText = (text: HTMLElement, delay: number) => {
 		const original = [...(text.dataset.original ?? '')];
 		const spans = [...text.querySelectorAll<HTMLElement>('.scramble-link__char')];
-		const pool = original.filter((character) => !LOCKED_CHARACTERS.has(character));
+		const pool = original.filter((character) => !DEFAULT_LOCKED_CHARACTERS.has(character));
 		spans.forEach((span) => { span.textContent = ''; });
 		window.setTimeout(() => {
 			const startedAt = performance.now();
@@ -110,10 +60,10 @@ const { href, label, active = false } = Astro.props;
 					else if (original[index] === ' ') span.textContent = '\u00a0';
 					else span.textContent = index < settled
 						? original[index]
-						: pool[Math.floor(Math.random() * pool.length)] ?? original[index];
+						: randomCharacter(pool) || original[index];
 				});
 				if (progress < 1) requestAnimationFrame(frame);
-				else render(spans, original);
+				else renderCharacterSpans(spans, original);
 			};
 			requestAnimationFrame(frame);
 		}, delay);

@@ -93,6 +93,8 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 		</main>
 
 		<script>
+			import { animatePermutation } from '../scripts/scramble';
+			const mobileLockedCharacters = new Set([' ', '\u00a0']);
 			const scrambleTapText = (element: HTMLElement) => {
 				if (element.dataset.tapScrambleReady === 'true') return;
 				const protectShortWords = (value: string) => {
@@ -106,8 +108,6 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 					return protectedValue;
 				};
 				const original = [...protectShortWords(element.textContent ?? '')];
-				const mutable = original.flatMap((character, index) => character === ' ' || character === '\u00a0' ? [] : [index]);
-				const characters = mutable.map((index) => original[index]);
 				element.textContent = '';
 				const spans: HTMLSpanElement[] = [];
 				let word: HTMLSpanElement | null = null;
@@ -132,26 +132,12 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 				element.addEventListener('pointerdown', () => {
 					if (element.dataset.tapScrambling === 'true') return;
 					element.dataset.tapScrambling = 'true';
-					const startedAt = performance.now();
-					let lastTick = 0;
-					const frame = (now: number) => {
-						const progress = Math.min(1, (now - startedAt) / 260);
-						if (now - lastTick >= 46 || progress === 1) {
-							lastTick = now;
-							const shuffled = [...characters];
-							for (let index = shuffled.length - 1; index > 0; index -= 1) {
-								const target = Math.floor(Math.random() * (index + 1));
-								[shuffled[index], shuffled[target]] = [shuffled[target], shuffled[index]];
-							}
-							mutable.forEach((characterIndex, index) => { spans[characterIndex].textContent = shuffled[index]; });
-						}
-						if (progress < 1) requestAnimationFrame(frame);
-						else {
-							spans.forEach((span, index) => { span.textContent = original[index] === ' ' || original[index] === '\u00a0' ? '\u00a0' : original[index]; });
-							element.dataset.tapScrambling = 'false';
-						}
-					};
-					requestAnimationFrame(frame);
+					void animatePermutation({
+						spans,
+						value: original,
+						lockedCharacters: mobileLockedCharacters,
+						tickInterval: () => 46,
+					}).then(() => { element.dataset.tapScrambling = 'false'; });
 				}, { passive: true });
 			};
 			document.querySelectorAll<HTMLElement>('.project-card__copy h2, .project-card__copy p, .mobile-footer a').forEach(scrambleTapText);

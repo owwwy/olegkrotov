@@ -56,6 +56,7 @@ const firstProject = projects[0];
 <script>
 	import Lenis from 'lenis';
 	import { navigate } from 'astro:transitions/client';
+	import { characterPool, randomCharacter, shuffle } from '../scripts/scramble';
 
 	const SCRAMBLE_DURATION = 560;
 	const SCRAMBLE_TICK = 46;
@@ -284,16 +285,6 @@ const firstProject = projects[0];
 		return { setPair, render, dispose };
 	};
 
-	const randomCharacter = (pool: string[]) => pool[Math.floor(Math.random() * pool.length)] ?? '';
-	const shuffle = <T,>(values: T[]) => {
-		const result = [...values];
-		for (let index = result.length - 1; index > 0; index -= 1) {
-			const target = Math.floor(Math.random() * (index + 1));
-			[result[index], result[target]] = [result[target], result[index]];
-		}
-		return result;
-	};
-
 	const renderTitle = (element: HTMLElement, value: string) => {
 		element.replaceChildren(
 			...[...value].map((character) => {
@@ -314,9 +305,7 @@ const firstProject = projects[0];
 
 		const target = [...to];
 		const normalize = (value: string) => uppercase ? value.toUpperCase() : value;
-		const pool = [...new Set(
-			[...normalize(from), ...normalize(to)].filter((character) => character !== ' '),
-		)];
+		const pool = characterPool(normalize(from), normalize(to));
 		const length = Math.max([...from].length, target.length);
 		const lockOrder = shuffle(Array.from({ length }, (_, index) => index));
 		const startedAt = performance.now();
@@ -725,7 +714,7 @@ const firstProject = projects[0];
 					element,
 					value,
 					characters: [...value],
-					pool: [...new Set([...value].filter((character) => character !== ' '))],
+					pool: characterPool(value),
 				};
 			});
 			const startedAt = performance.now();
@@ -805,7 +794,7 @@ const firstProject = projects[0];
 			const states = elements.map((element) => {
 				const value = element.dataset.original ?? '';
 				const spans = [...element.querySelectorAll<HTMLElement>('span')];
-				const pool = [...new Set([...value].filter((character) => character !== ' '))];
+				const pool = characterPool(value);
 				spans.forEach((span) => { span.textContent = ''; });
 				return { value, spans, pool };
 			});
@@ -858,7 +847,7 @@ const firstProject = projects[0];
 				const current = normalize(values[index] ?? '');
 				const next = normalize(values[nextIndex] ?? '');
 				const template = transition < 0.5 ? current : next;
-				const pool = [...new Set([...current, ...next].filter((character) => character !== ' '))];
+				const pool = characterPool(current, next);
 				const visibleCharacters = Math.ceil(template.length * revealProgress);
 				const scrambled = [...template].slice(0, visibleCharacters).map((character) =>
 					character === ' ' ? ' ' : randomCharacter(pool),

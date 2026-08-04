@@ -170,6 +170,7 @@ const animatedVideos = new Set([
 		</main>
 		<script>
 			import Lenis from 'lenis';
+			import { animatePermutation, characterPool, randomCharacter } from '../scripts/scramble';
 
 			const viewport = document.querySelector<HTMLElement>('[data-case-viewport]');
 			const content = document.querySelector<HTMLElement>('[data-case-content]');
@@ -334,40 +335,19 @@ const animatedVideos = new Set([
 				animatedMedia.forEach((media) => animationObserver.observe(media));
 			}
 
-			const shuffle = (values: string[]) => {
-				const result = [...values];
-				for (let index = result.length - 1; index > 0; index -= 1) {
-					const target = Math.floor(Math.random() * (index + 1));
-					[result[index], result[target]] = [result[target], result[index]];
-				}
-				return result;
-			};
+			const caseScrambleLockedCharacters = new Set([' ']);
 			document.querySelectorAll<HTMLElement>('[data-case-scramble]').forEach((element) => {
 				const run = () => {
 					if (element.dataset.animating === 'true') return;
 					const original = [...(element.dataset.value ?? '')];
 					const spans = [...element.querySelectorAll<HTMLElement>('span')];
-					const mutable = original.flatMap((character, index) => character === ' ' ? [] : [index]);
-					const characters = mutable.map((index) => original[index]);
-					const startedAt = performance.now();
-					let lastTick = 0;
 					element.dataset.animating = 'true';
-					const frame = (now: number) => {
-						const progress = Math.min(1, (now - startedAt) / 260);
-						if (now - lastTick >= 46 || progress === 1) {
-							lastTick = now;
-							const shuffled = shuffle(characters);
-							mutable.forEach((characterIndex, index) => {
-								spans[characterIndex].textContent = shuffled[index];
-							});
-						}
-						if (progress < 1) requestAnimationFrame(frame);
-						else {
-							spans.forEach((span, index) => { span.textContent = original[index] === ' ' ? '\u00a0' : original[index]; });
-							element.dataset.animating = 'false';
-						}
-					};
-					requestAnimationFrame(frame);
+					void animatePermutation({
+						spans,
+						value: original,
+						lockedCharacters: caseScrambleLockedCharacters,
+						tickInterval: () => 46,
+					}).then(() => { element.dataset.animating = 'false'; });
 				};
 				element.addEventListener('pointerenter', run);
 				element.addEventListener('focus', run);
@@ -386,7 +366,7 @@ const animatedVideos = new Set([
 				const reveal = (element: HTMLElement) => new Promise<void>((resolve) => {
 					const original = [...(element.dataset.value ?? '')];
 					const spans = [...element.querySelectorAll<HTMLElement>('span')];
-					const pool = [...new Set(original.filter((character) => character !== ' '))];
+					const pool = characterPool(original.join(''));
 					const duration = Math.max(260, Math.min(520, original.length * 18));
 					const startedAt = performance.now();
 					let lastTick = 0;
@@ -398,7 +378,7 @@ const animatedVideos = new Set([
 							spans.forEach((span, index) => {
 								if (index >= visible) span.textContent = '';
 								else if (original[index] === ' ') span.textContent = '\u00a0';
-								else span.textContent = pool[Math.floor(Math.random() * pool.length)] ?? original[index];
+								else span.textContent = randomCharacter(pool) || original[index];
 							});
 						}
 						if (progress < 1) requestAnimationFrame(frame);
@@ -512,7 +492,7 @@ const animatedVideos = new Set([
 					element,
 					characters: [...(element.dataset.value ?? '')],
 					spans: [...element.querySelectorAll<HTMLElement>('span')],
-					pool: [...new Set([...(element.dataset.value ?? '')].filter((character) => character !== ' '))],
+					pool: characterPool(element.dataset.value ?? ''),
 				}));
 				const startedAt = performance.now();
 				let lastTextTick = 0;
@@ -527,7 +507,7 @@ const animatedVideos = new Set([
 							spans.forEach((span, index) => {
 								if (index >= visible) span.textContent = '';
 								else if (characters[index] === ' ') span.textContent = '\u00a0';
-								else span.textContent = pool[Math.floor(Math.random() * pool.length)] ?? characters[index];
+								else span.textContent = randomCharacter(pool) || characters[index];
 							});
 						});
 					}
