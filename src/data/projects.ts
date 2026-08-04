@@ -22,6 +22,16 @@ const numberedGallery = (
 
 export const projects: Project[] = [
 	{
+		slug: 'petradin',
+		title: 'PETRADIN',
+		caseDescription: 'Дизайн сайта поставщика промышленных материалов и технических жидкостей',
+		website: 'petradin.ru',
+		category: 'Дизайн сайта поставщика промышленных материалов и технических жидкостей',
+		image: '/projects/petradin.webp',
+		imageAlt: 'Проект PETRADIN',
+		gallery: numberedGallery('petradin', 11),
+	},
+	{
 		slug: 'upravlead',
 		title: 'UPRAVLEAD',
 		caseDescription: 'UI-фреймворк для B2B-платформ, CRM и ERP',
