@@ -69,7 +69,7 @@ export const projects: Project[] = [
 		category: 'Редизайн сайта студии реактивной разработки',
 		image: '/projects/jetsite.webp',
 		imageAlt: 'Проект JETSITE',
-		gallery: numberedGallery('jetsite', 25, {}, 1),
+		gallery: numberedGallery('jetsite', 25, { 7: 'webm', 10: 'webm', 12: 'webm', 15: 'webm' }, 1),
 	},
 	{
 		slug: 's-industrial',
@@ -79,7 +79,7 @@ export const projects: Project[] = [
 		category: 'Дизайн интернет-магазина спорт оборудования',
 		image: '/projects/s-industrial.webp',
 		imageAlt: 'Проект S-INDUSTRIAL',
-		gallery: numberedGallery('s-industrial-case', 19),
+		gallery: numberedGallery('s-industrial-case', 19, { 10: 'webm' }),
 	},
 	{
 		slug: 'podryado',
@@ -89,6 +89,6 @@ export const projects: Project[] = [
 		category: 'Дизайн бизнес-портала для строителей и клиентов',
 		image: '/projects/podryado.webp',
 		imageAlt: 'Проект PODRYADO',
-		gallery: numberedGallery('podryado', 32, { 15: 'webm' }),
+		gallery: numberedGallery('podryado', 32, { 2: 'webm', 15: 'webm' }),
 	},
 ];
