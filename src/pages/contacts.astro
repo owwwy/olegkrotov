@@ -66,6 +66,25 @@ const flattenGlyph = (commands: Array<{ command: string; args: number[] }>) => {
 	finish();
 	return contours;
 };
+const convexHull = (points: Array<{ x: number; y: number }>) => {
+	const sorted = [...points]
+		.map(({ x, y }) => ({ x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100 }))
+		.sort((first, second) => first.x - second.x || first.y - second.y);
+	if (sorted.length <= 2) return sorted;
+	const cross = (origin: { x: number; y: number }, first: { x: number; y: number }, second: { x: number; y: number }) =>
+		(first.x - origin.x) * (second.y - origin.y) - (first.y - origin.y) * (second.x - origin.x);
+	const lower: Array<{ x: number; y: number }> = [];
+	sorted.forEach((point) => {
+		while (lower.length >= 2 && cross(lower.at(-2)!, lower.at(-1)!, point) <= 0) lower.pop();
+		lower.push(point);
+	});
+	const upper: Array<{ x: number; y: number }> = [];
+	[...sorted].reverse().forEach((point) => {
+		while (upper.length >= 2 && cross(upper.at(-2)!, upper.at(-1)!, point) <= 0) upper.pop();
+		upper.push(point);
+	});
+	return [...lower.slice(0, -1), ...upper.slice(0, -1)];
+};
 const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.label].flatMap((character, index) => {
 	if (character === ' ') return [];
 	const glyph = contactFont.glyphForCodePoint(character.codePointAt(0) ?? 0);
@@ -76,7 +95,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 		index,
 		character,
 		path: glyph.path.toSVG(),
-		vertices: flattenGlyph(glyph.path.commands),
+		vertices: [convexHull(flattenGlyph(glyph.path.commands).flat())],
 		minX,
 		minY,
 		maxX,
@@ -130,7 +149,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 								aria-label={letter.contact.label}
 								data-group={letter.group}
 								data-index={letter.index}
-								data-glyph-vertices={JSON.stringify(letter.vertices)}
+								data-glyph-vertices={JSON.stringify(letter.vertices.map((contour) => contour.map(({ x, y }) => [x, y])))}
 								data-glyph-units={letter.unitsPerEm}
 								style={`--glyph-width:${letter.width};--glyph-height:${letter.height};--glyph-units:${letter.unitsPerEm}`}
 							>
@@ -156,7 +175,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 
 		<script>
 			import { navigate } from 'astro:transitions/client';
-			import { Body as MatterBody, Bodies, Composite, Engine, Query, Vertices } from 'matter-js';
+			import { Body as MatterBody, Bodies, Composite, Engine, Query, Sleeping, Vertices } from 'matter-js';
 
 			let cleanupContacts = () => {};
 			let isReturningHome = false;
@@ -280,7 +299,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 				stage.addEventListener('focusout', () => setHighlightedGroup(), { signal: controller.signal });
 
 				type LetterBody = { el: HTMLElement; body: Matter.Body; w: number; h: number; offsetX: number; offsetY: number; entered: boolean };
-				const engine = Engine.create({ positionIterations: 16, velocityIterations: 10, constraintIterations: 4 });
+				const engine = Engine.create({ enableSleeping: true, positionIterations: 16, velocityIterations: 10, constraintIterations: 4 });
 				engine.gravity.y = 1.5;
 				engine.gravity.scale = .001;
 				let bodies: LetterBody[] = [];
@@ -288,6 +307,9 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 				let frameId = 0;
 				let last = performance.now();
 				let physicsAccumulator = 0;
+				let physicsRunning = false;
+				let settledFrames = 0;
+				let leaving = false;
 				let dragging: { item: LetterBody; id: number; dx: number; dy: number; lx: number; ly: number; time: number; moved: boolean } | null = null;
 				let suppressBodyClickUntil = 0;
 
@@ -311,8 +333,8 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 						const groupOffsets = [order * 2.2, order * 4.1, order * 3.5, order * 3.8, order * 3.2];
 						const x = bounds.width * groupCenters[group] + groupOffsets[group] + (Math.random() - .5) * 110;
 						const y = -bounds.height * (.2 + Math.random() * 1.35) - order * 12;
-						const vertexSets = JSON.parse(el.dataset.glyphVertices ?? '[]') as Array<Array<{ x: number; y: number }>>;
-						const rawVertices = vertexSets.flat();
+						const vertexSets = JSON.parse(el.dataset.glyphVertices ?? '[]') as Array<Array<[number, number]>>;
+						const rawVertices = vertexSets.flat().map(([x, y]) => ({ x, y }));
 						const rawMinX = Math.min(...rawVertices.map((point) => point.x));
 						const rawMaxX = Math.max(...rawVertices.map((point) => point.x));
 						const rawMinY = Math.min(...rawVertices.map((point) => point.y));
@@ -365,6 +387,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 					return bodies.find((item) => item.body === hit);
 				};
 				const tick = (now: number) => {
+					if (!physicsRunning) return;
 					const delta = Math.min(50, now - last);
 					last = now;
 					physicsAccumulator += delta;
@@ -379,6 +402,22 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 						}
 					});
 					bodies.forEach(renderBody);
+					const settled = bodies.length > 0 && bodies.every(({ body }) => body.isSleeping
+						|| (body.speed < .045 && body.angularSpeed < .012));
+					settledFrames = !leaving && settled ? settledFrames + 1 : 0;
+					if (settledFrames >= 45) {
+						physicsRunning = false;
+						frameId = 0;
+						return;
+					}
+					frameId = requestAnimationFrame(tick);
+				};
+				const startPhysics = () => {
+					if (physicsRunning) return;
+					physicsRunning = true;
+					settledFrames = 0;
+					last = performance.now();
+					physicsAccumulator = 0;
 					frameId = requestAnimationFrame(tick);
 				};
 
@@ -435,13 +474,12 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 					});
 					else {
 						bodies.forEach(renderBody);
-						frameId = requestAnimationFrame(tick);
+						startPhysics();
 					}
 					document.documentElement.classList.add('contacts-physics-ready');
 				};
 				requestAnimationFrame(enter);
 
-				let leaving = false;
 				const dropBodies = () => new Promise<void>((resolve) => {
 					stage.classList.add('is-leaving');
 					if (reduced) {
@@ -460,6 +498,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 					if (floor) Composite.remove(engine.world, floor);
 					const blast = { x: bounds.width / 2, y: bounds.height + Math.max(90, bounds.height * .12) };
 					bodies.forEach((item) => {
+						Sleeping.set(item.body, false);
 						const dx = item.body.position.x - blast.x;
 						const dy = item.body.position.y - blast.y;
 						const distance = Math.max(40, Math.hypot(dx, dy));
@@ -471,6 +510,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 						});
 						MatterBody.setAngularVelocity(item.body, item.body.angularVelocity * .35 + (Math.random() - .5) * .33);
 					});
+					startPhysics();
 					const waitUntilGone = () => {
 						if (bodies.every((item) => item.body.position.y - item.h / 2 > window.innerHeight)) resolve();
 						else requestAnimationFrame(waitUntilGone);
