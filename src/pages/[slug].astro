@@ -156,6 +156,8 @@ const animatedPngs = new Set([
 				}));
 			}
 			if (viewport && content) {
+				let minimapScale = 1;
+				let minimapStripOffset = 0;
 				const updateMinimap = (scroll = viewport.scrollTop) => {
 					if (!minimapTrack || !minimapStrip || !minimapWindow || !minimapBefore || !minimapAfter) return;
 					const scrollHeight = Math.max(viewport.clientHeight, content.scrollHeight);
@@ -169,6 +171,8 @@ const animatedPngs = new Set([
 						? 0
 						: Math.max(trackHeight - stripHeight, Math.min(0, trackHeight / 2 - position - windowHeight / 2));
 					const top = position + stripOffset;
+					minimapScale = scale;
+					minimapStripOffset = stripOffset;
 					minimapTrack.style.height = `${trackHeight}px`;
 					minimapStrip.style.height = `${stripHeight}px`;
 					minimapStrip.style.transform = `translate3d(0, ${stripOffset}px, 0)`;
@@ -177,9 +181,14 @@ const animatedPngs = new Set([
 					minimapBefore.style.height = `${top}px`;
 					minimapAfter.style.top = `${top + windowHeight}px`;
 				};
-				document.querySelectorAll<HTMLImageElement>('.case-minimap__strip img').forEach((image) => {
+				const contentImages = [...content.querySelectorAll<HTMLImageElement>('img')];
+				document.querySelectorAll<HTMLImageElement>('.case-minimap__strip img').forEach((image, index) => {
 					const updateWeight = () => {
-						if (image.naturalWidth) image.style.flexGrow = `${image.naturalHeight / image.naturalWidth}`;
+						if (image.naturalWidth) {
+							image.style.flexGrow = `${image.naturalHeight / image.naturalWidth}`;
+							const contentImage = contentImages[index];
+							if (contentImage) contentImage.style.aspectRatio = `${image.naturalWidth} / ${image.naturalHeight}`;
+						}
 						updateMinimap(viewport.scrollTop);
 					};
 					if (image.complete) updateWeight();
@@ -209,6 +218,16 @@ const animatedPngs = new Set([
 						}
 						if (Math.abs(velocity) < 0.12) return;
 						casePage.classList.toggle('is-header-hidden', direction > 0);
+					});
+					minimapTrack?.addEventListener('click', (event) => {
+						caseScroll.resize();
+						const bounds = minimapTrack.getBoundingClientRect();
+						const pointInStrip = event.clientY - bounds.top - minimapStripOffset;
+						const target = pointInStrip / Math.max(0.0001, minimapScale) - viewport.clientHeight / 2;
+						caseScroll.scrollTo(Math.max(0, Math.min(caseScroll.limit, target)), {
+							duration: 1.05,
+							easing: (value: number) => 1 - Math.pow(1 - value, 4),
+						});
 					});
 					window.addEventListener('resize', () => updateMinimap(caseScroll.scroll), { passive: true });
 					new ResizeObserver(() => updateMinimap(caseScroll.scroll)).observe(content);
@@ -707,6 +726,7 @@ const animatedPngs = new Set([
 		overflow: hidden;
 		border-radius: 3px;
 		background: var(--case-content-background);
+		cursor: pointer;
 	}
 
 	.case-minimap__strip {
