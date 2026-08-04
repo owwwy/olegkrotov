@@ -58,7 +58,10 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 								aria-hidden={group === 1 ? undefined : 'true'}
 								tabindex={group === 1 ? undefined : -1}
 							>
-								<img src={project.image} alt={group === 1 ? project.imageAlt : ''} loading="eager" decoding="async" draggable="false" />
+								<picture>
+									<source srcset={project.image.replace('/projects/', '/projects-mobile/')} type="image/webp" />
+									<img src={project.image} alt={group === 1 ? project.imageAlt : ''} loading="eager" decoding="async" draggable="false" />
+								</picture>
 								<div class="project-card__copy">
 									<h2>{project.title}</h2>
 									<p>{project.category}</p>
@@ -438,10 +441,13 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 		gap: var(--card-media-gap, 12px);
 		contain: layout paint;
 	}
-	.project-card > img {
+	.project-card > picture,
+	.project-card > picture > img {
 		display: block;
 		width: 100%;
 		aspect-ratio: 1;
+	}
+	.project-card > picture > img {
 		object-fit: cover;
 		user-select: none;
 		-webkit-user-drag: none;

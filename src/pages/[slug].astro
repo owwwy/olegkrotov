@@ -88,7 +88,8 @@ const animatedPngs = new Set([
 					{gallery.map((image, index) => {
 						const isAnimated = animatedPngs.has(image);
 						const poster = isAnimated ? image.replace(/\.png$/, '.poster.png') : image;
-						return (
+						const mobileImage = image.replace('/projects/', '/projects-mobile/');
+						return isAnimated ? (
 						<img
 							src={poster}
 							alt={`${project.title} — изображение ${index + 1}`}
@@ -97,6 +98,16 @@ const animatedPngs = new Set([
 							data-apng-src={isAnimated ? image : undefined}
 							data-apng-poster={isAnimated ? poster : undefined}
 						/>
+						) : (
+							<picture>
+								{image.endsWith('.webp') && <source media="(max-width: 767px)" srcset={mobileImage} />}
+								<img
+									src={image}
+									alt={`${project.title} — изображение ${index + 1}`}
+									loading={index < 2 ? 'eager' : 'lazy'}
+									decoding="async"
+								/>
+							</picture>
 						);
 					})}
 				</div>
@@ -607,6 +618,8 @@ const animatedPngs = new Set([
 		width: 100%;
 		height: auto;
 	}
+
+	.case-page__content picture { display: block; width: 100%; }
 
 	@media (max-width: 767px) {
 		:global(html),
