@@ -22,6 +22,16 @@ const numberedGallery = (
 
 export const projects: Project[] = [
 	{
+		slug: 'busa',
+		title: 'BUSA',
+		caseDescription: 'Дизайн платформы алгоритмической криптоторговли',
+		website: 'busa.app',
+		category: 'Дизайн платформы алгоритмической криптоторговли',
+		image: '/projects/busa.webp',
+		imageAlt: 'Проект BUSA',
+		gallery: numberedGallery('busa', 12, { 3: 'png' }),
+	},
+	{
 		slug: 'petradin',
 		title: 'PETRADIN',
 		caseDescription: 'Дизайн сайта промышленного поставщика',
