@@ -49,7 +49,7 @@ export const projects: Project[] = [
 		category: 'UI-фреймворк для B2B-платформ, CRM и ERP',
 		image: '/projects/upravlead.webp',
 		imageAlt: 'Проект UPRAVLEAD',
-		gallery: numberedGallery('upravlead', 21),
+		gallery: numberedGallery('upravlead', 29),
 	},
 	{
 		slug: 'addinol',
