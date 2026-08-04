@@ -24,9 +24,9 @@ export const projects: Project[] = [
 	{
 		slug: 'petradin',
 		title: 'PETRADIN',
-		caseDescription: 'Дизайн сайта поставщика промышленных материалов и технических жидкостей',
+		caseDescription: 'Дизайн сайта промышленного поставщика',
 		website: 'petradin.ru',
-		category: 'Дизайн сайта поставщика промышленных материалов и технических жидкостей',
+		category: 'Дизайн сайта промышленного поставщика',
 		image: '/projects/petradin.webp',
 		imageAlt: 'Проект PETRADIN',
 		gallery: numberedGallery('petradin', 11),
