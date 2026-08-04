@@ -92,7 +92,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, viewport-fit=cover" />
 		<ClientRouting />
-		<style is:inline>html,body{margin:0;background:#fff}html:not(.contacts-physics-ready) .contact-body,html:not(.contacts-physics-ready) .contact-photo{visibility:hidden}</style>
+		<style is:inline>html,body{margin:0;background:#fff}html:not(.contacts-physics-ready) .contact-body{visibility:hidden}</style>
 		<script is:inline>
 			if (window.matchMedia('(max-width: 767px)').matches) window.location.replace('/mobile');
 		</script>
@@ -134,9 +134,6 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 								</svg>
 							</a>
 					))}
-					<div class="contact-photo" aria-hidden="true">
-						<img src="/contacts/photo.webp" alt="" draggable="false" />
-					</div>
 				</div>
 				<div class="contact-footer" data-contact-footer>
 					<div class="contact-footer__socials">
@@ -291,7 +288,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 
 				const buildPhysics = () => {
 					const bounds = stage.getBoundingClientRect();
-					const elements = [...stage.querySelectorAll<HTMLElement>('.contact-body, .contact-photo')];
+					const elements = [...stage.querySelectorAll<HTMLElement>('.contact-body')];
 					const wallSize = 120;
 					walls = [
 						Bodies.rectangle(-wallSize / 2, bounds.height / 2, wallSize, bounds.height * 4, { isStatic: true }),
@@ -304,14 +301,29 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 					];
 					bodies = elements.map((el, order) => {
 						const rect = el.getBoundingClientRect();
-						const isPhoto = el.classList.contains('contact-photo');
 						const group = Number(el.dataset.group) || 0;
 						const groupCenters = [.48, .24, .63, .3];
 						const groupOffsets = [order * 2.2, order * 4.1, order * 3.5, order * 3.8];
-						const x = isPhoto
-							? bounds.width * .78 + (Math.random() - .5) * 80
-							: bounds.width * groupCenters[group] + groupOffsets[group] + (Math.random() - .5) * 110;
+						const x = bounds.width * groupCenters[group] + groupOffsets[group] + (Math.random() - .5) * 110;
 						const y = -bounds.height * (.2 + Math.random() * 1.35) - order * 12;
+						const vertexSets = JSON.parse(el.dataset.glyphVertices ?? '[]') as Array<Array<{ x: number; y: number }>>;
+						const rawVertices = vertexSets.flat();
+						const rawMinX = Math.min(...rawVertices.map((point) => point.x));
+						const rawMaxX = Math.max(...rawVertices.map((point) => point.x));
+						const rawMinY = Math.min(...rawVertices.map((point) => point.y));
+						const rawMaxY = Math.max(...rawVertices.map((point) => point.y));
+						const rawWidth = Math.max(1, rawMaxX - rawMinX);
+						const rawHeight = Math.max(1, rawMaxY - rawMinY);
+						const fontSize = parseFloat(getComputedStyle(el).fontSize);
+						const glyphUnits = Number(el.dataset.glyphUnits) || 1000;
+						const collisionExpansion = 6 + 14 * fontSize / glyphUnits;
+						const collisionWidth = rect.width + collisionExpansion;
+						const collisionHeight = rect.height + collisionExpansion;
+						const outline = rawVertices.map((point) => ({
+							x: (point.x - (rawMinX + rawMaxX) / 2) * collisionWidth / rawWidth,
+							y: -(point.y - (rawMinY + rawMaxY) / 2) * collisionHeight / rawHeight,
+						}));
+						const hull = outline.length >= 3 ? Vertices.hull(outline) : [];
 						const options = {
 							restitution: .42,
 							friction: .18,
@@ -321,31 +333,9 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 							slop: .001,
 							collisionFilter: { category: 0x0001, mask: 0xFFFFFFFD },
 						};
-						let body: Matter.Body;
-						if (isPhoto) body = Bodies.circle(x, y, rect.width * .47, options);
-						else {
-							const vertexSets = JSON.parse(el.dataset.glyphVertices ?? '[]') as Array<Array<{ x: number; y: number }>>;
-							const rawVertices = vertexSets.flat();
-							const rawMinX = Math.min(...rawVertices.map((point) => point.x));
-							const rawMaxX = Math.max(...rawVertices.map((point) => point.x));
-							const rawMinY = Math.min(...rawVertices.map((point) => point.y));
-							const rawMaxY = Math.max(...rawVertices.map((point) => point.y));
-							const rawWidth = Math.max(1, rawMaxX - rawMinX);
-							const rawHeight = Math.max(1, rawMaxY - rawMinY);
-							const fontSize = parseFloat(getComputedStyle(el).fontSize);
-							const glyphUnits = Number(el.dataset.glyphUnits) || 1000;
-							const collisionExpansion = 6 + 14 * fontSize / glyphUnits;
-							const collisionWidth = rect.width + collisionExpansion;
-							const collisionHeight = rect.height + collisionExpansion;
-							const outline = rawVertices.map((point) => ({
-								x: (point.x - (rawMinX + rawMaxX) / 2) * collisionWidth / rawWidth,
-								y: -(point.y - (rawMinY + rawMaxY) / 2) * collisionHeight / rawHeight,
-							}));
-							const hull = outline.length >= 3 ? Vertices.hull(outline) : [];
-							body = hull.length >= 3
-								? Bodies.fromVertices(x, y, hull, options, false)
-								: Bodies.rectangle(x, y, rect.width * .8, rect.height * .76, options);
-						}
+						const body = hull.length >= 3
+							? Bodies.fromVertices(x, y, hull, options, false)
+							: Bodies.rectangle(x, y, rect.width * .8, rect.height * .76, options);
 						const offsetX = (body.bounds.min.x + body.bounds.max.x) / 2 - body.position.x;
 						const offsetY = (body.bounds.min.y + body.bounds.max.y) / 2 - body.position.y;
 						MatterBody.setAngle(body, (Math.random() - .5) * 1.05);
@@ -389,16 +379,15 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 
 				stage.addEventListener('pointerdown', (event) => {
 					const item = bodyAtPointer(event);
-					if (!item || leaving || !(item.el instanceof HTMLAnchorElement)) return;
+					if (!item || leaving) return;
 					dragging = { item, id: event.pointerId, dx: 0, dy: 0, lx: event.clientX, ly: event.clientY, time: performance.now(), moved: false };
 					stage.setPointerCapture(event.pointerId);
 				}, { signal: controller.signal });
 				stage.addEventListener('pointermove', (event) => {
 					if (!dragging || dragging.id !== event.pointerId) {
 						const hovered = bodyAtPointer(event);
-						const interactive = hovered?.el instanceof HTMLAnchorElement ? hovered : undefined;
-						stage.classList.toggle('has-letter-hover', Boolean(interactive));
-						setHighlightedGroup(interactive?.el.dataset.group);
+						stage.classList.toggle('has-letter-hover', Boolean(hovered));
+						setHighlightedGroup(hovered?.el.dataset.group);
 						return;
 					}
 					if (Math.abs(event.clientX - dragging.lx) + Math.abs(event.clientY - dragging.ly) > 3) dragging.moved = true;
@@ -561,21 +550,6 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 		will-change: transform;
 		transform-origin: center;
 	}
-	.contact-photo {
-		position: absolute;
-		top: 0;
-		left: 0;
-		display: block;
-		width: calc(var(--contact-letter-size, 160px) * .39);
-		aspect-ratio: 1;
-		overflow: hidden;
-		border-radius: 50%;
-		pointer-events: none;
-		user-select: none;
-		will-change: transform;
-		transform-origin: center;
-	}
-	.contact-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
 	.contact-body svg { display: block; width: 100%; height: 100%; overflow: visible; fill: currentColor; }
 	.contact-body path { stroke: currentColor; stroke-width: 14; stroke-linejoin: round; paint-order: stroke fill; }
 	.contact-body { transition: color 180ms ease; }
