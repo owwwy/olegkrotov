@@ -26,7 +26,7 @@ const animatedImages = new Set([
 	'/projects/jetsite/17.webp',
 	'/projects/jetsite/19.webp',
 	'/projects/jetsite/24.webp',
-	'/projects/podryado/28.webp',
+	'/projects/podryado/28.png',
 	'/projects/s-industrial-case/12.webp',
 	'/projects/upravlead/03.webp',
 	'/projects/upravlead/06.webp',
@@ -103,7 +103,7 @@ const animatedVideos = new Set([
 								const isVideo = animatedVideos.has(image);
 								const poster = isVideo
 									? image.replace(/\.webm$/, '.poster.webp')
-									: isAnimated ? image.replace(/\.webp$/, '.poster.webp') : image;
+									: isAnimated ? image.replace(/\.(?:webp|png)$/, '.poster.webp') : image;
 								const thumbnail = poster.endsWith('.webp')
 									? poster.replace('/projects/', '/projects-mobile/')
 									: poster;
@@ -128,7 +128,7 @@ const animatedVideos = new Set([
 							const isVideo = animatedVideos.has(image);
 							const poster = isVideo
 								? image.replace(/\.webm$/, '.poster.webp')
-								: isAnimated ? image.replace(/\.webp$/, '.poster.webp') : image;
+								: isAnimated ? image.replace(/\.(?:webp|png)$/, '.poster.webp') : image;
 							const mobileImage = image.replace('/projects/', '/projects-mobile/');
 							const hasMobileImage = publicAssetExists(mobileImage);
 							return isVideo ? (
