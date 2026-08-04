@@ -58,7 +58,7 @@ const animatedPngs = new Set([
 		<title>{project.title} — Олег Кротов</title>
 	</head>
 	<body>
-		<main class="case-page">
+		<main class:list={['case-page', { 'case-page--dark-content': project.slug === 'podryado' }]}>
 			<header class="case-header">
 				<div class="case-header__meta">
 					<strong data-case-reveal data-value={project.title}>
@@ -472,6 +472,7 @@ const animatedPngs = new Set([
 	}
 
 	.case-page {
+		--case-content-background: #fff;
 		display: flex;
 		width: 100%;
 		height: 100dvh;
@@ -479,6 +480,10 @@ const animatedPngs = new Set([
 		flex-direction: column;
 		gap: 24px;
 		background: #fff;
+	}
+
+	.case-page--dark-content {
+		--case-content-background: #000;
 	}
 
 	.case-header {
@@ -543,7 +548,7 @@ const animatedPngs = new Set([
 		overflow: auto;
 		border-radius: 3px;
 		border: 1px solid rgb(25 25 28 / 12%);
-		background: #fff;
+		background: var(--case-content-background);
 		overscroll-behavior: contain;
 		outline: none;
 		contain: paint;
@@ -572,7 +577,7 @@ const animatedPngs = new Set([
 		display: none;
 		width: 100%;
 		height: 100%;
-		background: #fff;
+		background: var(--case-content-background);
 		opacity: 1;
 		pointer-events: none;
 	}
@@ -607,10 +612,10 @@ const animatedPngs = new Set([
 	}
 
 	.case-page__content {
-		width: 100%;
+		width: min(100%, 1600px);
 		min-height: 100%;
 		margin-inline: auto;
-		background: #fff;
+		background: var(--case-content-background);
 	}
 
 	img {
@@ -693,6 +698,7 @@ const animatedPngs = new Set([
 
 		.case-page__content {
 			width: 100%;
+			max-width: none;
 		}
 	}
 </style>
