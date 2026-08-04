@@ -380,11 +380,8 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 				stage.addEventListener('pointerdown', (event) => {
 					const item = bodyAtPointer(event);
 					if (!item || leaving) return;
-					const rect = stage.getBoundingClientRect();
-					dragging = { item, id: event.pointerId, dx: event.clientX - rect.left - item.body.position.x, dy: event.clientY - rect.top - item.body.position.y, lx: event.clientX, ly: event.clientY, time: performance.now(), moved: false };
-					MatterBody.setStatic(item.body, true);
+					dragging = { item, id: event.pointerId, dx: 0, dy: 0, lx: event.clientX, ly: event.clientY, time: performance.now(), moved: false };
 					stage.setPointerCapture(event.pointerId);
-					item.el.classList.add('is-dragging');
 				}, { signal: controller.signal });
 				stage.addEventListener('pointermove', (event) => {
 					if (!dragging || dragging.id !== event.pointerId) {
@@ -393,24 +390,12 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 						setHighlightedGroup(hovered?.el.dataset.group);
 						return;
 					}
-					const rect = stage.getBoundingClientRect();
-					const now = performance.now();
-					const elapsed = Math.max(1, now - dragging.time);
-					const item = dragging.item;
 					if (Math.abs(event.clientX - dragging.lx) + Math.abs(event.clientY - dragging.ly) > 3) dragging.moved = true;
-					const x = Math.max(item.w / 2, Math.min(stage.clientWidth - item.w / 2, event.clientX - rect.left - dragging.dx));
-					const y = Math.max(item.h / 2, Math.min(stage.clientHeight - item.h / 2, event.clientY - rect.top - dragging.dy));
-					MatterBody.setPosition(item.body, { x, y });
-					MatterBody.setVelocity(item.body, { x: (event.clientX - dragging.lx) / elapsed * 16.67, y: (event.clientY - dragging.ly) / elapsed * 16.67 });
-					dragging.lx = event.clientX; dragging.ly = event.clientY; dragging.time = now;
-					renderBody(item);
 				}, { signal: controller.signal });
 				const drop = (event: PointerEvent, activate = false) => {
 					if (!dragging || dragging.id !== event.pointerId) return;
 					const { item } = dragging;
 					const shouldActivate = activate && !dragging.moved;
-					item.el.classList.remove('is-dragging');
-					MatterBody.setStatic(item.body, false);
 					if (dragging.moved) suppressBodyClickUntil = performance.now() + 350;
 					dragging = null;
 					if (shouldActivate) item.el.click();
@@ -463,8 +448,6 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 						return;
 					}
 					if (dragging) {
-						dragging.item.el.classList.remove('is-dragging');
-						MatterBody.setStatic(dragging.item.body, false);
 						dragging = null;
 					}
 					const bounds = stage.getBoundingClientRect();
@@ -548,7 +531,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 	.page-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--grid-gap); padding-inline: var(--page-padding); }
 	main { position: relative; grid-column: 4 / span 9; height: 100svh; min-width: 0; overflow: hidden; }
 	.contact-physics { position: absolute; inset: 0 0 calc(var(--page-padding) + var(--ui-line-height) + 24px); overflow: hidden; cursor: default; touch-action: none; }
-	.contact-physics.has-letter-hover { cursor: grab; }
+	.contact-physics.has-letter-hover { cursor: pointer; }
 	.contact-physics.is-leaving { overflow: visible; }
 	.contact-body {
 		position: absolute;
@@ -561,7 +544,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 		font-weight: 500;
 		line-height: 1.2;
 		letter-spacing: 0;
-		cursor: grab;
+		cursor: pointer;
 		pointer-events: none;
 		user-select: none;
 		will-change: transform;
@@ -569,7 +552,6 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 	}
 	.contact-body svg { display: block; width: 100%; height: 100%; overflow: visible; fill: currentColor; }
 	.contact-body path { stroke: currentColor; stroke-width: 14; stroke-linejoin: round; paint-order: stroke fill; }
-	.contact-body.is-dragging { z-index: 10; cursor: grabbing; }
 	.contact-body { transition: color 180ms ease; }
 	.contact-body.is-muted { color: #bbbbbd; }
 	.contact-footer {
