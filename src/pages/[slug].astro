@@ -596,13 +596,15 @@ const animatedPngs = new Set([
 	}
 
 	.case-page__layout {
+		--case-minimap-width: clamp(180px, calc(180px + (100vw - 1880px) * 0.357143), 240px);
 		display: grid;
-		width: 100%;
+		width: calc(100% + 6px);
 		min-height: 0;
 		flex: 1;
+		margin-left: -6px;
 		margin-top: 0;
-		grid-template-columns: clamp(180px, calc(180px + (100vw - 1880px) * 0.357143), 240px) minmax(0, 1600px);
-		gap: 20px;
+		grid-template-columns: calc(var(--case-minimap-width) + 12px) minmax(0, 1600px);
+		gap: 14px;
 		align-items: stretch;
 		justify-content: space-between;
 		transform: translate3d(0, 0, 0);
@@ -699,8 +701,9 @@ const animatedPngs = new Set([
 
 	.case-minimap__track {
 		position: relative;
-		width: 100%;
+		width: calc(100% - 12px);
 		height: 0;
+		margin-left: 6px;
 		overflow: hidden;
 		border-radius: 3px;
 		background: var(--case-content-background);
@@ -747,14 +750,27 @@ const animatedPngs = new Set([
 		position: absolute;
 		z-index: 2;
 		top: 0;
-		left: -6px;
-		right: -6px;
+		left: 0;
+		right: 0;
 		min-height: 40px;
-		border: 1px solid #fff;
 		border-radius: 3px;
-		mix-blend-mode: difference;
 		pointer-events: none;
 		will-change: transform;
+	}
+
+	.case-minimap__window::before {
+		position: absolute;
+		inset: 0;
+		padding: 1px;
+		border-radius: inherit;
+		-webkit-backdrop-filter: invert(1);
+		backdrop-filter: invert(1);
+		-webkit-mask:
+			linear-gradient(#000 0 0) content-box,
+			linear-gradient(#000 0 0);
+		-webkit-mask-composite: xor;
+		mask-composite: exclude;
+		content: '';
 	}
 
 	img {
@@ -846,6 +862,7 @@ const animatedPngs = new Set([
 			width: 100%;
 			min-height: 0;
 			flex: none;
+			margin-left: 0;
 			transform: none;
 		}
 
