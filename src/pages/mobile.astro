@@ -87,16 +87,38 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 		<script>
 			const scrambleTapText = (element: HTMLElement) => {
 				if (element.dataset.tapScrambleReady === 'true') return;
-				const original = [...(element.textContent ?? '')];
-				const mutable = original.flatMap((character, index) => character === ' ' ? [] : [index]);
+				const protectShortWords = (value: string) => {
+					const pattern = /(^|\s)(в|во|и|а|но|к|ко|с|со|у|о|об|обо|на|по|из|за|от|до|для|при|без|под|над|не)\s+/giu;
+					let protectedValue = value;
+					let previous = '';
+					while (previous !== protectedValue) {
+						previous = protectedValue;
+						protectedValue = protectedValue.replace(pattern, '$1$2\u00a0');
+					}
+					return protectedValue;
+				};
+				const original = [...protectShortWords(element.textContent ?? '')];
+				const mutable = original.flatMap((character, index) => character === ' ' || character === '\u00a0' ? [] : [index]);
 				const characters = mutable.map((index) => original[index]);
 				element.textContent = '';
-				const spans = original.map((character) => {
+				const spans: HTMLSpanElement[] = [];
+				let word: HTMLSpanElement | null = null;
+				original.forEach((character, index) => {
 					const span = document.createElement('span');
 					span.className = 'tap-scramble-char';
-					span.textContent = character === ' ' ? '\u00a0' : character;
-					element.append(span);
-					return span;
+					span.textContent = character === ' ' || character === '\u00a0' ? '\u00a0' : character;
+					spans[index] = span;
+					if (character === ' ') {
+						element.append(span);
+						word = null;
+					} else {
+						if (!word) {
+							word = document.createElement('span');
+							word.className = 'tap-scramble-word';
+							element.append(word);
+						}
+						word.append(span);
+					}
 				});
 				element.dataset.tapScrambleReady = 'true';
 				element.addEventListener('pointerdown', () => {
@@ -117,7 +139,7 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 						}
 						if (progress < 1) requestAnimationFrame(frame);
 						else {
-							spans.forEach((span, index) => { span.textContent = original[index] === ' ' ? '\u00a0' : original[index]; });
+							spans.forEach((span, index) => { span.textContent = original[index] === ' ' || original[index] === '\u00a0' ? '\u00a0' : original[index]; });
 							element.dataset.tapScrambling = 'false';
 						}
 					};
@@ -473,6 +495,8 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 		line-height: 24px;
 	}
 	.mobile-footer__socials { display: flex; align-items: flex-start; gap: 6px; }
+	.mobile-footer [data-phone-link] { white-space: nowrap; }
+	.tap-scramble-word { display: inline-block; }
 	.tap-scramble-char { display: inline-block; }
 
 	@media (min-width: 768px) {
