@@ -17,7 +17,7 @@ const numberedGallery = (
 ) =>
 	Array.from({ length: count }, (_, index) => {
 		const number = index + 1;
-		return `/projects/${directory}/${String(number).padStart(padding, '0')}.${extensions[number] ?? 'jpg'}`;
+		return `/projects/${directory}/${String(number).padStart(padding, '0')}.${extensions[number] ?? 'webp'}`;
 	});
 
 export const projects: Project[] = [
