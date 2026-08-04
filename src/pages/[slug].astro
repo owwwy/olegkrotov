@@ -18,6 +18,7 @@ interface Props {
 
 const { project } = Astro.props;
 const gallery = project.gallery ?? [];
+const homeProjectCovers = projects.map((item) => item.image);
 const publicAssetExists = (assetPath: string) => existsSync(join(process.cwd(), 'public', assetPath.replace(/^\//, '')));
 const animatedImages = new Set([
 	'/projects/busa/03.webp',
@@ -62,7 +63,6 @@ const animatedVideos = new Set([
 			} catch {}
 		</script>
 		<TypeScale />
-		{projects.map((item) => <link rel="preload" as="image" href={item.image} />)}
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="theme-color" content="#ffffff" data-case-theme-color />
 		<SeoHead
@@ -75,7 +75,10 @@ const animatedVideos = new Set([
 		/>
 	</head>
 	<body>
-		<main class:list={['case-page', { 'case-page--dark-content': project.slug === 'podryado' }]}>
+		<main
+			class:list={['case-page', { 'case-page--dark-content': project.slug === 'podryado' }]}
+			data-home-project-covers={JSON.stringify(homeProjectCovers)}
+		>
 			<header class="case-header">
 				<div class="case-header__meta">
 					<strong data-case-reveal data-value={project.title}>
@@ -179,6 +182,33 @@ const animatedVideos = new Set([
 			const minimapBefore = document.querySelector<HTMLElement>('[data-case-minimap-before]');
 			const minimapAfter = document.querySelector<HTMLElement>('[data-case-minimap-after]');
 			const mobileCloseLink = document.querySelector<HTMLAnchorElement>('.case-header__close');
+			const prefetchedHomeCovers: HTMLImageElement[] = [];
+			let homeCoverPrefetchStarted = false;
+			const prefetchHomeCovers = () => {
+				if (mobileCase || homeCoverPrefetchStarted) return;
+				homeCoverPrefetchStarted = true;
+				let sources: string[] = [];
+				try { sources = JSON.parse(casePage?.dataset.homeProjectCovers ?? '[]'); } catch {}
+				sources.forEach((source) => {
+					const image = new Image();
+					image.decoding = 'async';
+					image.fetchPriority = 'low';
+					image.src = source;
+					prefetchedHomeCovers.push(image);
+				});
+			};
+			const scheduleHomeCoverPrefetch = () => {
+				if (mobileCase || homeCoverPrefetchStarted) return;
+				if ('requestIdleCallback' in window) {
+					window.requestIdleCallback(prefetchHomeCovers, { timeout: 4200 });
+				} else window.setTimeout(prefetchHomeCovers, 1800);
+			};
+			const firstCaseImage = content?.querySelector<HTMLImageElement>('img');
+			if (firstCaseImage?.complete) scheduleHomeCoverPrefetch();
+			else {
+				firstCaseImage?.addEventListener('load', scheduleHomeCoverPrefetch, { once: true });
+				firstCaseImage?.addEventListener('error', scheduleHomeCoverPrefetch, { once: true });
+			}
 			if (mobileCase && mobileCloseLink) {
 				mobileCloseLink.href = '/mobile';
 				mobileCloseLink.dataset.value = 'Назад';
@@ -550,6 +580,7 @@ const animatedVideos = new Set([
 					return;
 				}
 				event.preventDefault();
+				prefetchHomeCovers();
 				await leaveCase();
 				window.location.assign(`/?case-return=${Date.now()}`);
 			});
@@ -570,7 +601,10 @@ const animatedVideos = new Set([
 					|| !navigationEvent.intercept
 					|| isLeaving
 				) return;
-				navigationEvent.intercept({ handler: leaveCase });
+				navigationEvent.intercept({ handler: async () => {
+					prefetchHomeCovers();
+					await leaveCase();
+				} });
 			}) as EventListener);
 		</script>
 	</body>
