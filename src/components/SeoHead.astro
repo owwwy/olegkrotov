@@ -1,0 +1,98 @@
+---
+interface Props {
+	title: string;
+	description: string;
+	path?: string;
+	image?: string;
+	type?: 'website' | 'article';
+	noindex?: boolean;
+	project?: {
+		name: string;
+		description: string;
+		image: string;
+	};
+}
+
+const {
+	title,
+	description,
+	path = '/',
+	image = '/projects/upravlead.webp',
+	type = 'website',
+	noindex = false,
+	project,
+} = Astro.props;
+const origin = Astro.site ?? new URL('https://olegkrotov.ru');
+const canonical = new URL(path, origin).href;
+const socialImage = new URL(image, origin).href;
+const personId = new URL('/#person', origin).href;
+const websiteId = new URL('/#website', origin).href;
+const graph: Record<string, unknown>[] = [
+	{
+		'@type': 'Person',
+		'@id': personId,
+		name: 'Олег Кротов',
+		url: new URL('/', origin).href,
+		jobTitle: 'Digital Designer',
+		description: 'Digital designer. Проектирую интерфейсы цифровых продуктов и развиваю дизайн-системы.',
+		sameAs: [
+			'https://dprofile.ru/owdesy',
+			'https://t.me/okrotov',
+			'https://max.ru/u/f9LHodD0cOILXFqd_giWUttuW0fJCK-4NuRFIyyzoKhCGxHFcx__MM_5_GU',
+		],
+	},
+	{
+		'@type': 'WebSite',
+		'@id': websiteId,
+		url: new URL('/', origin).href,
+		name: 'Олег Кротов — Digital Designer',
+		inLanguage: 'ru-RU',
+		author: { '@id': personId },
+	},
+	{
+		'@type': 'WebPage',
+		'@id': `${canonical}#webpage`,
+		url: canonical,
+		name: title,
+		description,
+		inLanguage: 'ru-RU',
+		isPartOf: { '@id': websiteId },
+		about: { '@id': personId },
+	},
+];
+if (project) graph.push({
+	'@type': 'CreativeWork',
+	'@id': `${canonical}#project`,
+	name: project.name,
+	description: project.description,
+	url: canonical,
+	image: new URL(project.image, origin).href,
+	inLanguage: 'ru-RU',
+	creator: { '@id': personId },
+	mainEntityOfPage: { '@id': `${canonical}#webpage` },
+});
+const structuredData = JSON.stringify({ '@context': 'https://schema.org', '@graph': graph });
+---
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<meta name="author" content="Олег Кротов" />
+<meta name="robots" content={noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large'} />
+<link rel="canonical" href={canonical} />
+<link rel="alternate" hreflang="ru" href={canonical} />
+<link rel="alternate" hreflang="x-default" href={canonical} />
+
+<meta property="og:type" content={type} />
+<meta property="og:locale" content="ru_RU" />
+<meta property="og:site_name" content="Олег Кротов — Digital Designer" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={socialImage} />
+<meta property="og:image:alt" content={`Проект Олега Кротова — ${project?.name ?? 'Digital Designer'}`} />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={socialImage} />
+<script type="application/ld+json" set:html={structuredData}></script>

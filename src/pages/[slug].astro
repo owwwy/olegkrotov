@@ -2,6 +2,7 @@
 import '@fontsource-variable/onest';
 import type { GetStaticPaths } from 'astro';
 import TypeScale from '../components/TypeScale.astro';
+import SeoHead from '../components/SeoHead.astro';
 import type { Project } from '../data/projects';
 import { projects } from '../data/projects';
 
@@ -54,8 +55,14 @@ const animatedPngs = new Set([
 		{projects.map((item) => <link rel="preload" as="image" href={item.image} />)}
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="theme-color" content="#ffffff" data-case-theme-color />
-		<meta name="description" content={`${project.title} — ${project.category}. Проект Олега Кротова.`} />
-		<title>{project.title} — Олег Кротов</title>
+		<SeoHead
+			title={`${project.title} — проект Олега Кротова`}
+			description={`${project.title} — ${project.category}. Проект digital designer Олега Кротова.`}
+			path={`/${project.slug}`}
+			image={project.image}
+			type="article"
+			project={{ name: project.title, description: project.category, image: project.image }}
+		/>
 	</head>
 	<body>
 		<main class:list={['case-page', { 'case-page--dark-content': project.slug === 'podryado' }]}>

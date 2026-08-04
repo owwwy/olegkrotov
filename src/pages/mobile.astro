@@ -1,5 +1,6 @@
 ---
 import '@fontsource-variable/onest';
+import SeoHead from '../components/SeoHead.astro';
 import { projects } from '../data/projects';
 
 const order = ['busa', 'petradin', 'jetsite', 'addinol', 's-industrial', 'upravlead', 'podryado'];
@@ -14,8 +15,11 @@ const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map(
 		<meta name="viewport" content="width=device-width, viewport-fit=cover" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="theme-color" content="#ffffff" />
-		<meta name="description" content="Олег Кротов — digital designer." />
-		<title>Олег Кротов — Digital Designer</title>
+		<SeoHead
+			title="Олег Кротов — Digital Designer и продуктовый дизайнер"
+			description="Портфолио Олега Кротова — digital designer. Проектирую интерфейсы цифровых продуктов, сайты и развиваю дизайн-системы."
+			noindex={true}
+		/>
 	</head>
 	<body>
 		<header class="mobile-header">

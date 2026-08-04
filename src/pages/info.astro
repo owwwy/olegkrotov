@@ -1,6 +1,7 @@
 ---
 import '@fontsource-variable/onest';
 import ClientRouting from '../components/ClientRouting.astro';
+import SeoHead from '../components/SeoHead.astro';
 import SiteSidebar from '../components/SiteSidebar.astro';
 import TypeScale from '../components/TypeScale.astro';
 ---
@@ -38,8 +39,11 @@ import TypeScale from '../components/TypeScale.astro';
 		<TypeScale />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="theme-color" content="#ffffff" data-site-theme-color />
-		<meta name="description" content="Олег Кротов — digital designer. Проектирую интерфейсы и развиваю дизайн-системы." />
-		<title>Инфо — Олег Кротов</title>
+		<SeoHead
+			title="Олег Кротов — обо мне и подходе к дизайну"
+			description="Олег Кротов — digital designer. Проектирую интерфейсы цифровых продуктов и развиваю дизайн-системы."
+			path="/info"
+		/>
 	</head>
 	<body>
 		<div class="info-preloader" data-info-preloader aria-live="polite">

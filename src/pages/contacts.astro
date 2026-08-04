@@ -3,6 +3,7 @@ import '@fontsource-variable/onest';
 import * as fontkit from 'fontkit';
 import { fileURLToPath } from 'node:url';
 import ClientRouting from '../components/ClientRouting.astro';
+import SeoHead from '../components/SeoHead.astro';
 import SiteSidebar from '../components/SiteSidebar.astro';
 import TypeScale from '../components/TypeScale.astro';
 
@@ -108,8 +109,11 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 		<TypeScale />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="theme-color" content="#ffffff" />
-		<meta name="description" content="Контакты Олега Кротова — digital designer." />
-		<title>Контакты — Олег Кротов</title>
+		<SeoHead
+			title="Контакты Олега Кротова — Digital Designer"
+			description="Связаться с Олегом Кротовым — digital designer: Telegram, Max, Dprofile и телефон."
+			path="/contacts"
+		/>
 	</head>
 	<body>
 		<div class="page-grid">
