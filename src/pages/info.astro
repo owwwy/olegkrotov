@@ -175,10 +175,12 @@ import TypeScale from '../components/TypeScale.astro';
 			let isReturningHome = false;
 			let cleanupInfoPage = () => {};
 			const initializeInfoPage = () => {
-				cleanupInfoPage();
-				const controller = new AbortController();
 				const copy = document.querySelector<HTMLElement>('.info-copy');
 				if (!copy) return;
+				if (copy.dataset.infoAnimationInitialized === 'true') return;
+				copy.dataset.infoAnimationInitialized = 'true';
+				cleanupInfoPage();
+				const controller = new AbortController();
 				document.documentElement.classList.add('info-entering');
 				const textNodes: Text[] = [];
 				const walker = document.createTreeWalker(copy, NodeFilter.SHOW_TEXT);
@@ -247,16 +249,29 @@ import TypeScale from '../components/TypeScale.astro';
 				characters.forEach((character) => { character.style.opacity = '0'; });
 				visuals.forEach((visual) => { visual.style.opacity = '0'; });
 				document.documentElement.classList.add('info-ready');
+				let isLeaving = false;
+				let animationEpoch = 0;
 
 				const pixelate = async (visual: HTMLElement, reverse = false) => {
+					const epoch = animationEpoch;
 					const image = visual.querySelector<HTMLImageElement>('img');
 					if (!image) return;
+					if (reverse && !image.complete) {
+						image.style.opacity = '0';
+						visual.style.opacity = '0';
+						return;
+					}
 					if (!image.complete) await new Promise<void>((resolve) => {
 						image.addEventListener('load', () => resolve(), { once: true });
 						image.addEventListener('error', () => resolve(), { once: true });
 					});
-					if (!image.naturalWidth) return;
+					if (epoch !== animationEpoch) return;
+					if (!image.naturalWidth) {
+						if (reverse) visual.style.opacity = '0';
+						return;
+					}
 					try { await image.decode(); } catch {}
+					if (epoch !== animationEpoch) return;
 					visual.style.opacity = '1';
 					const canvas = document.createElement('canvas');
 					const isOverflow = visual.classList.contains('visual--overflow');
@@ -276,6 +291,11 @@ import TypeScale from '../components/TypeScale.astro';
 					const startedAt = performance.now();
 					await new Promise<void>((resolve) => {
 						const frame = (now: number) => {
+							if (epoch !== animationEpoch) {
+								canvas.remove();
+								resolve();
+								return;
+							}
 							const progress = Math.min(1, (now - startedAt) / duration);
 							const eased = progress * progress * (3 - 2 * progress);
 							const resolution = reverse ? 1 - eased : eased;
@@ -297,6 +317,7 @@ import TypeScale from '../components/TypeScale.astro';
 						};
 						requestAnimationFrame(frame);
 					});
+					if (epoch !== animationEpoch) return;
 					image.style.opacity = reverse ? '0' : '1';
 					canvas.remove();
 					if (reverse) visual.style.opacity = '0';
@@ -304,6 +325,7 @@ import TypeScale from '../components/TypeScale.astro';
 
 				const orderedItems = [...copy.querySelectorAll<HTMLElement>('.info-char:not(.info-char--space), .visual')];
 				const enter = () => {
+					if (isLeaving) return;
 					if (reducedMotion.matches) {
 						characters.forEach((character) => { character.style.opacity = '1'; });
 						visuals.forEach((visual) => { visual.style.opacity = '1'; });
@@ -313,17 +335,21 @@ import TypeScale from '../components/TypeScale.astro';
 					orderedItems.forEach((item) => {
 						const delay = (position * 8 + Math.random() * 90) / enterSpeed;
 						if (item.classList.contains('visual')) {
-							window.setTimeout(() => { void pixelate(item); }, delay);
+							window.setTimeout(() => {
+								if (!isLeaving) void pixelate(item);
+							}, delay);
 							position += 5;
 							return;
 						}
 						const target = item.dataset.character ?? '';
 						const duration = (300 + Math.random() * 380) / enterSpeed;
 						window.setTimeout(() => {
+							if (isLeaving) return;
 							item.style.opacity = '1';
 							const startedAt = performance.now();
 							let lastTick = 0;
 							const frame = (now: number) => {
+								if (isLeaving) return;
 								const progress = Math.min(1, (now - startedAt) / duration);
 								if (now - lastTick >= 42 || progress === 1) {
 									lastTick = now;
@@ -337,10 +363,18 @@ import TypeScale from '../components/TypeScale.astro';
 					});
 				};
 
-				let isLeaving = false;
 				const leave = () => new Promise<void>((resolve) => {
-					if (isLeaving) return;
+					if (isLeaving) {
+						resolve();
+						return;
+					}
 					isLeaving = true;
+					animationEpoch += 1;
+					copy.querySelectorAll('.info-pixel-canvas').forEach((canvas) => canvas.remove());
+					visuals.forEach((visual) => {
+						const image = visual.querySelector<HTMLElement>('img');
+						if (image) image.style.opacity = '1';
+					});
 					const reversed = [...orderedItems].reverse();
 					let finished = 0;
 					const complete = () => {
@@ -380,6 +414,7 @@ import TypeScale from '../components/TypeScale.astro';
 					if (destination.origin !== window.location.origin || destination.pathname === '/info') return;
 					link.addEventListener('click', async (event) => {
 						event.preventDefault();
+						if (isLeaving) return;
 						if (destination.pathname === '/contacts') {
 							try { sessionStorage.setItem('contacts-page-transition', 'true'); } catch {}
 						}
@@ -407,6 +442,7 @@ import TypeScale from '../components/TypeScale.astro';
 					document.documentElement.classList.remove('info-entering', 'info-ready');
 				};
 			};
+			initializeInfoPage();
 			document.addEventListener('astro:page-load', initializeInfoPage);
 			document.addEventListener('astro:before-swap', (event) => {
 				if (isReturningHome) {
