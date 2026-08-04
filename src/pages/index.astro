@@ -48,7 +48,10 @@ import { projects } from '../data/projects';
 				} else if (infoReturnFromUrl || sessionStorage.getItem('info-return-home') === 'true') {
 					document.documentElement.classList.add('info-return-home');
 					sessionStorage.removeItem('info-return-home');
-				} else document.documentElement.classList.add('is-preloading');
+				} else if (sessionStorage.getItem('site-intro-seen') !== 'true') {
+					document.documentElement.classList.add('is-preloading');
+				}
+				if (!mobileLayout) sessionStorage.setItem('site-intro-seen', 'true');
 			} catch { document.documentElement.classList.add('is-preloading'); }
 			window.addEventListener('pageshow', (event) => {
 				if (event.persisted) window.location.reload();
@@ -87,6 +90,7 @@ import { projects } from '../data/projects';
 				if (
 					document.documentElement.classList.contains('info-return-home')
 					|| document.documentElement.classList.contains('case-return-home')
+					|| !document.documentElement.classList.contains('is-preloading')
 				) {
 					document.querySelector('[data-site-preloader]')?.remove();
 					return;
