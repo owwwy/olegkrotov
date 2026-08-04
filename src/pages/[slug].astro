@@ -801,6 +801,19 @@ const animatedPngs = new Set([
 
 	.case-page__content picture { display: block; width: 100%; }
 
+	@media (min-width: 768px) and (max-width: 1879px) {
+		.case-page__layout {
+			width: 100%;
+			margin-left: 0;
+			grid-template-columns: minmax(0, 1fr);
+			gap: 0;
+		}
+
+		.case-minimap {
+			display: none;
+		}
+	}
+
 	@media (max-width: 767px) {
 		:global(html),
 		:global(body) {
