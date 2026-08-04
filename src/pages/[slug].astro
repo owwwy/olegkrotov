@@ -147,6 +147,7 @@ const animatedVideos = new Set([
 									{image.endsWith('.webp') && <source media="(max-width: 767px)" srcset={mobileImage} />}
 									<img
 										src={image}
+										srcset={`${mobileImage} 1x, ${image} 2x`}
 										alt={`${project.title} — изображение ${index + 1}`}
 										loading={index < 2 ? 'eager' : 'lazy'}
 										decoding="async"
