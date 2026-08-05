@@ -27,14 +27,17 @@ const canonical = new URL(path, origin).href;
 const socialImage = new URL(image, origin).href;
 const personId = new URL('/#person', origin).href;
 const websiteId = new URL('/#website', origin).href;
+const isProfilePage = canonical === new URL('/', origin).href;
 const graph: Record<string, unknown>[] = [
 	{
 		'@type': 'Person',
 		'@id': personId,
 		name: 'Олег Кротов',
+		alternateName: 'Oleg Krotov',
 		url: new URL('/', origin).href,
 		jobTitle: 'Digital Designer',
 		description: 'Digital designer. Проектирую интерфейсы цифровых продуктов и развиваю дизайн-системы.',
+		knowsAbout: ['Веб-дизайн', 'Дизайн интерфейсов', 'Продуктовый дизайн', 'Дизайн-системы'],
 		sameAs: [
 			'https://dprofile.ru/owdesy',
 			'https://t.me/okrotov',
@@ -51,7 +54,7 @@ const graph: Record<string, unknown>[] = [
 		author: { '@id': personId },
 	},
 	{
-		'@type': 'WebPage',
+		'@type': isProfilePage ? 'ProfilePage' : 'WebPage',
 		'@id': `${canonical}#webpage`,
 		url: canonical,
 		name: title,
@@ -59,6 +62,7 @@ const graph: Record<string, unknown>[] = [
 		inLanguage: 'ru-RU',
 		isPartOf: { '@id': websiteId },
 		about: { '@id': personId },
+		...(isProfilePage ? { mainEntity: { '@id': personId } } : {}),
 	},
 ];
 if (project) graph.push({
