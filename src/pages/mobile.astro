@@ -3,7 +3,7 @@ import '../styles/fonts.css';
 import SeoHead from '../components/SeoHead.astro';
 import { projects } from '../data/projects';
 
-const order = ['busa', 'petradin', 'jetsite', 'addinol', 's-industrial', 'upravlead', 'podryado'];
+const order = ['busa', 'jetsite', 'addinol', 's-industrial', 'upravlead', 'podryado'];
 const mobileProjects = order.map((slug) => projects.find((project) => project.slug === slug)).filter(Boolean);
 const loopProjects = Array.from({ length: 3 }, (_, group) => mobileProjects.map((project) => ({ project, group }))).flat();
 ---

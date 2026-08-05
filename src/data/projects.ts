@@ -32,16 +32,6 @@ export const projects: Project[] = [
 		gallery: numberedGallery('busa', 12),
 	},
 	{
-		slug: 'petradin',
-		title: 'PETRADIN',
-		caseDescription: 'Дизайн сайта промышленного поставщика',
-		website: 'petradin.ru',
-		category: 'Дизайн сайта промышленного поставщика',
-		image: '/projects/petradin.webp',
-		imageAlt: 'Проект PETRADIN',
-		gallery: numberedGallery('petradin', 11),
-	},
-	{
 		slug: 'upravlead',
 		title: 'UPRAVLEAD',
 		caseDescription: 'UI-фреймворк для B2B-платформ, CRM и ERP',
