@@ -38,6 +38,18 @@ const firstProject = projects[0];
 		))}
 		<canvas class="showcase__lens" data-project-lens aria-hidden="true"></canvas>
 	</div>
+	<a
+		class="showcase__project-cta"
+		data-project-cta
+		href={`/${firstProject.slug}`}
+		aria-label={`Подробнее о проекте ${firstProject.title}`}
+	>
+		<span class="showcase__project-cta-text" data-project-cta-text data-original="Подробнее о проекте" aria-hidden="true">
+			{[...'Подробнее о проекте'].map((character) => (
+				<span class="showcase__project-cta-char">{character === ' ' ? '\u00a0' : character}</span>
+			))}
+		</span>
+	</a>
 
 	<header class="showcase__heading">
 		<h2 aria-live="polite" data-project-title aria-label={firstProject.title}>
@@ -56,7 +68,7 @@ const firstProject = projects[0];
 <script>
 	import Lenis from 'lenis';
 	import { navigate } from 'astro:transitions/client';
-	import { characterPool, randomCharacter, shuffle } from '../scripts/scramble';
+	import { animatePermutation, characterPool, randomCharacter, shuffle } from '../scripts/scramble';
 
 	const SCRAMBLE_DURATION = 560;
 	const SCRAMBLE_TICK = 46;
@@ -394,9 +406,11 @@ const firstProject = projects[0];
 		const title = showcase.querySelector<HTMLElement>('[data-project-title]');
 		const category = showcase.querySelector<HTMLElement>('[data-project-category]');
 		const projectLink = showcase.querySelector<HTMLAnchorElement>('[data-project-link]');
+		const projectCta = showcase.querySelector<HTMLAnchorElement>('[data-project-cta]');
+		const projectCtaText = showcase.querySelector<HTMLElement>('[data-project-cta-text]');
 		const scrollProxy = showcase.querySelector<HTMLElement>('[data-project-scroll-proxy]');
 		const scrollContent = showcase.querySelector<HTMLElement>('[data-project-scroll-content]');
-		if (!media || !title || !category || !projectLink || !scrollProxy || !scrollContent || panels.length === 0) return;
+		if (!media || !title || !category || !projectLink || !projectCta || !projectCtaText || !scrollProxy || !scrollContent || panels.length === 0) return;
 		const initialTitle = panels[0].dataset.title ?? '';
 		const initialCategory = panels[0].dataset.category ?? '';
 		renderTitle(title, initialTitle);
@@ -404,6 +418,25 @@ const firstProject = projects[0];
 		category.textContent = initialCategory;
 		projectLink.href = panels[0].dataset.projectHref ?? '/';
 		projectLink.setAttribute('aria-label', `Открыть проект ${initialTitle}`);
+		projectCta.href = projectLink.href;
+		projectCta.setAttribute('aria-label', `Подробнее о проекте ${initialTitle}`);
+		const scrambleProjectCta = () => {
+			if (reducedMotion.matches || projectCtaText.dataset.animating === 'true') return;
+			const value = [...(projectCtaText.dataset.original ?? '')];
+			const spans = [...projectCtaText.querySelectorAll<HTMLElement>('.showcase__project-cta-char')];
+			projectCtaText.style.width = `${projectCtaText.getBoundingClientRect().width}px`;
+			projectCtaText.dataset.animating = 'true';
+			void animatePermutation({ spans, value }).then(() => {
+				projectCtaText.dataset.animating = 'false';
+				projectCtaText.style.removeProperty('width');
+			});
+		};
+		projectCta.addEventListener('pointerenter', scrambleProjectCta);
+		projectCta.addEventListener('focus', scrambleProjectCta);
+		cleanups.push(() => {
+			projectCta.removeEventListener('pointerenter', scrambleProjectCta);
+			projectCta.removeEventListener('focus', scrambleProjectCta);
+		});
 
 		let activeIndex = 0;
 		let wheelAmount = 0;
@@ -437,9 +470,13 @@ const firstProject = projects[0];
 		};
 		projectLink.addEventListener('pointerenter', prefetchActiveCase);
 		projectLink.addEventListener('focus', prefetchActiveCase);
+		projectCta.addEventListener('pointerenter', prefetchActiveCase);
+		projectCta.addEventListener('focus', prefetchActiveCase);
 		cleanups.push(() => {
 			projectLink.removeEventListener('pointerenter', prefetchActiveCase);
 			projectLink.removeEventListener('focus', prefetchActiveCase);
+			projectCta.removeEventListener('pointerenter', prefetchActiveCase);
+			projectCta.removeEventListener('focus', prefetchActiveCase);
 		});
 		panels.forEach((panel, index) => {
 			panel.style.visibility = isIntroPlaying || index === activeIndex ? 'visible' : 'hidden';
@@ -537,6 +574,8 @@ const firstProject = projects[0];
 			activeIndex = wrappedIndex;
 			projectLink.href = panels[activeIndex].dataset.projectHref ?? '/';
 			projectLink.setAttribute('aria-label', `Открыть проект ${nextTitle}`);
+			projectCta.href = projectLink.href;
+			projectCta.setAttribute('aria-label', `Подробнее о проекте ${nextTitle}`);
 			prefetchActiveCase();
 			lens?.setPair(previousIndex, activeIndex);
 			const finishPanelTransition = () => {
@@ -735,6 +774,7 @@ const firstProject = projects[0];
 				}
 				lens?.render(eased * 0.24, 1, 0, eased);
 				media.style.opacity = `${1 - eased}`;
+				projectCta.style.opacity = `${1 - eased}`;
 				if (progress < 1) {
 					requestAnimationFrame(animateExit);
 					return;
@@ -747,7 +787,7 @@ const firstProject = projects[0];
 			requestAnimationFrame(animateExit);
 		};
 
-		projectLink.addEventListener('click', (event) => {
+		const openProject = (event: MouseEvent) => {
 			event.preventDefault();
 			prefetchActiveCase();
 			if (reducedMotion.matches) {
@@ -757,6 +797,12 @@ const firstProject = projects[0];
 			const destination = new URL(projectLink.href, window.location.href);
 			destination.searchParams.set('entry', Date.now().toString());
 			runPageExit(destination.href);
+		};
+		projectLink.addEventListener('click', openProject);
+		projectCta.addEventListener('click', openProject);
+		cleanups.push(() => {
+			projectLink.removeEventListener('click', openProject);
+			projectCta.removeEventListener('click', openProject);
 		});
 
 		const infoLink = document.querySelector<HTMLAnchorElement>('nav a[href="/info"]');
@@ -1112,6 +1158,42 @@ const firstProject = projects[0];
 		opacity: 0;
 	}
 
+	.showcase__project-cta {
+		position: relative;
+		z-index: 5;
+		display: inline-flex;
+		grid-column: 3 / span 7;
+		grid-row: 1;
+		align-self: end;
+		justify-self: center;
+		margin-bottom: var(--project-cta-bottom);
+		padding: var(--project-cta-padding-block) var(--project-cta-padding-inline);
+		overflow: hidden;
+		color: #fff;
+		font-size: var(--ui-font-size);
+		font-weight: 500;
+		line-height: var(--ui-line-height);
+		white-space: nowrap;
+		background: linear-gradient(180deg, #232326 0%, #19191c 100%);
+		border-radius: 3px;
+		box-shadow:
+			3px 3px 10px rgb(0 0 0 / 10%),
+			11px 14px 18px rgb(0 0 0 / 9%),
+			25px 31px 24px rgb(0 0 0 / 5%),
+			44px 56px 28px rgb(0 0 0 / 1%),
+			69px 87px 31px rgb(0 0 0 / 0%);
+		text-decoration: none;
+		pointer-events: auto;
+	}
+
+	.showcase__project-cta-text {
+		display: inline-block;
+	}
+
+	.showcase__project-cta-char {
+		display: inline-block;
+	}
+
 	.showcase__panel {
 		position: absolute;
 		inset: 0;
@@ -1179,6 +1261,7 @@ const firstProject = projects[0];
 		.showcase__lens,
 		.showcase__heading,
 		.showcase__hit-area,
+		.showcase__project-cta,
 		.showcase__media::after {
 			display: none;
 		}
