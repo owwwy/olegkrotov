@@ -177,6 +177,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 			import { navigate } from 'astro:transitions/client';
 			import { Body as MatterBody, Bodies, Composite, Engine, Query, Sleeping, Vertices } from 'matter-js';
 
+			const PAGE_TRANSITION_SPEED = 1.8;
 			let cleanupContacts = () => {};
 			let isReturningHome = false;
 			const initializeContacts = () => {
@@ -206,16 +207,16 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 					spans.forEach((span, index) => window.setTimeout(() => {
 						const target = span.dataset.character ?? '';
 						const started = performance.now();
-						const duration = 260 + Math.random() * 280;
+						const duration = (260 + Math.random() * 280) / PAGE_TRANSITION_SPEED;
 						const frame = (now: number) => {
 							const progress = Math.min(1, (now - started) / duration);
 							span.textContent = target === ' ' ? '\u00a0' : progress === 1
 								? target
 								: randomCharacter(alphabet) || target;
-							if (progress < 1) window.setTimeout(() => requestAnimationFrame(frame), 36);
+							if (progress < 1) window.setTimeout(() => requestAnimationFrame(frame), 36 / PAGE_TRANSITION_SPEED);
 						};
 						requestAnimationFrame(frame);
-					}, linkIndex * 100 + index * 34));
+					}, (linkIndex * 100 + index * 34) / PAGE_TRANSITION_SPEED));
 				});
 				const scrambleOut = () => Promise.all(links.map((link, linkIndex) => {
 					const spans = [...link.querySelectorAll<HTMLElement>('.contact-link-char')];
@@ -228,17 +229,17 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 								return;
 							}
 							const started = performance.now();
-							const duration = 150 + Math.random() * 150;
+							const duration = (150 + Math.random() * 150) / PAGE_TRANSITION_SPEED;
 							const frame = (now: number) => {
 								const progress = Math.min(1, (now - started) / duration);
 								span.textContent = progress === 1
 									? ''
 									: randomCharacter(alphabet) || target;
-								if (progress < 1) window.setTimeout(() => requestAnimationFrame(frame), 32);
+								if (progress < 1) window.setTimeout(() => requestAnimationFrame(frame), 32 / PAGE_TRANSITION_SPEED);
 								else resolve();
 							};
 							requestAnimationFrame(frame);
-						}, linkIndex * 42 + reverseIndex * 18);
+						}, (linkIndex * 42 + reverseIndex * 18) / PAGE_TRANSITION_SPEED);
 					}))).then(() => undefined);
 				})).then(() => footer.classList.remove('is-visible'));
 				const scrambleHover = (link: HTMLAnchorElement) => {
@@ -289,6 +290,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 				let frameId = 0;
 				let last = performance.now();
 				let physicsAccumulator = 0;
+				let physicsTimeScale = PAGE_TRANSITION_SPEED;
 				let physicsRunning = false;
 				let settledFrames = 0;
 				let leaving = false;
@@ -372,7 +374,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 					if (!physicsRunning) return;
 					const delta = Math.min(50, now - last);
 					last = now;
-					physicsAccumulator += delta;
+					physicsAccumulator += delta * physicsTimeScale;
 					while (physicsAccumulator >= 1000 / 60) {
 						Engine.update(engine, 1000 / 60);
 						physicsAccumulator -= 1000 / 60;
@@ -388,6 +390,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 						|| (body.speed < .045 && body.angularSpeed < .012));
 					settledFrames = !leaving && settled ? settledFrames + 1 : 0;
 					if (settledFrames >= 45) {
+						physicsTimeScale = 1;
 						physicsRunning = false;
 						frameId = 0;
 						return;
@@ -464,6 +467,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 
 				const dropBodies = () => new Promise<void>((resolve) => {
 					stage.classList.add('is-leaving');
+					physicsTimeScale = PAGE_TRANSITION_SPEED;
 					if (reduced) {
 						bodies.forEach((item) => {
 							MatterBody.setPosition(item.body, { x: item.body.position.x, y: window.innerHeight + item.h });
@@ -593,7 +597,7 @@ const physicsLetters = physicsContacts.flatMap((contact, group) => [...contact.l
 		font-weight: 400;
 		line-height: var(--ui-line-height);
 		opacity: 0;
-		transition: opacity 160ms ease;
+		transition: opacity 89ms ease;
 	}
 	.contact-footer.is-visible { opacity: 1; }
 	.contact-footer__socials { display: flex; align-items: center; }

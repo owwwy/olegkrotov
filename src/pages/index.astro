@@ -82,6 +82,7 @@ import { projects } from '../data/projects';
 		</div>
 		<script is:inline data-astro-rerun>
 			(() => {
+				const PAGE_TRANSITION_SPEED = 1.8;
 				if (document.documentElement.classList.contains('mobile-layout')) {
 					document.querySelector('[data-site-preloader]')?.remove();
 					return;
@@ -135,7 +136,7 @@ import { projects } from '../data/projects';
 						draw(elements[valueIndex], output);
 					});
 				};
-				const scrambleTimer = window.setInterval(scramble, 58);
+				const scrambleTimer = window.setInterval(scramble, 58 / PAGE_TRANSITION_SPEED);
 				draw(loaderName, []);
 				draw(loaderRole, []);
 				const build = (valueIndex, value, duration, delay = 0) => new Promise((resolve) => {
@@ -173,8 +174,8 @@ import { projects } from '../data/projects';
 
 				(async () => {
 					await Promise.all([
-						build(0, name, 680),
-						build(1, role, 760, 90),
+						build(0, name, 680 / PAGE_TRANSITION_SPEED),
+						build(1, role, 760 / PAGE_TRANSITION_SPEED, 90 / PAGE_TRANSITION_SPEED),
 					]);
 					window.clearInterval(scrambleTimer);
 					draw(loaderName, [...name]);
@@ -195,18 +196,18 @@ import { projects } from '../data/projects';
 						}
 						draw(elements[valueIndex], output);
 						window.clearTimeout(glitchRestore);
-						glitchRestore = window.setTimeout(() => draw(elements[valueIndex], [...value]), 72);
+						glitchRestore = window.setTimeout(() => draw(elements[valueIndex], [...value]), 72 / PAGE_TRANSITION_SPEED);
 					};
-					const glitchTimer = window.setInterval(glitch, 190 + Math.random() * 90);
+					const glitchTimer = window.setInterval(glitch, (190 + Math.random() * 90) / PAGE_TRANSITION_SPEED);
 					await Promise.all([
 						loaded,
-						new Promise((resolve) => window.setTimeout(resolve, Math.max(0, 1200 - (performance.now() - startedAt)))),
+						new Promise((resolve) => window.setTimeout(resolve, Math.max(0, 1200 / PAGE_TRANSITION_SPEED - (performance.now() - startedAt)))),
 					]);
 					window.clearInterval(glitchTimer);
 					window.clearTimeout(glitchRestore);
 					draw(loaderName, [...name]);
 					draw(loaderRole, [...role]);
-					await new Promise((resolve) => window.setTimeout(resolve, 140));
+					await new Promise((resolve) => window.setTimeout(resolve, 140 / PAGE_TRANSITION_SPEED));
 
 					const target = targetIdentity.getBoundingClientRect();
 					const source = loaderIdentity.getBoundingClientRect();
@@ -217,15 +218,15 @@ import { projects } from '../data/projects';
 					window.setTimeout(() => {
 						document.documentElement.classList.add('is-revealing');
 						window.dispatchEvent(new CustomEvent('site:reveal'));
-					}, 260);
+					}, 260 / PAGE_TRANSITION_SPEED);
 					window.setTimeout(() => {
 						document.documentElement.classList.add('is-identity-ready');
-					}, 610);
+					}, 610 / PAGE_TRANSITION_SPEED);
 					window.setTimeout(() => {
 						document.documentElement.classList.remove('is-preloading');
 						document.documentElement.classList.remove('is-identity-ready');
 						loader.remove();
-					}, 760);
+					}, 760 / PAGE_TRANSITION_SPEED);
 				})();
 			})();
 		</script>
@@ -280,7 +281,7 @@ import { projects } from '../data/projects';
 		display: grid;
 		place-items: center;
 		background: #fff;
-		transition: background-color 500ms cubic-bezier(0.22, 1, 0.36, 1);
+		transition: background-color 278ms cubic-bezier(0.22, 1, 0.36, 1);
 	}
 
 	.site-preloader.is-returning {
@@ -293,7 +294,7 @@ import { projects } from '../data/projects';
 		flex-direction: column;
 		transform: translate3d(0, 0, 0);
 		transform-origin: top left;
-		transition: transform 640ms cubic-bezier(0.22, 1, 0.36, 1);
+		transition: transform 356ms cubic-bezier(0.22, 1, 0.36, 1);
 	}
 
 	.site-preloader__identity.is-returning {
@@ -322,7 +323,7 @@ import { projects } from '../data/projects';
 	.identity,
 	nav,
 	main {
-		transition: opacity 420ms ease-out;
+		transition: opacity 233ms ease-out;
 	}
 
 	.is-preloading.is-revealing nav,

@@ -73,13 +73,14 @@ const firstProject = projects[0];
 	const SCRAMBLE_DURATION = 560;
 	const SCRAMBLE_TICK = 46;
 	const TRANSITION_DURATION = 720;
+	const PAGE_TRANSITION_SPEED = 1.8;
 	const CTA_SCROLL_LIFT = 24;
-	const INTRO_MIN_PROJECT_DURATION = 80;
-	const INTRO_MAX_PROJECT_DURATION = 240;
+	const INTRO_MIN_PROJECT_DURATION = 80 / PAGE_TRANSITION_SPEED;
+	const INTRO_MAX_PROJECT_DURATION = 240 / PAGE_TRANSITION_SPEED;
 	const INTRO_LOOPS = 1;
 	const INTRO_BOUNCE_DISTANCE = 1 / 3;
 	const INTRO_BOUNCE_SHAPE_PEAK = 27 / 256;
-	const INTRO_QUALITY_FINISH_DURATION = 620;
+	const INTRO_QUALITY_FINISH_DURATION = 620 / PAGE_TRANSITION_SPEED;
 	const SCROLL_PIXELATION_MAX = 0.44;
 	const SCROLL_QUALITY_FINISH_DURATION = 680;
 	const WHEEL_THRESHOLD = 90;
@@ -780,11 +781,11 @@ const firstProject = projects[0];
 			});
 			const startedAt = performance.now();
 			let lastTick = 0;
-			const exitDuration = 680;
+			const exitDuration = 680 / PAGE_TRANSITION_SPEED;
 			const animateExit = (now: number) => {
 				const progress = Math.min(1, (now - startedAt) / exitDuration);
 				const eased = progress * progress * (3 - 2 * progress);
-				if (now - lastTick >= 42 || progress === 1) {
+				if (now - lastTick >= 42 / PAGE_TRANSITION_SPEED || progress === 1) {
 					lastTick = now;
 					exitTexts.forEach(({ element, characters, pool }) => {
 						const visible = Math.max(0, Math.ceil(characters.length * (1 - progress)));
@@ -804,7 +805,7 @@ const firstProject = projects[0];
 				window.setTimeout(() => {
 					if (clientNavigation) void navigate(destination);
 					else window.location.assign(destination);
-				}, 70);
+				}, 70 / PAGE_TRANSITION_SPEED);
 			};
 			requestAnimationFrame(animateExit);
 		};
@@ -873,14 +874,14 @@ const firstProject = projects[0];
 				return;
 			}
 			const startedAt = performance.now();
-			const duration = 1050;
+			const duration = 1050 / PAGE_TRANSITION_SPEED;
 			let lastTick = 0;
 			const frame = (now: number) => {
 				const elapsed = now - startedAt;
-				if (now - lastTick >= 44 || elapsed >= duration) {
+				if (now - lastTick >= 44 / PAGE_TRANSITION_SPEED || elapsed >= duration) {
 					lastTick = now;
 					states.forEach(({ value, spans, pool }, elementIndex) => {
-						const delay = elementIndex * 105;
+						const delay = elementIndex * 105 / PAGE_TRANSITION_SPEED;
 						const local = Math.max(0, Math.min(1, (elapsed - delay) / (duration - delay)));
 						const visible = Math.ceil(Math.min(1, local * 1.7) * value.length);
 						const settled = Math.floor(Math.pow(local, 1.35) * value.length);
@@ -1004,7 +1005,7 @@ const firstProject = projects[0];
 					lens.render(introStrength * 0.7, 1, projectTransition, pixelation);
 				}
 
-				if (now - lastIntroScramble >= SCRAMBLE_TICK || progress === 1) {
+				if (now - lastIntroScramble >= SCRAMBLE_TICK / PAGE_TRANSITION_SPEED || progress === 1) {
 					lastIntroScramble = now;
 					const revealProgress = Math.min(1, progress * 1.55);
 					renderIntroScramble(title, introTitles, projectIndex, nextProjectIndex, projectTransition, true, revealProgress);

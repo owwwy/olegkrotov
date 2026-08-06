@@ -95,6 +95,7 @@ import TypeScale from '../components/TypeScale.astro';
 		</div>
 		<script is:inline data-astro-rerun>
 			(() => {
+				const PAGE_TRANSITION_SPEED = 1.8;
 				const loader = document.querySelector('[data-info-preloader]');
 				if (!document.documentElement.classList.contains('info-direct-preloading')) {
 					loader?.remove();
@@ -128,7 +129,7 @@ import TypeScale from '../components/TypeScale.astro';
 						});
 						draw(elements[valueIndex], output);
 					});
-				}, 58);
+				}, 58 / PAGE_TRANSITION_SPEED);
 				const build = (valueIndex, duration, delay = 0) => new Promise((resolve) => {
 					const startedAt = performance.now() + delay;
 					const length = [...values[valueIndex]].length;
@@ -147,10 +148,14 @@ import TypeScale from '../components/TypeScale.astro';
 					requestAnimationFrame(frame);
 				});
 				(async () => {
-					await Promise.all([build(0, 680), build(1, 760, 90), document.fonts?.ready ?? Promise.resolve()]);
+					await Promise.all([
+						build(0, 680 / PAGE_TRANSITION_SPEED),
+						build(1, 760 / PAGE_TRANSITION_SPEED, 90 / PAGE_TRANSITION_SPEED),
+						document.fonts?.ready ?? Promise.resolve(),
+					]);
 					window.clearInterval(scrambleTimer);
 					values.forEach((value, index) => draw(elements[index], [...value]));
-					await new Promise((resolve) => window.setTimeout(resolve, 320));
+					await new Promise((resolve) => window.setTimeout(resolve, 320 / PAGE_TRANSITION_SPEED));
 					const target = targetIdentity.getBoundingClientRect();
 					const source = identity.getBoundingClientRect();
 					identity.style.setProperty('--info-loader-x', `${target.left - source.left}px`);
@@ -160,20 +165,21 @@ import TypeScale from '../components/TypeScale.astro';
 					window.setTimeout(() => {
 						document.documentElement.classList.add('info-direct-revealing');
 						window.dispatchEvent(new CustomEvent('info:direct-reveal'));
-					}, 260);
-					window.setTimeout(() => document.documentElement.classList.add('info-direct-identity-ready'), 610);
+					}, 260 / PAGE_TRANSITION_SPEED);
+					window.setTimeout(() => document.documentElement.classList.add('info-direct-identity-ready'), 610 / PAGE_TRANSITION_SPEED);
 					window.setTimeout(() => {
 						document.documentElement.classList.remove(
 							'info-direct-preloading', 'info-direct-identity-ready', 'info-direct-revealing'
 						);
 						loader.remove();
-					}, 760);
+					}, 760 / PAGE_TRANSITION_SPEED);
 				})();
 			})();
 		</script>
 		<script>
 			import { navigate } from 'astro:transitions/client';
 
+			const PAGE_TRANSITION_SPEED = 1.8;
 			const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 			let isReturningHome = false;
 			let cleanupInfoPage = () => {};
@@ -228,7 +234,7 @@ import TypeScale from '../components/TypeScale.astro';
 					}
 					return pool[Math.floor(Math.random() * pool.length)] ?? '';
 				};
-				const enterSpeed = 1.4;
+				const enterSpeed = 1.4 * PAGE_TRANSITION_SPEED;
 				const characterSlots = [...characters, ...spaces];
 				characterSlots.forEach((character) => {
 					character.dataset.slotWidth = character.getBoundingClientRect().width.toString();
@@ -290,7 +296,7 @@ import TypeScale from '../components/TypeScale.astro';
 					const bufferContext = buffer.getContext('2d');
 					if (!context || !bufferContext) return;
 					image.style.opacity = reverse ? '1' : '0';
-					const duration = reverse ? 360 : 620 / enterSpeed;
+					const duration = reverse ? 360 / PAGE_TRANSITION_SPEED : 620 / enterSpeed;
 					const startedAt = performance.now();
 					await new Promise<void>((resolve) => {
 						const frame = (now: number) => {
@@ -354,7 +360,7 @@ import TypeScale from '../components/TypeScale.astro';
 							const frame = (now: number) => {
 								if (isLeaving) return;
 								const progress = Math.min(1, (now - startedAt) / duration);
-								if (now - lastTick >= 42 || progress === 1) {
+								if (now - lastTick >= 42 / PAGE_TRANSITION_SPEED || progress === 1) {
 									lastTick = now;
 									item.textContent = progress === 1 ? target : randomCharacter(item);
 								}
@@ -385,18 +391,18 @@ import TypeScale from '../components/TypeScale.astro';
 						if (finished === reversed.length) resolve();
 					};
 					reversed.forEach((item, index) => {
-						const delay = index * 5 + Math.random() * 44;
+						const delay = (index * 5 + Math.random() * 44) / PAGE_TRANSITION_SPEED;
 						window.setTimeout(() => {
 							if (item.classList.contains('visual')) {
 								void pixelate(item, true).then(complete);
 								return;
 							}
-							const duration = 180 + Math.random() * 180;
+							const duration = (180 + Math.random() * 180) / PAGE_TRANSITION_SPEED;
 							const startedAt = performance.now();
 							let lastTick = 0;
 							const frame = (now: number) => {
 								const progress = Math.min(1, (now - startedAt) / duration);
-								if (now - lastTick >= 36 || progress === 1) {
+								if (now - lastTick >= 36 / PAGE_TRANSITION_SPEED || progress === 1) {
 									lastTick = now;
 									item.textContent = progress === 1 ? '' : randomCharacter(item);
 									item.style.opacity = `${1 - Math.max(0, (progress - .55) / .45)}`;
@@ -471,7 +477,7 @@ import TypeScale from '../components/TypeScale.astro';
 		display: grid;
 		place-items: center;
 		background: #fff;
-		transition: background-color 500ms cubic-bezier(.22, 1, .36, 1);
+		transition: background-color 278ms cubic-bezier(.22, 1, .36, 1);
 	}
 
 	.info-preloader.is-returning {
@@ -484,7 +490,7 @@ import TypeScale from '../components/TypeScale.astro';
 		flex-direction: column;
 		transform: translate3d(0, 0, 0);
 		transform-origin: top left;
-		transition: transform 640ms cubic-bezier(.22, 1, .36, 1);
+		transition: transform 356ms cubic-bezier(.22, 1, .36, 1);
 	}
 
 	.info-preloader__identity.is-returning {
@@ -513,7 +519,7 @@ import TypeScale from '../components/TypeScale.astro';
 	.identity,
 	nav,
 	main {
-		transition: opacity 420ms ease-out;
+		transition: opacity 233ms ease-out;
 	}
 
 	.info-direct-preloading.info-direct-revealing nav,
