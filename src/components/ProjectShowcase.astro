@@ -428,6 +428,29 @@ const firstProject = projects[0];
 				return span;
 			}));
 		};
+		const projectCtaStaticShadow = [
+			[3, 3, 10, 0.10],
+			[11, 14, 18, 0.09],
+			[25, 31, 24, 0.05],
+			[44, 56, 28, 0.01],
+			[69, 87, 31, 0],
+		];
+		const projectCtaScrollShadow = [
+			[0, 2, 5, 0.17],
+			[0, 9, 9, 0.15],
+			[0, 21, 12, 0.09],
+			[0, 37, 15, 0.03],
+			[0, 57, 16, 0],
+		];
+		const setProjectCtaShadow = (progress: number) => {
+			projectCta.style.boxShadow = projectCtaStaticShadow.map((layer, index) => {
+				const target = projectCtaScrollShadow[index];
+				const value = layer.map((component, componentIndex) =>
+					component + ((target?.[componentIndex] ?? component) - component) * progress,
+				);
+				return `${value[0]}px ${value[1]}px ${value[2]}px rgb(0 0 0 / ${value[3] * 100}%)`;
+			}).join(', ');
+		};
 		renderTitle(title, initialTitle);
 		title.setAttribute('aria-label', initialTitle);
 		category.textContent = initialCategory;
@@ -633,6 +656,7 @@ const firstProject = projects[0];
 			if (reducedMotion.matches) {
 				setResistance(0, 0);
 				projectCta.style.removeProperty('transform');
+				projectCta.style.removeProperty('box-shadow');
 				window.setTimeout(() => {
 					finishPanelTransition();
 					releaseTransition();
@@ -650,6 +674,7 @@ const firstProject = projects[0];
 				const opticalImpulse = Math.max((1 - progress) * 0.58, impulse * 0.68);
 				const transitionPixelation = SCROLL_PIXELATION_MAX * Math.sin(progress * Math.PI * 0.75);
 				projectCta.style.transform = `translate3d(0, ${-CTA_SCROLL_LIFT * impulse * direction}px, 0)`;
+				setProjectCtaShadow(impulse);
 				setWindowShape(windowImpulse, direction);
 				lens?.render(opticalImpulse, direction, eased, transitionPixelation);
 				if (progress < 1) {
@@ -658,6 +683,7 @@ const firstProject = projects[0];
 				}
 				lens?.setPair(activeIndex, activeIndex);
 				projectCta.style.removeProperty('transform');
+				projectCta.style.removeProperty('box-shadow');
 				setWindowShape(0, 0);
 				finishPanelTransition();
 				const finishTransition = () => {
