@@ -73,7 +73,7 @@ const firstProject = projects[0];
 	const SCRAMBLE_DURATION = 560;
 	const SCRAMBLE_TICK = 46;
 	const TRANSITION_DURATION = 720;
-	const CTA_SCROLL_LIFT = 36;
+	const CTA_SCROLL_LIFT = 24;
 	const INTRO_MIN_PROJECT_DURATION = 80;
 	const INTRO_MAX_PROJECT_DURATION = 240;
 	const INTRO_LOOPS = 1;
@@ -608,6 +608,7 @@ const firstProject = projects[0];
 
 			scrambleText(title, previousTitle, nextTitle);
 			scrambleText(category, previousCategory, nextCategory, false);
+			scrambleProjectCta();
 			wheelAmount = 0;
 			wheelDirection = 0;
 
@@ -630,7 +631,7 @@ const firstProject = projects[0];
 				const windowImpulse = Math.max(1 - progress, impulse * 0.9);
 				const opticalImpulse = Math.max((1 - progress) * 0.58, impulse * 0.68);
 				const transitionPixelation = SCROLL_PIXELATION_MAX * Math.sin(progress * Math.PI * 0.75);
-				projectCta.style.transform = `translate3d(0, ${-CTA_SCROLL_LIFT * impulse}px, 0)`;
+				projectCta.style.transform = `translate3d(0, ${-CTA_SCROLL_LIFT * impulse * direction}px, 0)`;
 				setWindowShape(windowImpulse, direction);
 				lens?.render(opticalImpulse, direction, eased, transitionPixelation);
 				if (progress < 1) {
