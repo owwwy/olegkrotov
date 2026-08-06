@@ -42,10 +42,10 @@ const firstProject = projects[0];
 		class="showcase__project-cta"
 		data-project-cta
 		href={`/${firstProject.slug}`}
-		aria-label={`Подробнее о проекте ${firstProject.title}`}
+		aria-label={`Подробнее про ${firstProject.title}`}
 	>
-		<span class="showcase__project-cta-text" data-project-cta-text data-original="Подробнее о проекте" aria-hidden="true">
-			{[...'Подробнее о проекте'].map((character) => (
+		<span class="showcase__project-cta-text" data-project-cta-text data-original={`Подробнее про ${firstProject.title}`} aria-hidden="true">
+			{[...`Подробнее про ${firstProject.title}`].map((character) => (
 				<span class="showcase__project-cta-char">{character === ' ' ? '\u00a0' : character}</span>
 			))}
 		</span>
@@ -414,20 +414,36 @@ const firstProject = projects[0];
 		if (!media || !title || !category || !projectLink || !projectCta || !projectCtaText || !scrollProxy || !scrollContent || panels.length === 0) return;
 		const initialTitle = panels[0].dataset.title ?? '';
 		const initialCategory = panels[0].dataset.category ?? '';
+		let projectCtaAnimationVersion = 0;
+		const setProjectCtaLabel = (value: string) => {
+			projectCtaAnimationVersion += 1;
+			projectCtaText.dataset.animating = 'false';
+			projectCtaText.dataset.original = value;
+			projectCtaText.style.removeProperty('width');
+			projectCtaText.replaceChildren(...[...value].map((character) => {
+				const span = document.createElement('span');
+				span.className = 'showcase__project-cta-char';
+				span.textContent = character === ' ' ? '\u00a0' : character;
+				return span;
+			}));
+		};
 		renderTitle(title, initialTitle);
 		title.setAttribute('aria-label', initialTitle);
 		category.textContent = initialCategory;
 		projectLink.href = panels[0].dataset.projectHref ?? '/';
 		projectLink.setAttribute('aria-label', `Открыть проект ${initialTitle}`);
 		projectCta.href = projectLink.href;
-		projectCta.setAttribute('aria-label', `Подробнее о проекте ${initialTitle}`);
+		projectCta.setAttribute('aria-label', `Подробнее про ${initialTitle}`);
+		setProjectCtaLabel(`Подробнее про ${initialTitle}`);
 		const scrambleProjectCta = () => {
 			if (reducedMotion.matches || projectCtaText.dataset.animating === 'true') return;
+			const animationVersion = ++projectCtaAnimationVersion;
 			const value = [...(projectCtaText.dataset.original ?? '')];
 			const spans = [...projectCtaText.querySelectorAll<HTMLElement>('.showcase__project-cta-char')];
 			projectCtaText.style.width = `${projectCtaText.getBoundingClientRect().width}px`;
 			projectCtaText.dataset.animating = 'true';
 			void animatePermutation({ spans, value }).then(() => {
+				if (animationVersion !== projectCtaAnimationVersion) return;
 				projectCtaText.dataset.animating = 'false';
 				projectCtaText.style.removeProperty('width');
 			});
@@ -576,7 +592,8 @@ const firstProject = projects[0];
 			projectLink.href = panels[activeIndex].dataset.projectHref ?? '/';
 			projectLink.setAttribute('aria-label', `Открыть проект ${nextTitle}`);
 			projectCta.href = projectLink.href;
-			projectCta.setAttribute('aria-label', `Подробнее о проекте ${nextTitle}`);
+			projectCta.setAttribute('aria-label', `Подробнее про ${nextTitle}`);
+			setProjectCtaLabel(`Подробнее про ${nextTitle}`);
 			prefetchActiveCase();
 			lens?.setPair(previousIndex, activeIndex);
 			const finishPanelTransition = () => {
